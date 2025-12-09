@@ -1733,8 +1733,8 @@ namespace Tkn_Menu
                             // 4. NOTE(@Janberk): Hardcoded colors here 
                             // (Red, Green, Coral, Purple) are test/example values.
                             // In production, colors should come from metadata (CMP_BACKCOLOR, MENU_COLOR columns)
-                            string backColorStr = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACKCOLOR"]?.ToString(), "", "");
-                            string menuColorStr = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
+                            //string backColorStr = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
+                            //string menuColorStr = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
                             
                             pGroup.Tile.AppearanceItem.Normal.BackColor = Color.Red;
                             pGroup.Tile.AppearanceItem.Hovered.BackColor = Color.Green;
@@ -1908,9 +1908,9 @@ namespace Tkn_Menu
                                 // 5. NOTE(@Janberk): Colors are applied here from global variables 
                                 // (v.colorNew, v.colorFocus).
                                 // These come from tVariable.cs.
-                                string tileBackColor = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACKCOLOR"]?.ToString(), "", "");
-                                string tileMenuColor = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
-                                System.Diagnostics.Debug.WriteLine($"tMenu.Create_TileNavPane: Creating TileNavItem (itemType=206), caption={itemCaption}, BackColor={tileBackColor}, MenuColor={tileMenuColor}, Action={Prop_Navigator}");
+                                //string tileBackColor = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
+                                //string tileMenuColor = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
+                                //System.Diagnostics.Debug.WriteLine($"tMenu.Create_TileNavPane: Creating TileNavItem (itemType=206), caption={itemCaption}, BackColor={tileBackColor}, MenuColor={tileMenuColor}, Action={Prop_Navigator}");
                                 
                                 tItem.Appearance.BackColor = v.colorNew;
                                 tItem.AppearanceHovered.BackColor = v.colorFocus;

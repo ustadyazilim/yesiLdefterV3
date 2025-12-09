@@ -4866,6 +4866,13 @@ MS_FIELDS                                          T03_MSFIELDS                 
                     // category altına ekle
                     if ((fgroup_no > 0) && (move_item_type == 0))
                     {
+                        string catName = "CategoryRow_" + fgroup_no.ToString();
+                        BaseRow catRow = tVGridControl.Rows[catName]; // returns null if not found
+                        if (catRow != null)
+                        {
+                            catRow.ChildRows.Add(column);
+                        }
+                        /*
                         try
                         {
                             if (tVGridControl.Rows.Count >= fgroup_no) 
@@ -4875,6 +4882,7 @@ MS_FIELDS                                          T03_MSFIELDS                 
                         {
                             //
                         }
+                        */
                     }
 
                     // başka bir fieldin/column altına ekle

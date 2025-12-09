@@ -2,13 +2,13 @@
 
 begin transaction
 
- create table MtskSinavRandevu
+ create table MtskSinavRandevuS
  (
    Id                       Int IDENTITY(1,1) not null, 
    ParentId                 Int       not null,
    FirmId                   Int       not null,
    IsActive                 Bit       not null, /* default : 1 = active, 0 = not active */  
-   IsMasterRow              Bit           null, /* planlama hazırlanırken master row görevi olan satır, diğer satırlar bu master rowa göre çoğalıyor */
+   SinavRandevuBId          int           null, 
    Tarih                    Date          null,   
    MebbisRandevuTarihValue  Varchar(20)   null,
    GuzergahId               Int           null, /* sınavın yapılacağı güzergah */
@@ -28,12 +28,12 @@ begin transaction
    IsGBelgesiTeslimEdildi   Bit           null,
    IsMebbisUploaded         Bit           null,
 
-   constraint		pk_MtskSinavRandevu primary key (Id)
+   constraint		pk_MtskSinavRandevuS primary key (Id)
  )
   
- grant select, insert, update, delete on MtskSinavRandevu to public
+ grant select, insert, update, delete on MtskSinavRandevuS to public
 
- create index X_MtskSinavRandevu01 on MtskSinavRandevu (Tarih, EgitimAraciId)
+ create index X_MtskSinavRandevuS01 on MtskSinavRandevuS (SinavRandevuBId)
  
 commit transaction
 
@@ -42,7 +42,7 @@ commit transaction
 
 /*CreateTrigger*/
 
-CREATE TRIGGER [dbo].[trg_MtskSinavRandevu] on [dbo].[MtskSinavRandevu] 
+CREATE TRIGGER [dbo].[trg_MtskSinavRandevuS] on [dbo].[MtskSinavRandevuS] 
 AFTER INSERT,UPDATE
 AS 
 BEGIN
@@ -54,8 +54,8 @@ BEGIN
     FETCH NEXT FROM randevuCursor INTO @curId
 
     declare @FirmId int
-    declare @IsMasterRow Bit
     declare @Tarih Date
+    declare @SinavRandevuBId int
     declare @MebbisRandevuTarihValue  Varchar(20)
     declare @EgitimAraciId Varchar(10)
     declare @PersonelNoTipiId SmallInt
@@ -79,8 +79,8 @@ BEGIN
     BEGIN
 	    select
             @FirmId = isnull(ins.FirmId,0)
-           ,@IsMasterRow = isnull(ins.IsMasterRow,0)
            ,@Tarih = ins.Tarih
+           ,@SinavRandevuBId = isnull(ins.SinavRandevuBId,0) 
            ,@MebbisRandevuTarihValue = isnull(ins.MebbisRandevuTarihValue,'')
            ,@EgitimAraciId = isnull(ins.EgitimAraciId,'')
            ,@PersonelNoTipiId = isnull(ins.PersonelNoTipiId,0)
@@ -95,93 +95,68 @@ BEGIN
 		From inserted ins
         Where ins.Id = @curId
 
-		-- Detay satırı ise
-		if (@IsMasterRow = 0)
+        -- başlığı oku
+        Select 
+            @masterPersonelId1 = isnull(PersonelId1,'')
+           ,@masterPersonelId2 = isnull(PersonelId2,'')
+           ,@masterPersonelId3 = isnull(PersonelId3,'')
+        From dbo.MtskSinavRandevuB
+        Where Id = @SinavRandevuBId
+
+        if (@PersonelNoTipiId = 0) set @PersonelNoTipiId = 1
+        if (@PersonelNoTipiId = 1) set @PersonelId0 = @masterPersonelId1
+        if (@PersonelNoTipiId = 2) set @PersonelId0 = @masterPersonelId2
+        if (@PersonelNoTipiId = 3) set @PersonelId0 = @masterPersonelId3
+
+        if (@SaatTipiId = 0)
         begin
             Select 
-                @masterPersonelId1 = isnull(PersonelId1,'')
-               ,@masterPersonelId2 = isnull(PersonelId2,'')
-               ,@masterPersonelId3 = isnull(PersonelId3,'')
-            From dbo.MtskSinavRandevu
-            Where IsMasterRow = 1
-            and   Tarih = @Tarih
+                @oncekiSaatTipiId = isnull(max(SaatTipiId),0)
+            From dbo.MtskSinavRandevuS
+            Where Tarih = @Tarih
             and   EgitimAraciId = @EgitimAraciId
+            and   Id < @curId
+            
+            if (@oncekiSaatTipiId >= 1) set @oncekiSaatTipiId = @oncekiSaatTipiId + 1
+            if (@oncekiSaatTipiId = 0) set @oncekiSaatTipiId = 1
+            if (@oncekiSaatTipiId > 12) set @oncekiSaatTipiId = 0
+        end
+        else 
+            Set @oncekiSaatTipiId = @SaatTipiId
 
-			if (@PersonelNoTipiId = 0) set @PersonelNoTipiId = 1
-			if (@PersonelNoTipiId = 1) set @PersonelId0 = @masterPersonelId1
-			if (@PersonelNoTipiId = 2) set @PersonelId0 = @masterPersonelId2
-			if (@PersonelNoTipiId = 3) set @PersonelId0 = @masterPersonelId3
-
-            if (@SaatTipiId = 0)
-            begin
-                Select 
-                    @oncekiSaatTipiId = isnull(max(SaatTipiId),0)
-                From dbo.MtskSinavRandevu
-                Where IsMasterRow = 0
-                and   Tarih = @Tarih
-                and   EgitimAraciId = @EgitimAraciId
-                and   Id < @curId
-
-				if (@oncekiSaatTipiId >= 1) set @oncekiSaatTipiId = @oncekiSaatTipiId + 1
-				if (@oncekiSaatTipiId = 0) set @oncekiSaatTipiId = 1
-				if (@oncekiSaatTipiId > 12) set @oncekiSaatTipiId = 0
-            end
-			else 
-			   Set @oncekiSaatTipiId = @SaatTipiId
-
-            select top 1 @SinavNo =
+        Select top 1 @SinavNo =
             ( case when  isnull(uSinavSonuc.Id,0) = 0 then 1 -- ilk sinav 
                    when (isnull(uSinavSonuc.PuanTipiId,0) = 1 or isnull(uSinavSonuc.PuanTipiId,0) = -1) and isnull(uSinavSonuc.SinavNo,0) < 4 then uSinavSonuc.SinavNo + 1
                    when (isnull(uSinavSonuc.PuanTipiId,0) = 1 or isnull(uSinavSonuc.PuanTipiId,0) = -1) and isnull(uSinavSonuc.SinavNo,0) = 4 then 0
                    when  isnull(uSinavSonuc.PuanTipiId,0) = 100 then 0
             end )
-            from MtskAdayTalep as talep 
+        From dbo.MtskAdayTalep as talep 
 			   left outer join MtskSinavUygulama as uSinavSonuc on (talep.Id = uSinavSonuc.TalepId and uSinavSonuc.SinavTarihi < @Tarih)
-            where talep.Id = @TalepId
+        Where talep.Id = @TalepId
             
-            order by uSinavSonuc.SinavNo desc
+        Order by uSinavSonuc.SinavNo desc
 
-			-- seçili noya göre personel value set oluyor
-			Update dbo.MtskSinavRandevu set
-                PersonelNoTipiId = @PersonelNoTipiId 
-              , PersonelId1 = @PersonelId0
-              , SaatTipiId = @oncekiSaatTipiId
-              , SinavNo = @SinavNo
-			Where Id = @curId
+        -- seçili no ya göre personel value set oluyor
+        Update dbo.MtskSinavRandevuS set
+            PersonelNoTipiId = @PersonelNoTipiId 
+          , PersonelId1 = @PersonelId0
+          , SaatTipiId = @oncekiSaatTipiId
+          , SinavNo = @SinavNo
+        Where Id = @curId
 
-            if (@TalepId > 0)
-            begin
-                -- MtskAdayTakip 
-                Update dbo.MtskAdayTakip set
-                     IsRandevuPlanlandi = 1
-                    ,IsRandevuMebbis = @IsMebbisUploaded
-                    ,RandevuTarihi = @Tarih
-                    ,RandevuSaatTipiId = @oncekiSaatTipiId
-                    ,RandevuEgitimAraciId = @EgitimAraciId
-                    ,RandevuPersonelId = @PersonelId0
-                Where TalepId = @TalepId
-            end
-
-        end -- @IsMasterRow = 0
-
-        if (@IsMasterRow = 1)
+        if (@TalepId > 0)
         begin
-            declare @adet int 
-            Select @adet = isnull(count(Id),0)
-            From dbo.MtskSinavRandevu
-            Where IsMasterRow = 1
-            and   Tarih = @Tarih
-            and   EgitimAraciId = @EgitimAraciId
-			
-			-- aynı gün içinde ikinci defa aynı araç için plan oluşturulamaz
-			if (@adet > 1)
-            begin
-			    Update dbo.MtskSinavRandevu set 
-				   EgitimAraciId = ''
-                Where Id = @curId
-            end --
+            -- MtskAdayTakip 
+            Update dbo.MtskAdayTakip set
+                 IsRandevuPlanlandi = 1
+                ,IsRandevuMebbis = @IsMebbisUploaded
+                ,RandevuTarihi = @Tarih
+                ,RandevuSaatTipiId = @oncekiSaatTipiId
+                ,RandevuEgitimAraciId = @EgitimAraciId
+                ,RandevuPersonelId = @PersonelId0
+            Where TalepId = @TalepId
+        end
 
-        end -- @IsMasterRow = 1
 
         FETCH NEXT FROM randevuCursor INTO @curId
     END -- While
@@ -191,6 +166,7 @@ BEGIN
     CLOSE randevuCursor
     DEALLOCATE randevuCursor  
 
+
 END
 
 /*CreateTriggerEnd*/
@@ -198,7 +174,7 @@ END
 
 /*CreateTrigger*/
 
-CREATE TRIGGER [dbo].[trg_MtskSinavRandevuDeleteIsLock] on [dbo].[MtskSinavRandevu]
+CREATE TRIGGER [dbo].[trg_MtskSinavRandevuSDeleteIsLock] on [dbo].[MtskSinavRandevuS]
 INSTEAD of DELETE
 AS BEGIN
 
@@ -218,7 +194,7 @@ AS BEGIN
             RETURN
         END
 
-        Delete from dbo.MtskSinavRandevu  Where Id = @curId and isnull(IsMebbisUploaded,0) = 0
+        Delete from dbo.MtskSinavRandevuS  Where Id = @curId and isnull(IsMebbisUploaded,0) = 0
 
       FETCH NEXT FROM isLockCursorDlt INTO @curId
     END
@@ -228,13 +204,13 @@ AS BEGIN
 
 END
 
- /*CreateTriggerEnd*/
+/*CreateTriggerEnd*/
 
 
 
 /*CreateTrigger*/
 
-CREATE TRIGGER [dbo].[trg_MtskSinavRandevuDelete] on [dbo].[MtskSinavRandevu]
+CREATE TRIGGER [dbo].[trg_MtskSinavRandevuSDelete] on [dbo].[MtskSinavRandevuS]
 AFTER DELETE
 AS BEGIN
 
@@ -284,21 +260,42 @@ END
 begin transaction
 
 -- ------------------------------------------------------- 
+-- PersonelNoTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'MtskSinavRandevuSPersonelNoTipi')
+drop table [Lkp].[MtskSinavRandevuSPersonelNoTipi]
+
+create table Lkp.MtskSinavRandevuSPersonelNoTipi
+(
+   Id               Int Unique Not Null,
+   PersonelNoTipi   Varchar(20)   null
+
+   constraint  pk_MtskSinavRandevuSPersonelNoTipi primary key (Id)
+)
+
+INSERT INTO Lkp.MtskSinavRandevuSPersonelNoTipi (Id, PersonelNoTipi)
+ VALUES 
+  ( 0, N''),
+  ( 1, N'1. Usta öğretici'),
+  ( 2, N'2. Usta öğretici'),
+  ( 3, N'3. Usta öğretici')
+
+-- ------------------------------------------------------- 
 -- SaatTipiId
 -- ------------------------------------------------------- 
-IF EXISTS (Select * From sys.objects WHERE name = 'MtskSinavRandevuSaatTipi')
+IF EXISTS (Select * From sys.objects WHERE name = 'MtskSinavRandevuSSaatTipi')
 drop table [Lkp].[MtskSinavRandevuSaatTipi]
 
-create table Lkp.MtskSinavRandevuSaatTipi
+create table Lkp.MtskSinavRandevuSSaatTipi
 (
    Id              Int Unique Not Null,
    SaatTipi        Varchar(15)   null
 
-   constraint  pk_MtskSinavRandevuSaatTipi primary key (Id)
+   constraint  pk_MtskSinavRandevuSSaatTipi primary key (Id)
 )
 
-DELETE Lkp.MtskSinavRandevuSaatTipi
-INSERT INTO Lkp.MtskSinavRandevuSaatTipi (Id, SaatTipi)
+DELETE Lkp.MtskSinavRandevuSSaatTipi
+INSERT INTO Lkp.MtskSinavRandevuSSaatTipi (Id, SaatTipi)
  VALUES 
   ( 0, N''),
   ( 1, N'08:20 - 08:55'),
@@ -314,6 +311,12 @@ INSERT INTO Lkp.MtskSinavRandevuSaatTipi (Id, SaatTipi)
   (11, N'15:55 - 16:30'),
   (12, N'16:35 - 17:10')
 
+commit transaction
+
+
+/*CreateLkpTableEnd*/
+
+
 /*
   ( 2, N'08:20 - 08:55'),
   ( 3, N'09:00 - 09:35'),
@@ -328,31 +331,3 @@ INSERT INTO Lkp.MtskSinavRandevuSaatTipi (Id, SaatTipi)
   (12, N'15:55 - 16:30'),
   (13, N'16:35 - 17:10')
 */
-
--- ------------------------------------------------------- 
--- PersonelNoTipiId
--- ------------------------------------------------------- 
-IF EXISTS (Select * From sys.objects WHERE name = 'MtskSinavRandevuPersonelNoTipi')
-drop table [Lkp].[MtskSinavRandevuPersonelNoTipi]
-
-create table Lkp.MtskSinavRandevuPersonelNoTipi
-(
-   Id               Int Unique Not Null,
-   PersonelNoTipi   Varchar(20)   null
-
-   constraint  pk_MtskSinavRandevuPersonelNoTipi primary key (Id)
-)
-
-INSERT INTO Lkp.MtskSinavRandevuPersonelNoTipi (Id, PersonelNoTipi)
- VALUES 
-  ( 0, N''),
-  ( 1, N'1. Usta öğretici'),
-  ( 2, N'2. Usta öğretici'),
-  ( 3, N'3. Usta öğretici')
-
-commit transaction
-
-
-
-
-/*CreateLkpTableEnd*/

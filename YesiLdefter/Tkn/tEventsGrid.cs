@@ -1312,7 +1312,7 @@ namespace Tkn_Events
 
             
             // edit mdounda değilse
-            if (view.IsEditing == false)
+            if (view?.IsEditing == false)
             {
                 tGridHint.tForm.Close();
                 return;
@@ -1334,7 +1334,7 @@ namespace Tkn_Events
             if (keyValue != "")
             {
                 // edit modunda ise
-                if (view.IsEditing)
+                if (view?.IsEditing == true)
                 {
                     view.HideEditor();
 
@@ -1348,11 +1348,11 @@ namespace Tkn_Events
 
                 // yeni açılmış satırı sil
                 //
-                view.DeleteRow(view.FocusedRowHandle);
+                view?.DeleteRow(view.FocusedRowHandle);
 
                 // hiç satır kalmadıysa
                 //
-                if (view.RowCount == 0)
+                if (view?.RowCount == 0)
                 {
                     v.con_PositionChange = true;
                     evb.newData(tGridHint.tForm, tGridHint.tableIPCode);
