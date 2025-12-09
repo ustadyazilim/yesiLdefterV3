@@ -432,6 +432,12 @@
     <Compile Include="Forms\ms_User.Designer.cs">
       <DependentUpon>ms_User.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\ms_User_Standalone.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ms_User_Standalone.Designer.cs">
+      <DependentUpon>ms_User_Standalone.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\ms_UserFirmList.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -487,6 +493,7 @@
     <Compile Include="Tkn\tImageService.cs" />
     <Compile Include="Tkn\EventsMenu.cs" />
     <Compile Include="Tkn\UstadApiClient.cs" />
+    <Compile Include="Tkn\tApiConfig.cs" />
     <Compile Include="Tkn\tCefSharp.cs" />
     <Compile Include="Tkn\tCookieReader.cs" />
     <Compile Include="Tkn\tCreateDatabase.cs" />

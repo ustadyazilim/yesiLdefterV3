@@ -1,25 +1,17 @@
 /* Core Namespace */
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.Data;
 /* Database Namespace */
 using Microsoft.Data.SqlClient;
 /* JWT Namespace */
 using System.IdentityModel.Tokens.Jwt;
 /* HTTP Namespace */
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
-using System.Linq;
 using System.Globalization;
 /* Threading Namespace */
-using System.Threading.Tasks;
 /* Cryptography Namespace */
 using System.Security.Cryptography;
 
@@ -84,6 +76,10 @@ namespace Ustad.API.Controllers
             /// User/Operator ID
             /// </summary>
             public int UserId { get; set; }
+            /// <summary>
+            /// Legacy OperatorId (alias for UserId for backward compatibility)
+            /// </summary>
+            public int OperatorId { get; set; }
             /// <summary>
             /// User GUID identifier
             /// </summary>
@@ -635,6 +631,7 @@ WHEN NOT MATCHED THEN
                 AccessTokenExpiresInSeconds = GetAccessTokenExpiresMinutes() * 60,
                 RefreshTokenExpiresInSeconds = GetRefreshTokenExpiresMinutes() * 60,
                 UserId = userId,
+                OperatorId = userId,
                 UserGUID = userGuid,
                 FullName = fullName,
                 Role = role,
@@ -1012,6 +1009,7 @@ ELSE
                 AccessTokenExpiresInSeconds = GetAccessTokenExpiresMinutes() * 60,
                 RefreshTokenExpiresInSeconds = GetRefreshTokenExpiresMinutes() * 60,
                 UserId = userId,
+                OperatorId = userId,
                 UserGUID = userGuid,
                 FullName = fullName,
                 Role = role,
@@ -1078,6 +1076,7 @@ ELSE
                 AccessTokenExpiresInSeconds = GetAccessTokenExpiresMinutes() * 60,
                 RefreshTokenExpiresInSeconds = GetRefreshTokenExpiresMinutes() * 60,
                 UserId = userId,
+                OperatorId = userId,
                 UserGUID = userGuid,
                 FullName = fullName,
                 Role = role,
@@ -1360,13 +1359,13 @@ ELSE
                 
                 // Build connection strings (password included but will be encrypted)
                 string ustadCrmConnStr = $"Data Source={host},{port};Initial Catalog={dbName};User ID={user};Password={password};MultipleActiveResultSets=True;TrustServerCertificate=true;Encrypt=false";
-                string managerConnStr = $"Data Source={managerServer},{port};Initial Catalog={managerDb};User ID={managerUser};Password={password};MultipleActiveResultSets=True;TrustServerCertificate=true;Encrypt=false";
+                string managerConnStrBuilt = $"Data Source={managerServer},{port};Initial Catalog={managerDb};User ID={managerUser};Password={password};MultipleActiveResultSets=True;TrustServerCertificate=true;Encrypt=false";
                 
                 // Encrypt connection strings using JWT key for transmission
                 // Desktop app will decrypt using the same key derived from JWT token
                 string encryptionKey = GetJwtKey();
                 string encryptedUstadCrm = EncryptConnectionString(ustadCrmConnStr, encryptionKey);
-                string encryptedManager = EncryptConnectionString(managerConnStr, encryptionKey);
+                string encryptedManager = EncryptConnectionString(managerConnStrBuilt, encryptionKey);
 
                 return Ok(new DatabaseConnectionInfo
                 {

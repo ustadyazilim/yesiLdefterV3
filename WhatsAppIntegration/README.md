@@ -55,7 +55,39 @@ A comprehensive WhatsApp Business Cloud API integration for the Ustad Desktop ed
 └─────────────────────┘    └──────────────────────┘    └─────────────────────┘
 ```
 
-## 🗄️ Database Schema
+## Location Database Relations
+```
+┌─────────────┐
+│   ILTipi    │
+│  (Province) │
+└──────┬──────┘
+       │
+       │ IlKodu (1:Many)
+       │
+       ▼
+┌──────────────────────┐
+│UstadFirmsDistrictType│
+│     (District)       │
+└──────┬───────────────┘
+       │
+       │ Id (Many:1)
+       │
+       ▼
+┌─────────────┐
+│ UstadFirms  │
+│   (Firm)    │
+└─────────────┘
+       │
+       │ CityTypeId (Many:1)
+       │
+       └──────────┐
+                  │
+                  ▼
+            ┌─────────────┐
+            │   ILTipi    │
+            │  (Province) │
+            └─────────────┘
+```
 
 ### Core Tables
 

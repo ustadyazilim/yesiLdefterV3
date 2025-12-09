@@ -357,12 +357,28 @@ namespace Tkn_UstadAPI
 
         public class LoginResponse
         {
+            [JsonProperty("token")]
             public string Token { get; set; }
+
+            [JsonProperty("userId")]
+            public int UserId { get; set; }
+
+            [JsonProperty("operatorId")]
             public int OperatorId { get; set; }
+
+            [JsonProperty("userGUID")]
             public string UserGUID { get; set; }
+
+            [JsonProperty("fullName")]
             public string FullName { get; set; }
+
+            [JsonProperty("role")]
             public string Role { get; set; }
+
+            [JsonProperty("firmId")]
             public int FirmId { get; set; }
+
+            [JsonProperty("dbTypeId")]
             public short DbTypeId { get; set; }
         }
 

@@ -53,6 +53,8 @@ namespace Tkn_ToolBox
 
     public class tToolBox: tBase
     {
+        // Suppresses connection warning popups during intentional reconnects (e.g., switching from legacy to API connections)
+        protected bool suppressManagerConnWarning = false;
 
         #region fileUpdates
         public void fileUpdatesChecked()
@@ -2091,13 +2093,12 @@ namespace Tkn_ToolBox
 
             string sqlL = msLayoutItemsList_SQL(masterCode);
 
-            SqlDataAdapter msSqlAdapter5 = null;
-            if (sqlL != string.Empty)
+            // NOTE(@Janberk): This is a pre-auth DB touch — layouts are fetched from Manager DB to paint forms (e.g., login).
+            // TODO(@Janberk): Move layout metadata to API/local cache so login can render without opening DB.
+            using (var msSqlAdapter5 = new SqlDataAdapter(sqlL, v.active_DB.managerMSSQLConn))
             {
-                msSqlAdapter5 = new SqlDataAdapter(sqlL, v.active_DB.managerMSSQLConn);
                 msSqlAdapter5.Fill(v.ds_MsLayoutItems, masterCode);
             }
-            msSqlAdapter5.Dispose();
         }
         public void preparing_MenuItemsList(string masterCode)
         {
@@ -2992,6 +2993,13 @@ namespace Tkn_ToolBox
         public void DBConnectStateManager(object sender, StateChangeEventArgs e)
         {
             v.SP_ConnBool_Manager = (e.CurrentState == ConnectionState.Open);
+
+            if (suppressManagerConnWarning)
+            {
+                // NOTE(@Janberk): Suppressing warning during intentional reconnect (legacy → API rebuild). Real drops still surface when flag is false.
+                v.SP_ConnBool_Manager_Old = v.SP_ConnBool_Manager;
+                return;
+            }
 
             if (v.SP_ConnBool_Manager != v.SP_ConnBool_Manager_Old)
             {

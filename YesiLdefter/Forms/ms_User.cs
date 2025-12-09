@@ -1,12 +1,12 @@
-﻿using DevExpress.Xpo.DB.Helpers;
+﻿/* Core Namespace */
 using DevExpress.XtraEditors;
 using System;
 using System.Data;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+/* Internal Namespaces */
 using Tkn_Events;
 using Tkn_Registry;
-using Tkn_Save;
 using Tkn_SQLs;
 using Tkn_ToolBox;
 using Tkn_UserFirms;
@@ -23,23 +23,22 @@ namespace YesiLdefter
         tSQLs Sqls = new tSQLs();
         tRegistry reg = new tRegistry();
         tUserFirms userFirms = new tUserFirms();
-        // API client for Ustad API
+
         UstadApiClient apiClient = null; 
         
-        // UL = UserLogin
-        DataSet ds_UL = null;
+        DataSet ds_UL = null; 
         DataNavigator dN_UL = null;
-        // NU = NewUser
+
+        DataSet dsUserFirmList = null;
+        DataNavigator dNUserFirmList = null;
+
+        // New User
         DataSet ds_NU = null;
         DataNavigator dN_NU = null;
         // UK = Key
         DataSet ds_UK = null;
         DataNavigator dN_UK = null;
-        // FL = FirmList
-        DataSet dsUserFirmList = null;
-        DataNavigator dNUserFirmList = null;
 
-        // sorgular için
         DataNavigator dN_Query = new DataNavigator();
         DataSet ds_Query = new DataSet();
         DataSet ds_Query2 = new DataSet();
@@ -53,7 +52,6 @@ namespace YesiLdefter
         Control uk_old_user_pass = null;
         Control uk_new_user_pass = null;
         Control uk_rpt_user_pass = null;
-
 
         int u_user_Last_FirmId = 0;
         string u_user_email = string.Empty;
@@ -70,36 +68,21 @@ namespace YesiLdefter
         //"UST/CRM/UstadFirms.UserFirmList_L01";
 
         string regPath = v.registryPath;//"Software\\Üstad\\YesiLdefter";
-        // NOTE(@Janberk): API base URL is now retrieved from registry configuration via tApiConfig
-        // This allows runtime configuration without recompiling the application
-        
-        // NOTE(@Janberk): Authentication flow status:
-        // ✅ 1. Extract API base URL to registry - COMPLETED (using tApiConfig)
-        // ✅ 2. Authentication via API - COMPLETED (checkedInputApi() uses /auth/login)
-        // ✅ 3. Get firms from API - COMPLETED (GetUserFirmsAsync() in checkedInputApi())
-        // ✅ 4. Get firm details from API - COMPLETED (GetFirmDetailsAsync() in SelectFirmFromApiAsync() and readUstadFirmAboutFromApi())
-        // ✅ 5. Retry logic - COMPLETED (ExecuteWithRetryAsync() helper method)
-        // ✅ 6. Loading indicators - COMPLETED (WaitFormOpen/Close for all async operations)
-        // ✅ 7. Replace SQL-based firm info - COMPLETED (PopulateFirmFromApiResponse() replaces getFirmAbout())
-        // ⏳ 8. Token refresh mechanism - PENDING (requires token expiration tracking)
-        // NOTE: Legacy methods (checkedInput, readUstadFirmAbout, getFirmAbout) are kept for backward compatibility
-        //       and are marked [Obsolete] or commented out as requested.
+
         #endregion
 
         public ms_User()
         {
-            /// .
+            /// NOTE(@Tekin):
             /// comp - user - firm ilişkisi ?
             /// 
             /// prog açılışında 
             /// önce  user bilgileri
             /// sonra comp bilgileri
-
             // burası değişti 
             /// user için tanımlı olan user_firm_guid varsa o firma/shop 
             /// yoksa 
             /// comp kartında tanımlı olan comp_firm_guid e göre firma/shop baz alınacak
-
             /// 
             /// yani kullanıcının kendisi için tanımlı firmaları var ise o listeye göre çalışır
             /// eğer kullanıcı için firm_guid yok ise Comp için tanımlı olan firma çalışır
@@ -245,7 +228,6 @@ namespace YesiLdefter
             }
             #endregion
 
-            #region API Client Initialization
             GetUserRegistry();
             try
             {
@@ -258,9 +240,7 @@ namespace YesiLdefter
             {
                 System.Diagnostics.Debug.WriteLine($"API client initialization failed: {ex.Message}");
             }
-            #endregion
             v.SP_UserLOGIN = false;
-
             if (cmb_EMail != null)
             {
                 ((DevExpress.XtraEditors.ComboBoxEdit)cmb_EMail).Focus();
@@ -276,7 +256,6 @@ namespace YesiLdefter
                     "API URL: " + apiBaseUrl, "API Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-
             checkedInputApi();
         }
 
@@ -361,9 +340,11 @@ namespace YesiLdefter
             }
         }
 
-        // 1. NOTE(@Janberk): checkedInputApi() is the API-based authentication method.
-        // It replaces the legacy checkedInput() which used direct SQL connections.
-        // This method handles: login → token storage → firm selection → main form access.
+        /// <summary>
+        /// API-based authentication method.
+        /// It replaces the legacy checkedInput() which used direct SQL connections.
+        /// This method handles: login → token storage → firm selection → main form access.
+        /// </summary>
         // TODO(@Janberk): Extract this into AuthenticationService.LoginAsync() for better separation of concerns.
         async void checkedInputApi()
         {
@@ -401,11 +382,9 @@ namespace YesiLdefter
                         v.tUserRegister.UserLastKey = u_user_key;
                         v.tUserRegister.UserRemember = ((DevExpress.XtraEditors.CheckButton)btn_BHatirla).Checked;
 
-                        // NOTE(@Janberk): Show loading indicator during API authentication
                         t.WaitFormOpen(this, "Giriş yapılıyor...");
                         Application.DoEvents();
 
-                        // NOTE(@Janberk): Add retry logic for API connection failures
                         var loginResponse = await ExecuteWithRetryAsync(
                             () => apiClient.LoginAsync(u_user_email, u_user_key),
                             maxRetries: 3,
@@ -414,15 +393,18 @@ namespace YesiLdefter
 
                         if (loginResponse != null && !string.IsNullOrEmpty(loginResponse.Token))
                         {
-                            v.tUser.UserId = loginResponse.OperatorId;
+                            // Prefer UserId; fall back to OperatorId for legacy responses
+                            v.tUser.UserId = (loginResponse.UserId != 0) ? loginResponse.UserId : loginResponse.OperatorId;
                             v.tUser.UserGUID = loginResponse.UserGUID;
                             v.tUser.FullName = loginResponse.FullName;
                             v.tUser.UserDbTypeId = loginResponse.DbTypeId;
                             v.tUser.eMail = u_user_email;
+                            // NOTE(@Janberk): API must return both UserId (numeric) and UserGUID; OperatorId currently maps to legacy UserId usage.
                             
                             // NOTE(@Janberk): Store JWT token for later use in getting DB connection info
                             // The token is needed to authenticate API calls to /auth/db-connection-info
                             v.tUser.JwtToken = loginResponse.Token;
+                            // TODO(@Janberk): Add refresh-token support and persist token securely (registry/DPAPI) with expiry tracking.
 
                             apiClient.SetAuthToken(loginResponse.Token);
                             
@@ -534,7 +516,7 @@ namespace YesiLdefter
         
         /// <summary>
         /// Populate v.tMainFirm from API FirmInfo and FirmDetails response
-        /// NOTE(@Janberk): Replaces SQL-based getFirmAbout() method with API-based data population
+        /// Replaces SQL-based getFirmAbout() method with API-based data population
         /// </summary>
         private void PopulateFirmFromApiResponse(UstadApiClient.FirmInfo firmInfo, UstadApiClient.Firm firmDetails)
         {
@@ -604,7 +586,7 @@ namespace YesiLdefter
 
         /// <summary>
         /// Execute async operation with retry logic
-        /// NOTE(@Janberk): Adds retry mechanism for transient API failures (network issues, timeouts)
+        /// TODO(@Janberk): Adds retry mechanism for transient API failures (network issues, timeouts)
         /// </summary>
         private async Task<T> ExecuteWithRetryAsync<T>(
             Func<Task<T>> operation,
@@ -818,6 +800,11 @@ namespace YesiLdefter
             }
         }
 
+        /// <summary>
+        /// Desktop Application Tennant Firm Selection
+        /// </summary>
+        /// <param name="firm"></param>
+        /// <returns></returns>
         async Task SelectFirmFromApiAsync(UstadApiClient.FirmInfo firm)
         {
             try
@@ -834,13 +821,12 @@ namespace YesiLdefter
 
                 if (firmDetails?.Firm != null)
                 {
-                    // NOTE(@Janberk): Populate v.tMainFirm directly from API FirmInfo instead of SQL
-                    // This replaces the SQL-based getFirmAboutWithUserFirmGUID() call
                     PopulateFirmFromApiResponse(firm, firmDetails.Firm);
                     
                     t.setSelectFirm(v.tMainFirm);
                     SetUserRegistryFirm(v.tUser.UserId, v.tMainFirm.FirmId);
                     v.SP_UserLOGIN = true;
+                            // NOTE(@Janberk): DB connections are not opened here; InitStart() (tStarter) will open Manager/Ustad after this form closes.
                     this.Close();
                 }
                 else
@@ -994,9 +980,11 @@ namespace YesiLdefter
             }
         }
 
-        // 4. NOTE(@Janberk): readUstadFirmAboutFromApi() is the API-based firm details retrieval method.
-        // It replaces the legacy readUstadFirmAbout() which used direct SQL connections.
-        // This method handles: firm details retrieval from API.
+        /// <summary>
+        /// API-based firm details retrieval method.
+        /// It replaces the legacy readUstadFirmAbout() which used direct SQL connections.
+        /// </summary>
+        /// <param name="row"></param>
         // TODO(@Janberk): Extract this into FirmService.GetFirmDetailsAsync() for better separation of concerns.
         async void readUstadFirmAboutFromApi(DataRow row)
         {
@@ -1022,8 +1010,6 @@ namespace YesiLdefter
 
                 if (firmDetails?.Firm != null)
                 {
-                    // NOTE(@Janberk): Populate v.tMainFirm directly from API response instead of SQL
-                    // This replaces the SQL-based readUstadFirmAbout() and getFirmAbout() calls
                     // Extract firm info from DataRow (populated from FirmInfo list)
                     UstadApiClient.FirmInfo firmInfo = ExtractFirmInfoFromRow(row);
                     if (firmInfo != null)
@@ -1041,11 +1027,6 @@ namespace YesiLdefter
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
                         v.SP_UserLOGIN = false;
                     }
-                    
-                    // NOTE(@Janberk): ✅ COMPLETED - SQL-based methods replaced with API-based flow
-                    // The legacy readUstadFirmAbout() and getFirmAbout() methods have been replaced
-                    // with PopulateFirmFromApiResponse() which populates v.tMainFirm directly from API response.
-                    // This eliminates the need for SQL queries to get firm information.
 
                     //t.setSelectFirm(v.tMainFirm);
                     //SetUserRegistryFirm(v.tUser.UserId, v.tMainFirm.FirmId);

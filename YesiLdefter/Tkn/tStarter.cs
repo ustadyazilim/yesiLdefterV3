@@ -85,11 +85,16 @@ namespace Tkn_Starter
             // YesiLdefterConnection.Ini
             //
             t.WaitFormOpen(v.mainForm, "Ini dosyalar okunuyor...");
+            // NOTE(@Janberk): INI read hydrates legacy DB endpoints (manager/CRM/publish/local). This is the only source before API handoff.
             t.ftpDownloadIniFile();
 
             // Initialize API configuration defaults
             // NOTE(@Janberk): Ensures API base URL and JWT key are set in registry if not already configured
             Tkn_UstadAPI.tApiConfig.InitializeDefaults();
+
+            // SECURE FLOW: No database connection before authentication
+            // Form layouts will be loaded AFTER successful authentication and DB connection establishment
+            // Note: We do NOT call InitPreparingConnection() or Db_Open() here - connections are established after auth
 
             //Version clrVersion = Environment.Version;
             //string appVersion = Application.ProductVersion;
@@ -165,6 +170,7 @@ namespace Tkn_Starter
             // This prevents hardcoded passwords from being compiled into the DLL.
             if (v.SP_UserLOGIN == true && v.active_DB.localDbUses == false)
             {
+                // NOTE(@Janberk): DB handoff point — triggered after ms_User closes with a selected firm; uses API-provided encrypted strings.
                 t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri API'den alınıyor...");
                 bool dbConnectionsEstablished = InitPreparingConnectionFromApi();
                 
@@ -176,8 +182,25 @@ namespace Tkn_Starter
                     return;
                 }
 
-                t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-                Db_Open(v.active_DB.managerMSSQLConn);
+                // Open ManagerDB connection (only if connection object was created)
+                if (v.active_DB.managerMSSQLConn != null)
+                {
+                    t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
+                    if (!Db_Open(v.active_DB.managerMSSQLConn))
+                    {
+                        MessageBox.Show("ManagerDB bağlantısı açılamadı. Lütfen bağlantı bilgilerini kontrol edin.",
+                            "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        v.SP_ApplicationExit = true;
+                        return;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("ManagerDB bağlantı nesnesi oluşturulamadı. API'den bağlantı bilgileri alınamadı.",
+                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    v.SP_ApplicationExit = true;
+                    return;
+                }
             }
             else if (v.active_DB.localDbUses == true)
             {
@@ -186,7 +209,13 @@ namespace Tkn_Starter
                 InitPreparingConnection();
                 
                 t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-                Db_Open(v.active_DB.managerMSSQLConn);
+                if (!Db_Open(v.active_DB.managerMSSQLConn))
+                {
+                    MessageBox.Show("ManagerDB bağlantısı açılamadı (local). Lütfen bağlantı bilgilerini kontrol edin.",
+                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    v.SP_ApplicationExit = true;
+                    return;
+                }
             }
 
             /// Mesaj formu nedense kayboluyor
@@ -275,6 +304,14 @@ namespace Tkn_Starter
         {
             try
             {
+                suppressManagerConnWarning = true;
+                v.SP_ConnBool_Manager = false;
+                v.SP_ConnBool_Manager_Old = false;
+
+                // Close legacy connections opened for layout rendering before rebuilding from API.
+                try { v.active_DB.managerMSSQLConn?.Dispose(); } catch { }
+                try { v.active_DB.ustadCrmMSSQLConn?.Dispose(); } catch { }
+
                 // Get API base URL from registry configuration
                 // NOTE(@Janberk): API base URL is now stored in registry for runtime configuration
                 string apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
@@ -301,9 +338,20 @@ namespace Tkn_Starter
                     dbInfoTask.Wait(); // Wait for async operation to complete
                     var dbInfo = dbInfoTask.Result;
                     
-                    if (dbInfo == null || string.IsNullOrEmpty(dbInfo.UstadCrmConnectionString))
+                    // Validate that decrypted connection strings exist
+                    if (dbInfo == null)
                     {
-                        System.Diagnostics.Debug.WriteLine("Failed to get database connection info from API.");
+                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: dbInfo is null.");
+                        return false;
+                    }
+
+                    bool hasCrm = !string.IsNullOrWhiteSpace(dbInfo.UstadCrmConnectionString);
+                    bool hasMgr = !string.IsNullOrWhiteSpace(dbInfo.ManagerConnectionString);
+
+                    if (!hasCrm || !hasMgr)
+                    {
+                        // If decrypted values are missing, log lengths of encrypted payloads for diagnosis
+                        System.Diagnostics.Debug.WriteLine($"InitPreparingConnectionFromApi: Missing decrypted strings. EncryptedCRM len: {dbInfo.EncryptedUstadCrmConnectionString?.Length ?? 0}, EncryptedMgr len: {dbInfo.EncryptedManagerConnectionString?.Length ?? 0}");
                         return false;
                     }
                     
@@ -315,6 +363,13 @@ namespace Tkn_Starter
                     // Parse connection strings
                     ParseConnectionStringFromApi(dbInfo.UstadCrmConnectionString, true); // UstadCRM
                     ParseConnectionStringFromApi(dbInfo.ManagerConnectionString, false); // Manager
+
+                    // Ensure connections were created
+                    if (v.active_DB.managerMSSQLConn == null || v.active_DB.ustadCrmMSSQLConn == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: Connection objects were not created after parsing connection strings.");
+                        return false;
+                    }
                     
                     return true;
                 }
@@ -324,6 +379,10 @@ namespace Tkn_Starter
                 System.Diagnostics.Debug.WriteLine($"Error getting DB connection info from API: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 return false;
+            }
+            finally
+            {
+                suppressManagerConnWarning = false;
             }
         }
         
@@ -396,24 +455,18 @@ namespace Tkn_Starter
             #region
             
             v.active_DB.managerUserName = "sa";
-            
-            // NOTE(@Janberk): Hardcoded passwords removed for security.
-            // For local DB mode, password should come from INI file or secure storage.
-            // For production, use InitPreparingConnectionFromApi() instead.
-            string managerPassword = ""; // Get from secure storage or INI file
-            if (v.active_DB.mainManagerDbUses)
+            // SECURE: Get password from environment variable only - NO HARDCODED FALLBACK
+            // This method is now only used for local DB mode (Tabim) - not for cloud/API mode
+            string managerPassword = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS");
+            if (string.IsNullOrWhiteSpace(managerPassword))
             {
-                // Try to get from INI or secure storage
-                managerPassword = ""; // TODO: Get from secure source
-            }
-            else
-            {
-                managerPassword = ""; // TODO: Get from secure source
+                throw new InvalidOperationException(
+                    "USTAD_MANAGER_DB_PASS environment variable is required for local database mode. " +
+                    "For cloud mode with API authentication, this is not needed. " +
+                    "Please set this environment variable or use API authentication mode.");
             }
             
-            v.active_DB.managerPsw = string.IsNullOrEmpty(managerPassword) 
-                ? "" // Will fail connection - intentional for security
-                : "Password = " + managerPassword + ";";
+            v.active_DB.managerPsw = "Password = " + managerPassword + ";";
 
             v.active_DB.managerConnectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
@@ -432,8 +485,8 @@ namespace Tkn_Starter
             #region
             v.publishManager_DB.dBaseNo = v.dBaseNo.publishManager;
             v.publishManager_DB.userName = "sa";
-            // NOTE(@Janberk): Hardcoded password removed for security
-            v.publishManager_DB.psw = ""; // TODO: Get from secure source or use API
+            // Use same legacy password for publish manager unless overridden by environment.
+            v.publishManager_DB.psw = "Password = " + managerPassword + ";";
             v.publishManager_DB.connectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
                 v.publishManager_DB.serverName,
@@ -453,12 +506,13 @@ namespace Tkn_Starter
             //v.active_DB.ustadCrmDBName = "UstadCRM";
             v.active_DB.ustadCrmUserName = "sa";
             
-            // NOTE(@Janberk): Hardcoded passwords removed for security
-            // For local DB mode, password should come from INI file or secure storage.
-            string ustadCrmPassword = ""; // TODO: Get from secure source
-            v.active_DB.ustadCrmPsw = string.IsNullOrEmpty(ustadCrmPassword)
-                ? "" // Will fail connection - intentional for security
-                : "Password = " + ustadCrmPassword + ";";
+            // Use CRM password override if provided, else legacy fallback.
+            string ustadCrmPassword = Environment.GetEnvironmentVariable("USTAD_CRM_DB_PASS");
+            if (string.IsNullOrWhiteSpace(ustadCrmPassword))
+            {
+                ustadCrmPassword = managerPassword;
+            }
+            v.active_DB.ustadCrmPsw = "Password = " + ustadCrmPassword + ";";
 
             v.active_DB.ustadCrmConnectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
@@ -654,15 +708,44 @@ namespace Tkn_Starter
         #endregion InitRegisterComputer
 
         #region InitLoginUser, InitTabimLoginUser
-        // 3. NOTE(@Janberk): InitLoginUser() opens the login form (ms_User) as a modal dialog.
-        // FormCode "UST/CRM/ABO/UstadUserLogin" is used by tLayout.Create_Layout() to load the form's layout metadata
-        // from MS_LAYOUT table. If user authenticates, the form closes and v.SP_UserLOGIN is set to true.
+        
+        /// <summary>
+        /// Opens standalone login form (no database required)
+        /// This is the SECURE authentication flow - DB connections are only established AFTER successful login
+        /// </summary>
         void InitLoginUser()
         {
+            try
+            {
+                // Use standalone login form that doesn't require database for layout
+                YesiLdefter.ms_User_Standalone loginForm = new YesiLdefter.ms_User_Standalone();
+                loginForm.ShowDialog(v.mainForm);
+                loginForm.Dispose();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Giriş formu açılırken hata oluştu:\n{ex.Message}\n\nLütfen sistem yöneticinize başvurun.",
+                    "Giriş Hatası",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                v.SP_ApplicationExit = true;
+            }
+        }
+        
+        /// <summary>
+        /// Opens legacy login form (uses database-dependent layout)
+        /// Only used for Tabim local database mode
+        /// </summary>
+        void InitLoginUserLegacy()
+        {
+            // LEGACY: This method uses database-dependent form layouts
+            // Only used for local database mode (Tabim)
             string FormName = "ms_User";
             string FormCode = "UST/CRM/ABO/UstadUserLogin";
             OpenFormPreparing(FormName, FormCode, v.formType.Dialog);
         }
+        
         void InitTabimLoginUser()
         {
             string FormName = "ms_TabimMtsk";
