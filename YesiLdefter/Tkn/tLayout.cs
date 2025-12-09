@@ -51,7 +51,6 @@ namespace Tkn_Layout
 
             DataSet ds_Layout = new DataSet();
 
-            //tr.MS_LayoutOrItems_Read(ds_Layout, FormCode, 1);
             tr.MS_Layout_Read(ds_Layout, FormCode);
 
             tForm.AccessibleName = FormCode; // v.con_Source_FormCodeAndName

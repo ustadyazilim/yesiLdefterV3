@@ -2291,6 +2291,7 @@ INSERT INTO [dbo].[SYS_UPDATES]
             string DataCopyCode = string.Empty;
             string MasterDetailColumns = string.Empty;
             string MaliDonemChanger = "null";
+            string Master_Detail_Harmony = string.Empty;
 
             /// TABLE_TYPE  
             /// 1, 'Table'
@@ -2458,7 +2459,8 @@ INSERT INTO [dbo].[SYS_UPDATES]
                       ref REF_CALL,
                       ref Report_FieldsName,
                       ref MasterDetailColumns,
-                      ref MaliDonemChanger);
+                      ref MaliDonemChanger,
+                      ref Master_Detail_Harmony);
 
             #endregion Preparing Join Tables and Fields
 
@@ -2681,6 +2683,7 @@ INSERT INTO [dbo].[SYS_UPDATES]
             t.MyProperties_Set(ref myProp, "DataCopyCode", DataCopyCode);
             t.MyProperties_Set(ref myProp, "MasterDetailColumns", MasterDetailColumns);
             t.MyProperties_Set(ref myProp, "MaliDonemChanger", MaliDonemChanger);
+            t.MyProperties_Set(ref myProp, "MasterDetailHarmony", Master_Detail_Harmony);
 
             //t.MyProperties_Set(ref myProp, "FieldsListSQL", FieldsListSQL);
 
@@ -3365,7 +3368,8 @@ INSERT INTO [dbo].[SYS_UPDATES]
                           ref string REF_CALL,
                           ref string Report_FieldsName,
                           ref string MasterDetailColumns,
-                          ref string MaliDonemChanger
+                          ref string MaliDonemChanger,
+                          ref string Master_Detail_Harmony
                           )
         {
 
@@ -3388,6 +3392,8 @@ INSERT INTO [dbo].[SYS_UPDATES]
             string jlabel = string.Empty;
 
             byte default_type = 0;
+            byte default_type2 = 0;
+
             string mst_TableList = string.Empty;
             string mst_TableIPCode = string.Empty;
             //string mst_TableName = string.Empty;
@@ -3520,12 +3526,15 @@ INSERT INTO [dbo].[SYS_UPDATES]
                 /// 31,  'Master=Detail'
                 /// 32,  'Master=Detail Multi'
                 /// 33,  'Master=Detail Column'
+                /// 34,  'Master=Detail Harmony'   
+                /// 
                 /// 41,  'Line No'
                 /// 51,  'Kriter READ (Even.Bas)' 
                 /// 52,  'Kriter READ (Even.Bit)' 
                 /// 53,  'Kriter READ (Odd)'
 
                 default_type = t.Set(Row["DEFAULT_TYPE"].ToString(), Row["LKP_DEFAULT_TYPE"].ToString(), (byte)0);
+                default_type2 = t.Set(Row["DEFAULT_TYPE2"].ToString(), "0", (byte)0);
 
                 ///  toperand_type
                 ///  0,  '' yani =  
@@ -3696,6 +3705,8 @@ INSERT INTO [dbo].[SYS_UPDATES]
                     (toperand_type == 2) || // odd single
                     (toperand_type == 3) || // SpeedKriter Double
                     (toperand_type == 4) || // SpeedKriter Single
+                    (default_type == 34) ||  // Master=Detail Harmony ise
+                    (default_type2 == 34) || // Master=Detail Harmony ise
                     (ga > -1))
                 {
                     // Master Table bağlantısı
@@ -3750,6 +3761,28 @@ INSERT INTO [dbo].[SYS_UPDATES]
                             tkrt_table_alias + "." + fname + "||" +
                             field_type.ToString() + "||" +
                             default_type.ToString() + "||" + // 21, 31, 32, 33
+                            toperand_type.ToString() + "||" +
+                            mst_CheckFName + "||" +
+                            mst_CheckValue + "||" +
+                            RefId.ToString() + "|ds|" + v.ENTER;
+                    }
+
+                    /// Master=Detail Harmony
+                    /// Eğer master ile detail tablo arasındaki koşullar doğruysa data okumaları gerçekleşecek
+                    /// Örnek : TalepListesi ile TalepFormu arasındaki ilişki bu şekilde kuruluyor
+                    /// 
+                    if (default_type == 34 || default_type2 == 34)
+                    {
+                        string defType = "34";
+
+                        Master_Detail_Harmony = Master_Detail_Harmony +
+                            "=Master_Detail_Harmony:" +
+                            mst_TableIPCode + "||" +
+                            mst_FName + "||" + // master field name
+                            tkrt_table_alias + "." + fname + "||" +
+                            fname + "||" + // target field name
+                            field_type.ToString() + "||" +
+                            defType.ToString() + "||" + // 34
                             toperand_type.ToString() + "||" +
                             mst_CheckFName + "||" +
                             mst_CheckValue + "||" +

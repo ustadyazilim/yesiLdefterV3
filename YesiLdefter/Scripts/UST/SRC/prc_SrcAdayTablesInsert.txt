@@ -74,7 +74,7 @@ AS BEGIN
         
   -- SrcAdayAdliSicil Insert
   if ( Select count(*) ADET from dbo.SrcAdayAdliSicil
-       where TalepId = @TalepId 
+       where AdayId = @yAdayId --TalepId = @TalepId 
      ) = 0 and (@onayAdliSicil = 1)
   begin 
        Insert into [dbo].[SrcAdayAdliSicil]
@@ -84,7 +84,7 @@ AS BEGIN
 
   -- SrcAdayAdres Insert
   if ( Select count(*) ADET from dbo.SrcAdayAdres
-       where TalepId = @TalepId 
+       where AdayId = @yAdayId -- TalepId = @TalepId 
      ) = 0 and (@onayAdres = 1) 
   begin 
        Insert into [dbo].[SrcAdayAdres]
@@ -92,98 +92,15 @@ AS BEGIN
        print ' create : [SrcAdayAdres]'
   end
 
-  -- SrcAdayImza Insert
-  /*
-  if ( Select count(*) ADET from dbo.SrcAdayImza
-       where TalepId = @TalepId 
-     ) = 0 and (@onayImza = 1) 
-  begin 
-       Insert into [dbo].[SrcAdayImza]
-            (FirmId, TalepId, AdayId) VALUES (@yFirmId, @TalepId, @yAdayId ) 
-       print ' create : [SrcAdayImza]'
-  end
-  */
   -- SrcAdayOgrenim Insert
   if ( Select count(*) ADET from dbo.SrcAdayOgrenim
-       where TalepId = @TalepId 
+       where AdayId = @yAdayId -- TalepId = @TalepId 
      ) = 0 and (@onayOgrenim = 1) 
   begin 
        Insert into [dbo].[SrcAdayOgrenim]
             (FirmId, TalepId, AdayId) VALUES (@yFirmId, @TalepId, @yAdayId )   
        print ' create : [SrcAdayOgrenim]'
   end
-
-  -- SrcAdaySaglik Insert
-  /*
-  if ( Select count(*) ADET from dbo.SrcAdaySaglik
-       where TalepId = @TalepId 
-     ) = 0 and (@onaySaglik = 1) 
-  begin 
-       Insert into [dbo].[SrcAdaySaglik]
-            (FirmId, TalepId, AdayId) VALUES (@yFirmId, @TalepId, @yAdayId )   
-       print ' create : [SrcAdaySaglik]'
-  end
-  */
-
-  -- SrcAdaySertifika Insert
-  /*
-  if ( Select count(*) ADET from dbo.SrcAdaySertifika
-       where TalepId = @TalepId 
-     ) = 0 and (@onaySertifika = 1) 
-  begin 
-       Insert into [dbo].[SrcAdaySertifika]
-            (FirmId, TalepId, AdayId) VALUES (@yFirmId, @TalepId, @yAdayId ) 
-       print ' create : [SrcAdaySertifika]'
-  end
-  */
-
-  -- SrcAdaySozlesme Insert
-  /*
-  if ( Select count(*) ADET from [dbo].[SrcAdaySozlesme]
-       where TalepId = @TalepId 
-     ) = 0 and (@onaySozlesme = 1) 
-  begin 
-       Insert into [dbo].[SrcAdaySozlesme]
-            ([FirmId],[TalepId],[AdayId]) VALUES (@yFirmId, @TalepId, @yAdayId) 
-       print ' create : [SrcAdaySozlesme]'
-  end
-  */
-
-  -- SrcAdayKimlik Insert
-  if ( Select count(*) ADET from [dbo].[SrcAdayKimlik]
-       where AdayId = @yAdayId 
-     ) = 0 
-  begin 
-      Insert into [dbo].[SrcAdayKimlik]
-           ([FirmId],[TalepId],[AdayId],[TcNo],[VeriKaynakId],[IsEhliyetli],[Kimlik1Resim],[Kimlik2Resim],[Kimlik1ResimSmall],[Kimlik2ResimSmall]) 
-           Values 
-           (@yFirmId
-           ,0 -- TalepId : bu kayıt talebe bağlı değil, SrcAday tablosuna bağlıdır
-           ,@yAdayId
-           ,@yTcNo
-           ,null --VeriKaynakId
-           ,0 --IsEhliyetli
-           ,null, null, null, null ) -- Kimlik1Resim, Kimlik2Resim, Kimlik1ResimSmall, Kimlik2ResimSmall
-  end -- if
-
-  -- SrcAdayEhliyet Insert
-  if ( Select count(*) ADET from [dbo].[SrcAdayEhliyet]
-       where AdayId = @yAdayId 
-     ) = 0 
-  begin 
-      Insert into [dbo].[SrcAdayEhliyet]
-           ([FirmId],[TalepId],[AdayId],[TcNo],[VeriKaynakId],
-            [MevcutEhliyetTipiId],[MevcutEhliyetVerilisTarihi],[MevcutEhlSonGecerlilikTarihi],[MevcutEhliyetNo],[MevcutEhliyetVerildigiIl],[IsMevcutEhlOtomatik],[IsMevcutEhl2016Oncesi]
-           ,[Ehliyet1Resim],[Ehliyet2Resim],[Ehliyet1ResimSmall],[Ehliyet2ResimSmall])
-           Values
-           (@yFirmId
-           ,0 -- TalepId : bu kayıt talebe bağlı değil, SrcAday tablosuna bağlıdır
-           ,@yAdayId
-           ,@yTcNo
-           ,null --VeriKaynakId
-           ,0, null, null, '', '', 0, 0 --MevcutEhliyetTipiId, MevcutEhliyetVerilisTarihi, MevcutEhlSonGecerlilikTarihi, MevcutEhliyetNo, MevcutEhliyetVerildigiIl, IsMevcutEhlOtomatik, IsMevcutEhl2016Oncesi,
-           ,null, null, null, null ) -- Ehliyet1Resim, Ehliyet2Resim, Ehliyet1ResimSmall, Ehliyet2ResimSmall
-  end -- 
 
   -- SrcAdayUcret Insert
   if ( Select count(*) ADET from [dbo].[SrcAdayUcret]
