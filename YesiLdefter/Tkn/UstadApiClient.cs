@@ -20,6 +20,7 @@ namespace Tkn_UstadAPI
         private readonly string _apiBaseUrl;
         private bool _disposed = false;
 
+        // Default aligns with Ustad.API dev settings (Kestrel http://localhost:5000)
         public UstadApiClient(string apiBaseUrl = "http://localhost:5000")
         {
             _apiBaseUrl = apiBaseUrl.TrimEnd('/');
@@ -75,8 +76,8 @@ namespace Tkn_UstadAPI
             }
             catch (System.Net.Http.HttpRequestException ex)
             {
-                // This is a network-level HTTP exception (connection issues)
-                throw new Exception($"API connection error: {ex.Message}", ex);
+                // Network-level HTTP exception (connection issues)
+                throw new Exception($"API connection error to {_apiBaseUrl}: {ex.Message}", ex);
             }
             catch (TaskCanceledException)
             {

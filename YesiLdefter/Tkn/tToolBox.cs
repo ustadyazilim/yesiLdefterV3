@@ -53,9 +53,7 @@ namespace Tkn_ToolBox
 
     public class tToolBox: tBase
     {
-        // Suppresses connection warning popups during intentional reconnects (e.g., switching from legacy to API connections)
         protected bool suppressManagerConnWarning = false;
-
         #region fileUpdates
         public void fileUpdatesChecked()
         {
@@ -1318,8 +1316,37 @@ namespace Tkn_ToolBox
         {
             bool onay = false;
 
+            // Guard: connection object must not be null
+            if (VTbaglanti == null)
+            {
+                v.SP_ConnBool_Manager = false;
+                System.Diagnostics.Debug.WriteLine("Db_Open called with null SqlConnection.");
+                return false;
+            }
+
+            // Guard: connection string must be present
+            if (string.IsNullOrWhiteSpace(VTbaglanti.ConnectionString))
+            {
+                v.SP_ConnBool_Manager = false;
+                System.Diagnostics.Debug.WriteLine("Db_Open called with empty ConnectionString.");
+                return false;
+            }
+
+            // Capture state safely after null check
+            ConnectionState state;
+            try
+            {
+                state = VTbaglanti.State;
+            }
+            catch (NullReferenceException)
+            {
+                v.SP_ConnBool_Manager = false;
+                System.Diagnostics.Debug.WriteLine("Db_Open: SqlConnection became null while checking State.");
+                return false;
+            }
+
             #region Closed ise
-            if (VTbaglanti.State == ConnectionState.Closed)
+            if (state == ConnectionState.Closed)
             {
                 byte i = 0;
 
@@ -1590,8 +1617,22 @@ namespace Tkn_ToolBox
                 Cursor.Current = Cursors.WaitCursor;
 
             SqlConnection msSqlConn = vt.msSqlConnection;
-            
-            Db_Open(msSqlConn);
+
+            // Guard: connection object must exist
+            if (msSqlConn == null)
+            {
+                System.Diagnostics.Debug.WriteLine("Sql_ExecuteNon: vt.msSqlConnection is null. Aborting command.");
+                if (Cursor.Current == Cursors.WaitCursor)
+                    Cursor.Current = Cursors.Default;
+                return false;
+            }
+
+            if (!Db_Open(msSqlConn))
+            {
+                if (Cursor.Current == Cursors.WaitCursor)
+                    Cursor.Current = Cursors.Default;
+                return false;
+            }
                         
             try
             {
@@ -1639,8 +1680,22 @@ namespace Tkn_ToolBox
                 preparing_vTable(null, null, vt, 0);
 
             SqlConnection msSqlConn = vt.msSqlConnection;
-            
-            Db_Open(msSqlConn);
+
+            // Guard: connection object must exist
+            if (msSqlConn == null)
+            {
+                System.Diagnostics.Debug.WriteLine("Sql_ExecuteNon(DataSet): vt.msSqlConnection is null after preparing_vTable. Aborting command.");
+                if (Cursor.Current == Cursors.WaitCursor)
+                    Cursor.Current = Cursors.Default;
+                return false;
+            }
+
+            if (!Db_Open(msSqlConn))
+            {
+                if (Cursor.Current == Cursors.WaitCursor)
+                    Cursor.Current = Cursors.Default;
+                return false;
+            }
             
             SqlCommand SqlComm = null;
             
@@ -1969,9 +2024,7 @@ namespace Tkn_ToolBox
         private void readTableIPCodeTableList_(string tableIPCode)
         {
             if (IsNotNull(tableIPCode) == false) return;
-
             string sqlB = msTableIPCodeTableList_SQL(tableIPCode);
-
             SqlDataAdapter msSqlAdapter2 = null;
             if (sqlB != string.Empty)
             {
@@ -1985,7 +2038,6 @@ namespace Tkn_ToolBox
         public void preparing_TableIPCodeFieldsList(string tableIPCode)
         {
             if (IsNotNull(tableIPCode) == false) return;
-
             if (v.active_DB.mainManagerDbUses)
             {
                 TableRemove(v.ds_TableIPCodeFields);
@@ -2010,9 +2062,7 @@ namespace Tkn_ToolBox
         private void readTableIPCodeFieldsList_(string tableIPCode)
         {
             if (IsNotNull(tableIPCode) == false) return;
-
             string sqlC = msTableIPCodeFieldsList_SQL(tableIPCode);
-
             SqlDataAdapter msSqlAdapter3 = null;
             if (sqlC != string.Empty)
             {
@@ -2051,9 +2101,7 @@ namespace Tkn_ToolBox
         private void readTableIPCodeGroupsList_(string tableIPCode)
         {
             if (IsNotNull(tableIPCode) == false) return;
-
             string sqlC = msTableIPCodeGroupsList_SQL(tableIPCode);
-
             SqlDataAdapter msSqlAdapter4 = null;
             if (sqlC != string.Empty)
             {
@@ -2065,7 +2113,6 @@ namespace Tkn_ToolBox
         public void preparing_LayoutItemsList(string masterCode)
         {
             if (IsNotNull(masterCode) == false) return;
-
             if (v.active_DB.mainManagerDbUses)
             {
                 TableRemove(v.ds_MsLayoutItems);
@@ -2090,10 +2137,7 @@ namespace Tkn_ToolBox
         private void readLayoutItemsList_(string masterCode)
         {
             if (IsNotNull(masterCode) == false) return;
-
             string sqlL = msLayoutItemsList_SQL(masterCode);
-
-            // NOTE(@Janberk): This is a pre-auth DB touch — layouts are fetched from Manager DB to paint forms (e.g., login).
             // TODO(@Janberk): Move layout metadata to API/local cache so login can render without opening DB.
             using (var msSqlAdapter5 = new SqlDataAdapter(sqlL, v.active_DB.managerMSSQLConn))
             {
@@ -2996,7 +3040,6 @@ namespace Tkn_ToolBox
 
             if (suppressManagerConnWarning)
             {
-                // NOTE(@Janberk): Suppressing warning during intentional reconnect (legacy → API rebuild). Real drops still surface when flag is false.
                 v.SP_ConnBool_Manager_Old = v.SP_ConnBool_Manager;
                 return;
             }

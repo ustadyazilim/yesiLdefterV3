@@ -15,6 +15,7 @@ using Tkn_Variable;
 
 namespace YesiLdefter
 {
+    [Obsolete("Legacy login form. Use ms_User_Standalone for authentication flows.")]
     public partial class ms_User : DevExpress.XtraEditors.XtraForm
     {
         #region Tanımlar
@@ -73,30 +74,6 @@ namespace YesiLdefter
 
         public ms_User()
         {
-            /// NOTE(@Tekin):
-            /// comp - user - firm ilişkisi ?
-            /// 
-            /// prog açılışında 
-            /// önce  user bilgileri
-            /// sonra comp bilgileri
-            // burası değişti 
-            /// user için tanımlı olan user_firm_guid varsa o firma/shop 
-            /// yoksa 
-            /// comp kartında tanımlı olan comp_firm_guid e göre firma/shop baz alınacak
-            /// 
-            /// yani kullanıcının kendisi için tanımlı firmaları var ise o listeye göre çalışır
-            /// eğer kullanıcı için firm_guid yok ise Comp için tanımlı olan firma çalışır
-            /// 
-            /// comp taki veya user daki xxxx_firm_guid hangisi olursa olsun
-            /// kayıtlı bu firm_guidin kendisi ve kendisine bağlı alt firm's/shop's listelenir
-            /// böyle birden fazla firma ve şube gelirse 
-            /// kullanıcıya hangisinde işlem yapacağı (firma listesinden) sorulur
-            /// tek firma veya shop olursa kullanıcaya sorulmadan direk program o firm_id üzerinden
-            /// çalışmaya başlar.
-            /// 
-            /// Peki comp'unda firm_guidi yoksa o zamanda kullanıcının karşına bizim TEST firmaları listelenir
-            /// 
-
             InitializeComponent();
 
             tEventsForm evf = new tEventsForm();
@@ -219,7 +196,6 @@ namespace YesiLdefter
             //
             #region
             cntrl = t.Find_Control(this, "simpleButton_ek1", FirmList_TableIPCode, controls);
-
             if (cntrl != null)
             {
                 ((DevExpress.XtraEditors.SimpleButton)cntrl).Dock = DockStyle.Right;
@@ -227,12 +203,9 @@ namespace YesiLdefter
                 ((DevExpress.XtraEditors.SimpleButton)cntrl).Image = t.Find_Glyph("SIHIRBAZDEVAM16");
             }
             #endregion
-
             GetUserRegistry();
             try
             {
-                // Get API base URL from registry configuration
-                // NOTE(@Janberk): API base URL is now stored in registry for runtime configuration
                 string apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
                 apiClient = new UstadApiClient(apiBaseUrl);
             }
@@ -399,16 +372,10 @@ namespace YesiLdefter
                             v.tUser.FullName = loginResponse.FullName;
                             v.tUser.UserDbTypeId = loginResponse.DbTypeId;
                             v.tUser.eMail = u_user_email;
-                            // NOTE(@Janberk): API must return both UserId (numeric) and UserGUID; OperatorId currently maps to legacy UserId usage.
-                            
-                            // NOTE(@Janberk): Store JWT token for later use in getting DB connection info
-                            // The token is needed to authenticate API calls to /auth/db-connection-info
                             v.tUser.JwtToken = loginResponse.Token;
-                            // TODO(@Janberk): Add refresh-token support and persist token securely (registry/DPAPI) with expiry tracking.
 
                             apiClient.SetAuthToken(loginResponse.Token);
                             
-                            // NOTE(@Janberk): Show loading indicator while fetching user firms
                             t.WaitFormOpen(this, "Firma bilgileri alınıyor...");
                             Application.DoEvents();
                             
@@ -448,7 +415,6 @@ namespace YesiLdefter
                     }
                     catch (Exception ex)
                     {
-                        // NOTE(@Janberk): Improved error handling with better user feedback
                         string errorMsg = ex.Message;
                         bool isAuthError = false;
                         bool isNetworkError = false;
@@ -507,7 +473,6 @@ namespace YesiLdefter
                     }
                     finally
                     {
-                        // NOTE(@Janberk): Always close loading indicator
                         t.WaitFormClose();
                     }
                 }
@@ -546,7 +511,6 @@ namespace YesiLdefter
 
         /// <summary>
         /// Extract FirmInfo from DataRow (populated from firm selection list)
-        /// NOTE(@Janberk): Helper method to reconstruct FirmInfo from DataRow for API-based flow
         /// </summary>
         private UstadApiClient.FirmInfo ExtractFirmInfoFromRow(DataRow row)
         {
@@ -606,13 +570,13 @@ namespace YesiLdefter
                 {
                     lastException = ex;
                     
-                    // Don't retry on authentication errors (401, 403)
+                    // Don't retry on authentication/validation 4xx responses
                     if (ex.Data.Contains("StatusCode"))
                     {
                         int? statusCode = (int?)ex.Data["StatusCode"];
-                        if (statusCode == 401 || statusCode == 403)
+                        if (statusCode == 400 || statusCode == 401 || statusCode == 403 || statusCode == 404)
                         {
-                            throw; // Re-throw auth errors immediately
+                            throw; // Re-throw auth/validation errors immediately
                         }
                     }
                     
@@ -717,7 +681,6 @@ namespace YesiLdefter
 
             try
             {
-                // NOTE(@Janberk): Show loading indicator during user check
                 if (work == "SEND_EMAIL")
                 {
                     t.WaitFormOpen(this, "Şifre sıfırlama talebi gönderiliyor...");
@@ -795,7 +758,6 @@ namespace YesiLdefter
             }
             finally
             {
-                // NOTE(@Janberk): Always close loading indicator
                 t.WaitFormClose();
             }
         }
@@ -809,7 +771,6 @@ namespace YesiLdefter
         {
             try
             {
-                // NOTE(@Janberk): Show loading indicator while fetching firm details
                 t.WaitFormOpen(this, "Firma bilgileri alınıyor...");
                 Application.DoEvents();
                 
@@ -826,7 +787,6 @@ namespace YesiLdefter
                     t.setSelectFirm(v.tMainFirm);
                     SetUserRegistryFirm(v.tUser.UserId, v.tMainFirm.FirmId);
                     v.SP_UserLOGIN = true;
-                            // NOTE(@Janberk): DB connections are not opened here; InitStart() (tStarter) will open Manager/Ustad after this form closes.
                     this.Close();
                 }
                 else
@@ -844,7 +804,6 @@ namespace YesiLdefter
             }
             finally
             {
-                // NOTE(@Janberk): Always close loading indicator
                 t.WaitFormClose();
             }
         }
@@ -998,7 +957,6 @@ namespace YesiLdefter
                     return;
                 }
 
-                // NOTE(@Janberk): Show loading indicator while fetching firm details
                 t.WaitFormOpen(this, "Firma bilgileri alınıyor...");
                 Application.DoEvents();
 
@@ -1047,7 +1005,6 @@ namespace YesiLdefter
             }
             finally
             {
-                // NOTE(@Janberk): Always close loading indicator
                 t.WaitFormClose();
             }
         }
@@ -1230,7 +1187,6 @@ namespace YesiLdefter
                     return;
                 }
 
-                // NOTE(@Janberk): Show loading indicator during password change
                 t.WaitFormOpen(this, "Şifre değiştiriliyor...");
                 Application.DoEvents();
 
@@ -1266,7 +1222,6 @@ namespace YesiLdefter
             }
             finally
             {
-                // NOTE(@Janberk): Always close loading indicator
                 t.WaitFormClose();
             }
         }
