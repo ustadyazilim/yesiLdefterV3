@@ -190,7 +190,6 @@ BEGIN
     );
     CREATE INDEX IX_UstadUserSecurePasswords_UserId ON UstadUserSecurePasswords(UserId);
 END";
-
         private const string PHASE1_PASSWORD_QUERY = @"
 SELECT 
     u.UserId,
@@ -203,7 +202,6 @@ FROM UstadUsers u
 LEFT JOIN UstadUserSecurePasswords sp ON u.UserId = sp.UserId
 WHERE (u.UserEMail = @u OR u.UserTcNo = @u OR u.UserMobileNo = @u) 
   AND u.IsActive = 1";
-
         private const string PHASE3_USER_DATA_QUERY = @"
 SELECT 
     COALESCE(u.UserFullName, '') AS FullName,
@@ -212,7 +210,6 @@ SELECT
     COALESCE(u.DbTypeId, 0) AS DbTypeId
 FROM UstadUsers u
 WHERE u.UserId = @userId";
-
         private const string UPGRADE_PASSWORD_MERGE = @"
 MERGE UstadUserSecurePasswords AS target
 USING (SELECT @userId AS UserId) AS source
@@ -226,7 +223,6 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (UserId, PasswordHash, Salt, Iterations, CreatedAt)
     VALUES (@userId, @hash, @salt, @iterations, SYSUTCDATETIME());";
-
         /// <summary>
         /// Builds database connection string from environment variables or configuration
         /// </summary>
@@ -240,19 +236,16 @@ WHEN NOT MATCHED THEN
             string pass = Environment.GetEnvironmentVariable("DB_PASS") ?? _configuration["Db:Pass"];
             string db   = Environment.GetEnvironmentVariable("DB_NAME") ?? _configuration["Db:Name"];
 
-            // Validate required configuration - fail securely if missing
             if (string.IsNullOrWhiteSpace(host))
-                throw new InvalidOperationException("DB_HOST environment variable or Db:Host configuration is required");
+                throw new InvalidOperationException("Database host environment variable or Db:Host configuration is required");
             if (string.IsNullOrWhiteSpace(port))
-                throw new InvalidOperationException("DB_PORT environment variable or Db:Port configuration is required");
+                throw new InvalidOperationException("Database port environment variable or Db:Port configuration is required");
             if (string.IsNullOrWhiteSpace(user))
-                throw new InvalidOperationException("DB_USER environment variable or Db:User configuration is required");
+                throw new InvalidOperationException("Database user environment variable or Db:User configuration is required");
             if (string.IsNullOrWhiteSpace(db))
-                throw new InvalidOperationException("DB_NAME environment variable or Db:Name configuration is required");
+                throw new InvalidOperationException("Database name environment variable or Db:Name configuration is required");
             if (string.IsNullOrWhiteSpace(pass))
-                throw new InvalidOperationException("DB_PASS environment variable or Db:Pass configuration is required");
-
-            // Build connection string - all values validated above
+                throw new InvalidOperationException("Database password environment variable or Db:Pass configuration is required");
             return $"Data Source={host},{port}; Initial Catalog={db}; User ID={user}; Password={pass}; TrustServerCertificate=true; Encrypt=false; MultipleActiveResultSets=True";
         }
         /// <summary>
@@ -264,7 +257,7 @@ WHEN NOT MATCHED THEN
         {
             if (string.IsNullOrEmpty(token)) return true;
             var turnstileSecret = Environment.GetEnvironmentVariable("TURNSTILE_SECRET") ?? _configuration["Turnstile:Secret"];
-            // Cloudflare Turnstile is disabled
+            // NOTE(@Janberk): Cloudflare Turnstile is disabled
             if (string.IsNullOrEmpty(turnstileSecret)) return true; 
             try
             {
@@ -302,20 +295,18 @@ WHEN NOT MATCHED THEN
         private string GetJwtKey()
         {
             var key = Environment.GetEnvironmentVariable("JWT_KEY") ?? _configuration["Jwt:Key"];
-            
             if (string.IsNullOrWhiteSpace(key))
             {
                 throw new InvalidOperationException(
-                    "JWT_KEY environment variable or Jwt:Key configuration is required. " +
+                    "JWT key environment variable or Jwt:Key configuration is required. " +
                     "Do not use hardcoded fallback values for security.");
             }
-            
-            // Ensure key is at least 32 characters (256 bits) for HS256
+            // NOTE(@Janberk): Ensure key is at least 32 characters (256 bits) for HS256
             if (key.Length < 32)
             {
                 throw new InvalidOperationException(
                     $"JWT key must be at least 32 characters long. Current length: {key.Length}. " +
-                    "Please set JWT_KEY environment variable or Jwt:Key configuration with a secure key.");
+                    "Please set JWT key environment variable or Jwt:Key configuration with a secure key.");
             }
             
             return key;
@@ -350,7 +341,6 @@ WHEN NOT MATCHED THEN
             {
                 return envValue;
             }
-
             if (int.TryParse(_configuration["Jwt:ExpiresMinutes"], out var cfgValue) && cfgValue > 0)
             {
                 return cfgValue;
@@ -370,7 +360,6 @@ WHEN NOT MATCHED THEN
             {
                 return envValue;
             }
-
             if (int.TryParse(_configuration["Jwt:RefreshExpiresMinutes"], out var cfgValue) && cfgValue > 0)
             {
                 return cfgValue;
@@ -1295,7 +1284,7 @@ ELSE
         /// <summary>
         /// Get database connection information for authenticated desktop application
         /// Returns connection details (server, database, username) but NOT password for security
-        /// Password is handled server-side only via environment variables
+        /// NOTE(@Janberk): Password is handled server-side only via environment variables
         /// </summary>
         /// <returns>DatabaseConnectionInfo with server, database, and username</returns>
         /// <response code="200">Returns database connection info</response>
@@ -1308,48 +1297,42 @@ ELSE
         {
             try
             {
-                // Get connection info from environment variables or configuration (NO hardcoded fallbacks)
                 string host = Environment.GetEnvironmentVariable("DB_HOST") ?? _configuration["Db:Host"];
                 string port = Environment.GetEnvironmentVariable("DB_PORT") ?? _configuration["Db:Port"];
                 string user = Environment.GetEnvironmentVariable("DB_USER") ?? _configuration["Db:User"];
                 string dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? _configuration["Db:Name"];
                 string password = Environment.GetEnvironmentVariable("DB_PASS") ?? _configuration["Db:Pass"];
 
-                // Validate required configuration - fail securely if missing
                 if (string.IsNullOrWhiteSpace(host))
-                    throw new InvalidOperationException("DB_HOST environment variable or Db:Host configuration is required");
+                    throw new InvalidOperationException("Database host environment variable or Db:Host configuration is required");
                 if (string.IsNullOrWhiteSpace(port))
-                    throw new InvalidOperationException("DB_PORT environment variable or Db:Port configuration is required");
+                    throw new InvalidOperationException("Database port environment variable or Db:Port configuration is required");
                 if (string.IsNullOrWhiteSpace(user))
-                    throw new InvalidOperationException("DB_USER environment variable or Db:User configuration is required");
+                    throw new InvalidOperationException("Database user environment variable or Db:User configuration is required");
                 if (string.IsNullOrWhiteSpace(dbName))
-                    throw new InvalidOperationException("DB_NAME environment variable or Db:Name configuration is required");
+                    throw new InvalidOperationException("Database name environment variable or Db:Name configuration is required");
                 if (string.IsNullOrWhiteSpace(password))
-                    throw new InvalidOperationException("DB_PASS environment variable or Db:Pass configuration is required");
+                    throw new InvalidOperationException("Database password environment variable or Db:Pass configuration is required");
 
-                // Get manager DB info from configuration
+                // NOTE(@Janberk): Get manager DB info from configuration
                 var managerConnStr = _configuration.GetConnectionString("BulutManager");
                 string managerServer = host;
                 string managerDb = null;
                 string managerUser = user;
-
-                // Parse manager connection string if available
                 if (!string.IsNullOrEmpty(managerConnStr))
                 {
                     try
                     {
                         var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(managerConnStr);
-                        managerServer = builder.DataSource.Split(',')[0]; // Get server without port
+                        managerServer = builder.DataSource.Split(',')[0]; 
                         managerDb = builder.InitialCatalog;
                         managerUser = builder.UserID;
                     }
                     catch
                     {
-                        // Connection string parsing failed, will try configuration fallback below
+                        // NOTE(@Janberk): Connection string parsing failed, will try configuration fallback below
                     }
                 }
-
-                // If manager database name not obtained from connection string, get from configuration
                 if (string.IsNullOrWhiteSpace(managerDb))
                 {
                     managerDb = _configuration["Db:ManagerName"];
@@ -1357,12 +1340,9 @@ ELSE
                         throw new InvalidOperationException("Manager database name must be configured via BulutManager connection string or Db:ManagerName");
                 }
                 
-                // Build connection strings (password included but will be encrypted)
                 string ustadCrmConnStr = $"Data Source={host},{port};Initial Catalog={dbName};User ID={user};Password={password};MultipleActiveResultSets=True;TrustServerCertificate=true;Encrypt=false";
                 string managerConnStrBuilt = $"Data Source={managerServer},{port};Initial Catalog={managerDb};User ID={managerUser};Password={password};MultipleActiveResultSets=True;TrustServerCertificate=true;Encrypt=false";
-                
-                // Encrypt connection strings using JWT key for transmission
-                // Desktop app will decrypt using the same key derived from JWT token
+
                 string encryptionKey = GetJwtKey();
                 string encryptedUstadCrm = EncryptConnectionString(ustadCrmConnStr, encryptionKey);
                 string encryptedManager = EncryptConnectionString(managerConnStrBuilt, encryptionKey);
@@ -1376,7 +1356,6 @@ ELSE
                     ManagerServer = managerServer,
                     ManagerDatabase = managerDb,
                     ManagerUsername = managerUser,
-                    // Encrypted connection strings - decrypt on desktop using JWT token
                     EncryptedUstadCrmConnectionString = encryptedUstadCrm,
                     EncryptedManagerConnectionString = encryptedManager
                 });
@@ -1410,24 +1389,20 @@ ELSE
                     Array.Copy(keyBytes, truncated, 32);
                     keyBytes = truncated;
                 }
-
                 using (Aes aes = Aes.Create())
                 {
                     aes.Key = keyBytes;
                     aes.Mode = CipherMode.CBC;
                     aes.Padding = PaddingMode.PKCS7;
                     aes.GenerateIV();
-
                     using (ICryptoTransform encryptor = aes.CreateEncryptor())
                     {
                         byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
                         byte[] encryptedBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
-                        
                         // Combine IV and encrypted data
                         byte[] result = new byte[aes.IV.Length + encryptedBytes.Length];
                         Array.Copy(aes.IV, 0, result, 0, aes.IV.Length);
                         Array.Copy(encryptedBytes, 0, result, aes.IV.Length, encryptedBytes.Length);
-                        
                         return Convert.ToBase64String(result);
                     }
                 }
