@@ -1,9 +1,16 @@
 /* Core Namespace */
 using DevExpress.XtraEditors;
+using Microsoft.Web.WebView2.WinForms;
+using Microsoft.Web.WebView2.Core;
+using Newtonsoft.Json.Linq;
+using System.Text;
 using System;
 using System.Drawing;
+using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Collections.Generic;
 /* Internal Namespaces */
 using Tkn_Registry;
 using Tkn_UstadAPI;
@@ -12,9 +19,9 @@ using Tkn_Variable;
 namespace YesiLdefter
 {
     /// <summary>
-    /// Standalone login form that does NOT require database connection
-    /// This form is self-contained and creates all controls programmatically
-    /// Used for secure authentication flow where DB is only accessed AFTER successful login
+    /// Standalone login form that does NOT require database connection.
+    /// Self-contained UI; authentication happens via API, then firm selection and DB handoff occur after success.
+    /// Mirrors the legacy ms_User flow (user → firm selection) without DB-dependent layout.
     /// </summary>
     public partial class ms_User_Standalone : XtraForm
     {
@@ -34,6 +41,7 @@ namespace YesiLdefter
         private SimpleButton btnForgotPassword;
         private LabelControl lblStatus;
         private PictureEdit picLogo;
+        private WebView2 htmlLayout; 
         
         private string regPath = v.registryPath;
         
@@ -64,120 +72,29 @@ namespace YesiLdefter
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.KeyPreview = true;
+
+            // HTML/CSS layout (background + container) via WebView2
+            htmlLayout = new WebView2();
+            htmlLayout.Dock = DockStyle.Fill;
+            // We'll initialize and load template in Load event (InitializeWebViewAsync)
+            this.Controls.Add(htmlLayout);
             
-            // Logo (top center)
+            // UI elements kept for logic binding (not added to Controls to avoid legacy layout)
             picLogo = new PictureEdit();
-            picLogo.Location = new Point(175, 20);
-            picLogo.Size = new Size(100, 60);
-            picLogo.Properties.ShowCameraMenuItem = DevExpress.XtraEditors.Controls.CameraMenuItemVisibility.Never;
-            picLogo.Properties.SizeMode = DevExpress.XtraEditors.Controls.PictureSizeMode.Zoom;
-            // Note: Logo image can be loaded from resources if available
-            
-            // Title
             lblTitle = new LabelControl();
-            lblTitle.Text = "Hoş Geldiniz";
-            lblTitle.Location = new Point(150, 90);
-            lblTitle.Font = new Font("Segoe UI", 14, FontStyle.Bold);
-            lblTitle.AutoSizeMode = LabelAutoSizeMode.None;
-            lblTitle.Size = new Size(150, 30);
-            lblTitle.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
-            
-            // Email label
             lblEmail = new LabelControl();
-            lblEmail.Text = "E-posta / TC No / Telefon";
-            lblEmail.Location = new Point(50, 140);
-            lblEmail.AutoSizeMode = LabelAutoSizeMode.None;
-            lblEmail.Size = new Size(350, 20);
-            lblEmail.Font = new Font("Segoe UI", 9, FontStyle.Regular);
-            lblEmail.Appearance.ForeColor = Color.FromArgb(100, 100, 100);
-            
-            // Email combobox
             cmbEmail = new ComboBoxEdit();
-            cmbEmail.Location = new Point(50, 162);
-            cmbEmail.Size = new Size(350, 32);
-            cmbEmail.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.Standard;
-            cmbEmail.Properties.Appearance.Font = new Font("Segoe UI", 10, FontStyle.Regular);
-            cmbEmail.TabIndex = 0;
             cmbEmail.EditValueChanged += CmbEmail_EditValueChanged;
-            
-            // Password label
             lblPassword = new LabelControl();
-            lblPassword.Text = "Şifre";
-            lblPassword.Location = new Point(50, 204);
-            lblPassword.AutoSizeMode = LabelAutoSizeMode.None;
-            lblPassword.Size = new Size(350, 20);
-            lblPassword.Font = new Font("Segoe UI", 9, FontStyle.Regular);
-            lblPassword.Appearance.ForeColor = Color.FromArgb(100, 100, 100);
-            
-            // Password textbox
             txtPassword = new TextEdit();
-            txtPassword.Location = new Point(50, 226);
-            txtPassword.Size = new Size(350, 32);
             txtPassword.Properties.PasswordChar = '●';
-            txtPassword.Properties.Appearance.Font = new Font("Segoe UI", 10, FontStyle.Regular);
-            txtPassword.TabIndex = 1;
             txtPassword.KeyDown += TxtPassword_KeyDown;
-            
-            // Remember checkbox
             chkRemember = new CheckEdit();
-            chkRemember.Text = "Beni Hatırla";
-            chkRemember.Location = new Point(50, 268);
-            chkRemember.Size = new Size(150, 24);
-            chkRemember.TabIndex = 2;
-            chkRemember.Properties.Appearance.Font = new Font("Segoe UI", 9, FontStyle.Regular);
-            
-            // Login button
             btnLogin = new SimpleButton();
-            btnLogin.Text = "Giriş Yap";
-            btnLogin.Location = new Point(250, 302);
-            btnLogin.Size = new Size(150, 36);
-            btnLogin.TabIndex = 3;
             btnLogin.Click += BtnLogin_Click;
-            btnLogin.Appearance.BackColor = Color.FromArgb(34, 139, 34);
-            btnLogin.Appearance.ForeColor = Color.White;
-            btnLogin.Appearance.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-            btnLogin.Appearance.Options.UseBackColor = true;
-            btnLogin.Appearance.Options.UseForeColor = true;
-            btnLogin.Appearance.Options.UseFont = true;
-            
-            // Forgot password button
             btnForgotPassword = new SimpleButton();
-            btnForgotPassword.Text = "Şifremi Unuttum";
-            btnForgotPassword.Location = new Point(50, 302);
-            btnForgotPassword.Size = new Size(150, 36);
-            btnForgotPassword.TabIndex = 4;
             btnForgotPassword.Click += BtnForgotPassword_Click;
-            btnForgotPassword.Appearance.BackColor = Color.Transparent;
-            btnForgotPassword.Appearance.ForeColor = Color.FromArgb(100, 100, 100);
-            btnForgotPassword.Appearance.Font = new Font("Segoe UI", 9, FontStyle.Regular);
-            btnForgotPassword.Appearance.Options.UseBackColor = true;
-            btnForgotPassword.Appearance.Options.UseForeColor = true;
-            btnForgotPassword.Appearance.Options.UseFont = true;
-            btnForgotPassword.Appearance.BorderColor = Color.FromArgb(200, 200, 200);
-            btnForgotPassword.Appearance.Options.UseBorderColor = true;
-            
-            // Status label
             lblStatus = new LabelControl();
-            lblStatus.Text = "";
-            lblStatus.Location = new Point(50, 348);
-            lblStatus.AutoSizeMode = LabelAutoSizeMode.Vertical;
-            lblStatus.Size = new Size(350, 30);
-            lblStatus.Appearance.ForeColor = Color.Red;
-            lblStatus.Appearance.Font = new Font("Segoe UI", 9, FontStyle.Regular);
-            lblStatus.Appearance.TextOptions.WordWrap = DevExpress.Utils.WordWrap.Wrap;
-            lblStatus.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
-            
-            // Add controls to form
-            this.Controls.Add(picLogo);
-            this.Controls.Add(lblTitle);
-            this.Controls.Add(lblEmail);
-            this.Controls.Add(cmbEmail);
-            this.Controls.Add(lblPassword);
-            this.Controls.Add(txtPassword);
-            this.Controls.Add(chkRemember);
-            this.Controls.Add(btnLogin);
-            this.Controls.Add(btnForgotPassword);
-            this.Controls.Add(lblStatus);
             
             // Form events
             this.Load += Ms_User_Standalone_Load;
@@ -197,6 +114,9 @@ namespace YesiLdefter
             
             // Initialize auth state
             v.SP_UserLOGIN = false;
+
+            // Initialize WebView2 and load HTML template
+            _ = InitializeWebViewAsync();
         }
         
         private void Ms_User_Standalone_FormClosing(object sender, FormClosingEventArgs e)
@@ -210,6 +130,66 @@ namespace YesiLdefter
             apiClient?.Dispose();
             apiClient = null;
         }
+
+        // Handle messages from the HTML template (buttons)
+        private void HtmlLayout_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                var raw = e.TryGetWebMessageAsString();
+                if (string.IsNullOrWhiteSpace(raw))
+                {
+                    return;
+                }
+
+                // Support simple string messages and JSON payloads
+                if (string.Equals(raw, "login", StringComparison.OrdinalIgnoreCase))
+                {
+                    BtnLogin_Click(sender, EventArgs.Empty);
+                    return;
+                }
+                if (string.Equals(raw, "forgot", StringComparison.OrdinalIgnoreCase))
+                {
+                    BtnForgotPassword_Click(sender, EventArgs.Empty);
+                    return;
+                }
+
+                // JSON payload expected: { action: "login"|"forgot", email, password, remember }
+                JObject obj = JObject.Parse(raw);
+                string action = (obj["action"] ?? "").ToString();
+                string email = (obj["email"] ?? "").ToString();
+                string password = (obj["password"] ?? "").ToString();
+                bool remember = false;
+                if (obj["remember"] != null && bool.TryParse(obj["remember"].ToString(), out bool rem))
+                {
+                    remember = rem;
+                }
+
+                if (!string.IsNullOrEmpty(email))
+                {
+                    cmbEmail.EditValue = email;
+                }
+                if (!string.IsNullOrEmpty(password))
+                {
+                    txtPassword.Text = password;
+                }
+                chkRemember.Checked = remember;
+
+                if (string.Equals(action, "login", StringComparison.OrdinalIgnoreCase))
+                {
+                    BtnLogin_Click(sender, EventArgs.Empty);
+                }
+                else if (string.Equals(action, "forgot", StringComparison.OrdinalIgnoreCase))
+                {
+                    BtnForgotPassword_Click(sender, EventArgs.Empty);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"HtmlLayout_WebMessageReceived parse error: {ex.Message}");
+            }
+        }
+
         
         private void CmbEmail_EditValueChanged(object sender, EventArgs e)
         {
@@ -324,7 +304,10 @@ namespace YesiLdefter
                     v.tUser.FullName = loginResponse.FullName;
                     v.tUser.UserDbTypeId = loginResponse.DbTypeId;
                     v.tUser.eMail = email;
+                    // NOTE(@Janberk): API should return both UserId and UserGUID; OperatorId maps legacy UserId usage.
+                    // NOTE(@Janberk): Store JWT for subsequent DB-connection-info calls.
                     v.tUser.JwtToken = loginResponse.Token;
+                    // TODO(@Janberk): Add refresh-token support and persist token securely with expiry tracking.
                     
                     // Set auth token for subsequent API calls
                     apiClient.SetAuthToken(loginResponse.Token);
@@ -353,12 +336,22 @@ namespace YesiLdefter
                         }
                         else
                         {
-                            // Multiple firms - show selection (to be implemented with standalone firm selection)
-                            ShowStatus("Firma seçiliyor...", false);
+                            // Multiple firms - open WebView2-based firm selector
+                            ShowStatus("Firma seçimi bekleniyor...", false);
                             Application.DoEvents();
-                            // TODO: Implement standalone firm selection dialog
-                            // For now, auto-select first firm
-                            await SelectFirmAsync(userFirmsList[0]);
+                            var selected = ShowFirmSelectionDialog(userFirmsList);
+                            if (selected != null)
+                            {
+                                ShowStatus("Firma seçiliyor...", false);
+                                Application.DoEvents();
+                                await SelectFirmAsync(selected);
+                            }
+                            else
+                            {
+                                ShowStatus("Firma seçimi iptal edildi.", true);
+                                v.SP_UserLOGIN = false;
+                                SetControlsEnabled(true);
+                            }
                         }
                     }
                     else
@@ -396,7 +389,7 @@ namespace YesiLdefter
                 
                 if (firmDetails?.Firm != null)
                 {
-                    // Populate firm info
+                    // Populate firm info (DB connections are opened later by tStarter after login closes)
                     v.tMainFirm.FirmId = firm.FirmId;
                     v.tMainFirm.FirmLongName = firm.FirmLongName ?? firmDetails.Firm.FirmLongName ?? "";
                     v.tMainFirm.FirmShortName = firm.FirmShortName ?? "";
@@ -585,6 +578,20 @@ namespace YesiLdefter
             lblStatus.Text = message;
             lblStatus.Appearance.ForeColor = isError ? Color.Red : Color.Green;
             Application.DoEvents();
+            UpdateWebStatusInView(message, isError);
+        }
+
+        private UstadApiClient.FirmInfo ShowFirmSelectionDialog(IList<UstadApiClient.FirmInfo> firms)
+        {
+            using (var dlg = new ms_UserFirmSelect(firms))
+            {
+                var result = dlg.ShowDialog(this);
+                if (result == DialogResult.OK && dlg.SelectedFirm != null)
+                {
+                    return dlg.SelectedFirm;
+                }
+            }
+            return null;
         }
         
         private void SetControlsEnabled(bool enabled)
@@ -596,7 +603,59 @@ namespace YesiLdefter
             btnForgotPassword.Enabled = enabled;
             Application.DoEvents();
         }
-        
+
+        private async void UpdateWebStatusInView(string message, bool isError)
+        {
+            try
+            {
+                if (htmlLayout?.CoreWebView2 == null)
+                {
+                    return;
+                }
+                string encodedMsg = JavaScriptStringEncode(message, true);
+                string js = $"window.__ustadSetStatus && window.__ustadSetStatus({encodedMsg}, {(isError ? "true" : "false")});";
+                await htmlLayout.CoreWebView2.ExecuteScriptAsync(js);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateWebStatusInView failed: {ex.Message}");
+            }
+        }
+
+        // Minimal JS string encoder (avoids System.Web dependency)
+        private static string JavaScriptStringEncode(string value, bool addDoubleQuotes)
+        {
+            if (value == null)
+                return addDoubleQuotes ? "\"\"" : string.Empty;
+
+            var sb = new StringBuilder();
+            if (addDoubleQuotes) sb.Append('\"');
+
+            foreach (char c in value)
+            {
+                switch (c)
+                {
+                    case '\"': sb.Append("\\\""); break;
+                    case '\\': sb.Append("\\\\"); break;
+                    case '\b': sb.Append("\\b"); break;
+                    case '\f': sb.Append("\\f"); break;
+                    case '\n': sb.Append("\\n"); break;
+                    case '\r': sb.Append("\\r"); break;
+                    case '\t': sb.Append("\\t"); break;
+                    default:
+                        if (c < 32 || c > 127)
+                            sb.Append("\\u" + ((int)c).ToString("x4"));
+                        else
+                            sb.Append(c);
+                        break;
+                }
+            }
+
+            if (addDoubleQuotes) sb.Append('\"');
+            return sb.ToString();
+        }
+
+        // Common retry helper (copied from ms_User)
         private async Task<T> ExecuteWithRetryAsync<T>(
             Func<Task<T>> operation,
             int maxRetries = 3,
@@ -615,11 +674,11 @@ namespace YesiLdefter
                 {
                     lastException = ex;
                     
-                    // Don't retry on authentication errors
+                    // Don't retry on authentication/validation errors (common API 4xx responses)
                     if (ex.Data.Contains("StatusCode"))
                     {
                         int? statusCode = (int?)ex.Data["StatusCode"];
-                        if (statusCode == 401 || statusCode == 403)
+                        if (statusCode == 400 || statusCode == 401 || statusCode == 403 || statusCode == 404)
                         {
                             throw;
                         }
@@ -653,7 +712,85 @@ namespace YesiLdefter
                 lastException);
         }
         
+        private async Task InitializeWebViewAsync()
+        {
+            try
+            {
+                // Ensure CoreWebView2 initialized
+                var env = await CoreWebView2Environment.CreateAsync();
+                await htmlLayout.EnsureCoreWebView2Async(env);
+
+                // Wire message handler
+                htmlLayout.CoreWebView2.WebMessageReceived += HtmlLayout_WebMessageReceived;
+
+                // Load template
+                string html = LoadHtmlTemplateWithTokens();
+                htmlLayout.NavigateToString(string.IsNullOrWhiteSpace(html) ? "<html><body></body></html>" : html);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"WebView2 init failed: {ex.Message}");
+            }
+        }
+
         #endregion
+
+        #region HTML Template
+
+        // Load HTML/CSS template from embedded resource and inject tokens mirroring UstadDesignTokens.scss
+        private string LoadHtmlTemplateWithTokens()
+        {
+            var asm = Assembly.GetExecutingAssembly();
+            const string resourceName = "YesiLdefter.Forms.Templates.LoginTemplate.html";
+            using (var stream = asm.GetManifestResourceStream(resourceName))
+            {
+                if (stream == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Html template resource not found: {resourceName}");
+                    return string.Empty;
+                }
+                using (var reader = new StreamReader(stream))
+                {
+                    var template = reader.ReadToEnd();
+                    return ResolveTokens(template);
+                }
+            }
+        }
+
+        private string ResolveTokens(string template)
+        {
+            return template
+                .Replace("{{color-bg}}", UiTokens.ColorBg)
+                .Replace("{{color-gradient-start}}", UiTokens.ColorGradientStart)
+                .Replace("{{color-gradient-end}}", UiTokens.ColorGradientEnd)
+                .Replace("{{color-card}}", UiTokens.ColorCard)
+                .Replace("{{color-accent}}", UiTokens.ColorAccent)
+                .Replace("{{color-accent2}}", UiTokens.ColorAccent2)
+                .Replace("{{color-text}}", UiTokens.ColorText)
+                .Replace("{{color-muted}}", UiTokens.ColorMuted)
+                .Replace("{{radius}}", UiTokens.Radius)
+                .Replace("{{shadow}}", UiTokens.Shadow)
+                .Replace("{{font}}", UiTokens.Font);
+        }
+
+        private static class UiTokens
+        {
+            // Mirroring key values from UstadDesignTokens.scss
+            public const string ColorBg = "#0f172a";
+            public const string ColorGradientStart = "#e0eadf";
+            public const string ColorGradientEnd = "#eff2ef";
+            public const string ColorCard = "rgba(255,255,255,0.06)";
+            public const string ColorAccent = "#295c00";
+            public const string ColorAccent2 = "#8bc34a";
+            public const string ColorText = "#e5e7eb";
+            public const string ColorMuted = "#94a3b8";
+            public const string Radius = "16px";
+            public const string Shadow = "0 20px 50px rgba(0,0,0,0.35)";
+            public const string Font = "'Inter Tight', 'Segoe UI', sans-serif";
+        }
+
+        #endregion
+
     }
 }
 
