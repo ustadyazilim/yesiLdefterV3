@@ -83,18 +83,14 @@ namespace Tkn_Starter
 
             // YesiLdefter.Ini
             // YesiLdefterConnection.Ini
+            // NOTE(@Janberk): INI read hydrates legacy DB endpoints (manager/CRM/publish/local). 
+            // This is the only source before API handoff.
             //
             t.WaitFormOpen(v.mainForm, "Ini dosyalar okunuyor...");
-            // NOTE(@Janberk): INI read hydrates legacy DB endpoints (manager/CRM/publish/local). This is the only source before API handoff.
             t.ftpDownloadIniFile();
 
-            // Initialize API configuration defaults
             // NOTE(@Janberk): Ensures API base URL and JWT key are set in registry if not already configured
             Tkn_UstadAPI.tApiConfig.InitializeDefaults();
-
-            // SECURE FLOW: No database connection before authentication
-            // Form layouts will be loaded AFTER successful authentication and DB connection establishment
-            // Note: We do NOT call InitPreparingConnection() or Db_Open() here - connections are established after auth
 
             //Version clrVersion = Environment.Version;
             //string appVersion = Application.ProductVersion;
@@ -116,12 +112,10 @@ namespace Tkn_Starter
             
             // 1. SECURE AUTHENTICATION FLOW: Authenticate user FIRST before any database connections
             // NOTE(@Janberk): Authentication happens via API - no database connection required for login.
-            // The login form (ms_User) uses checkedInputApi() which calls /auth/login endpoint.
-            // After successful authentication, we get database connection info from API.
             t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
             if (v.active_DB.localDbUses == false)
             {
-                InitLoginUser(); // Ustad YesiLdester user girişi - NO DB CONNECTION NEEDED
+                InitLoginUser();
             }
             else
             {
@@ -166,14 +160,10 @@ namespace Tkn_Starter
 
             // 2. SECURE AUTHENTICATION FLOW: After successful authentication, get database connection info from API
             // NOTE(@Janberk): Database connections are established ONLY after user authentication.
-            // Connection strings are retrieved from API and decrypted using JWT key.
-            // This prevents hardcoded passwords from being compiled into the DLL.
             if (v.SP_UserLOGIN == true && v.active_DB.localDbUses == false)
             {
-                // NOTE(@Janberk): DB handoff point — triggered after ms_User closes with a selected firm; uses API-provided encrypted strings.
                 t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri API'den alınıyor...");
                 bool dbConnectionsEstablished = InitPreparingConnectionFromApi();
-                
                 if (!dbConnectionsEstablished)
                 {
                     MessageBox.Show("Database bağlantı bilgileri alınamadı. Lütfen sistem yöneticinize başvurun.",
@@ -181,8 +171,6 @@ namespace Tkn_Starter
                     v.SP_ApplicationExit = true;
                     return;
                 }
-
-                // Open ManagerDB connection (only if connection object was created)
                 if (v.active_DB.managerMSSQLConn != null)
                 {
                     t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
@@ -207,7 +195,6 @@ namespace Tkn_Starter
                 // Local DB mode - use existing connection setup (for Tabim local database)
                 t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri hazırlanıyor...");
                 InitPreparingConnection();
-                
                 t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
                 if (!Db_Open(v.active_DB.managerMSSQLConn))
                 {
@@ -259,8 +246,6 @@ namespace Tkn_Starter
 
             //t.TestRead();
 
-            // 3. NOTE(@Janberk): if v.SP_UserIN = true, then initialization is complete.
-            // The main form will call tLayout.Create_Layout(), which triggers the dashboard rendering pipeline.
             // TODO(@Janberk): Extract initialization stages into Ustad.API and the endpoints called here:
             // - InitPreparingConnection()
             // - InitLoginUser()
@@ -295,9 +280,7 @@ namespace Tkn_Starter
         #region Variable Set
 
         /// <summary>
-        /// SECURE AUTHENTICATION FLOW: Initialize database connections from API after authentication
-        /// NOTE(@Janberk): This method retrieves encrypted connection strings from API and decrypts them.
-        /// No hardcoded passwords are used - all credentials come from API environment variables.
+        /// This method retrieves encrypted connection strings from API and decrypts them.
         /// </summary>
         /// <returns>True if connections were successfully established, false otherwise</returns>
         bool InitPreparingConnectionFromApi()
@@ -307,19 +290,10 @@ namespace Tkn_Starter
                 suppressManagerConnWarning = true;
                 v.SP_ConnBool_Manager = false;
                 v.SP_ConnBool_Manager_Old = false;
-
-                // Close legacy connections opened for layout rendering before rebuilding from API.
                 try { v.active_DB.managerMSSQLConn?.Dispose(); } catch { }
                 try { v.active_DB.ustadCrmMSSQLConn?.Dispose(); } catch { }
-
-                // Get API base URL from registry configuration
-                // NOTE(@Janberk): API base URL is now stored in registry for runtime configuration
                 string apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
-                
-                // Get JWT key for decryption from registry configuration
-                // NOTE(@Janberk): JWT key is stored in registry - must match API's JWT key for encryption/decryption
                 string jwtKey = Tkn_UstadAPI.tApiConfig.GetJwtKey();
-                
                 using (var apiClient = new Tkn_UstadAPI.UstadApiClient(apiBaseUrl))
                 {
                     // Get JWT token stored after successful login
@@ -329,48 +303,35 @@ namespace Tkn_Starter
                         System.Diagnostics.Debug.WriteLine("No authentication token found. User must login first.");
                         return false;
                     }
-                    
                     apiClient.SetAuthToken(authToken);
-                    
                     // Get database connection info from API (synchronous call using .Result)
                     // NOTE(@Janberk): Using .Result here because this is called from synchronous InitStart() method
                     var dbInfoTask = apiClient.GetDatabaseConnectionInfoAsync(jwtKey);
-                    dbInfoTask.Wait(); // Wait for async operation to complete
+                    dbInfoTask.Wait(); 
                     var dbInfo = dbInfoTask.Result;
                     
-                    // Validate that decrypted connection strings exist
                     if (dbInfo == null)
                     {
                         System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: dbInfo is null.");
                         return false;
                     }
-
                     bool hasCrm = !string.IsNullOrWhiteSpace(dbInfo.UstadCrmConnectionString);
                     bool hasMgr = !string.IsNullOrWhiteSpace(dbInfo.ManagerConnectionString);
-
                     if (!hasCrm || !hasMgr)
                     {
-                        // If decrypted values are missing, log lengths of encrypted payloads for diagnosis
                         System.Diagnostics.Debug.WriteLine($"InitPreparingConnectionFromApi: Missing decrypted strings. EncryptedCRM len: {dbInfo.EncryptedUstadCrmConnectionString?.Length ?? 0}, EncryptedMgr len: {dbInfo.EncryptedManagerConnectionString?.Length ?? 0}");
                         return false;
                     }
-                    
-                    // Set up connection strings from API response
                     v.active_DB.managerDBType = v.dBaseType.MSSQL;
                     v.active_DB.ustadCrmDBType = v.dBaseType.MSSQL;
                     v.active_DB.projectDBType = v.dBaseType.MSSQL;
-                    
-                    // Parse connection strings
-                    ParseConnectionStringFromApi(dbInfo.UstadCrmConnectionString, true); // UstadCRM
-                    ParseConnectionStringFromApi(dbInfo.ManagerConnectionString, false); // Manager
-
-                    // Ensure connections were created
+                    ParseConnectionStringFromApi(dbInfo.UstadCrmConnectionString, true); 
+                    ParseConnectionStringFromApi(dbInfo.ManagerConnectionString, false); 
                     if (v.active_DB.managerMSSQLConn == null || v.active_DB.ustadCrmMSSQLConn == null)
                     {
                         System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: Connection objects were not created after parsing connection strings.");
                         return false;
                     }
-                    
                     return true;
                 }
             }
@@ -385,17 +346,14 @@ namespace Tkn_Starter
                 suppressManagerConnWarning = false;
             }
         }
-        
         /// <summary>
         /// Get stored authentication token from user context
         /// NOTE(@Janberk): Token is stored in v.tUser.JwtToken after successful login in ms_User form
         /// </summary>
         string GetStoredAuthToken()
         {
-            // Token is stored in v.tUser.JwtToken after successful login
             return v.tUser.JwtToken ?? string.Empty;
         }
-        
         /// <summary>
         /// Parse connection string from API response and set up database connection objects
         /// </summary>
@@ -404,24 +362,26 @@ namespace Tkn_Starter
             try
             {
                 var builder = new System.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
-                
+                var dataSource = builder.DataSource?.Split(',')[0] ?? string.Empty;
+                var initialCatalog = builder.InitialCatalog;
+                var userId = builder.UserID;
+                var conn = new SqlConnection(connectionString);
+                conn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
                 if (isUstadCrm)
                 {
-                    v.active_DB.ustadCrmServerName = builder.DataSource.Split(',')[0];
-                    v.active_DB.ustadCrmDBName = builder.InitialCatalog;
-                    v.active_DB.ustadCrmUserName = builder.UserID;
+                    v.active_DB.ustadCrmServerName = dataSource;
+                    v.active_DB.ustadCrmDBName = initialCatalog;
+                    v.active_DB.ustadCrmUserName = userId;
                     v.active_DB.ustadCrmConnectionText = connectionString;
-                    v.active_DB.ustadCrmMSSQLConn = new SqlConnection(v.active_DB.ustadCrmConnectionText);
-                    v.active_DB.ustadCrmMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                    v.active_DB.ustadCrmMSSQLConn = conn;
                 }
                 else
                 {
-                    v.active_DB.managerServerName = builder.DataSource.Split(',')[0];
-                    v.active_DB.managerDBName = builder.InitialCatalog;
-                    v.active_DB.managerUserName = builder.UserID;
+                    v.active_DB.managerServerName = dataSource;
+                    v.active_DB.managerDBName = initialCatalog;
+                    v.active_DB.managerUserName = userId;
                     v.active_DB.managerConnectionText = connectionString;
-                    v.active_DB.managerMSSQLConn = new SqlConnection(v.active_DB.managerConnectionText);
-                    v.active_DB.managerMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                    v.active_DB.managerMSSQLConn = conn;
                 }
             }
             catch (Exception ex)
@@ -430,12 +390,10 @@ namespace Tkn_Starter
                 throw;
             }
         }
-        
         /// <summary>
         /// LEGACY METHOD: Initialize database connections with hardcoded passwords
         /// NOTE(@Janberk): This method is kept for local DB mode (Tabim) and backward compatibility.
         /// For secure mode, use InitPreparingConnectionFromApi() instead.
-        /// TODO(@Janberk): Remove hardcoded password references when all modes use API.
         /// </summary>
         void InitPreparingConnection() 
         {
@@ -449,14 +407,10 @@ namespace Tkn_Starter
             v.active_DB.ustadCrmDBType = v.dBaseType.MSSQL;
             v.active_DB.projectDBType = v.dBaseType.MSSQL;
                         
-            ///
             /// main Manager DB Connections
-            /// 
             #region
             
             v.active_DB.managerUserName = "sa";
-            // SECURE: Get password from environment variable only - NO HARDCODED FALLBACK
-            // This method is now only used for local DB mode (Tabim) - not for cloud/API mode
             string managerPassword = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS");
             if (string.IsNullOrWhiteSpace(managerPassword))
             {
@@ -467,7 +421,6 @@ namespace Tkn_Starter
             }
             
             v.active_DB.managerPsw = "Password = " + managerPassword + ";";
-
             v.active_DB.managerConnectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
                 v.active_DB.managerServerName,
@@ -479,13 +432,10 @@ namespace Tkn_Starter
             v.active_DB.managerMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
             #endregion
 
-            ///
             /// publish Manager DB Connections
-            /// 
             #region
             v.publishManager_DB.dBaseNo = v.dBaseNo.publishManager;
             v.publishManager_DB.userName = "sa";
-            // Use same legacy password for publish manager unless overridden by environment.
             v.publishManager_DB.psw = "Password = " + managerPassword + ";";
             v.publishManager_DB.connectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
@@ -493,20 +443,15 @@ namespace Tkn_Starter
                 v.publishManager_DB.databaseName,
                 v.publishManager_DB.userName,
                 v.publishManager_DB.psw);
-
             v.publishManager_DB.MSSQLConn = new SqlConnection(v.publishManager_DB.connectionText);
             v.publishManager_DB.MSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
             #endregion
 
-            ///
             /// UstadCRM DB Connections
-            /// 
             #region
 
             //v.active_DB.ustadCrmDBName = "UstadCRM";
             v.active_DB.ustadCrmUserName = "sa";
-            
-            // Use CRM password override if provided, else legacy fallback.
             string ustadCrmPassword = Environment.GetEnvironmentVariable("USTAD_CRM_DB_PASS");
             if (string.IsNullOrWhiteSpace(ustadCrmPassword))
             {
@@ -526,9 +471,7 @@ namespace Tkn_Starter
             
             #endregion
 
-            ///
             /// master DB Connections (MSSQL.master)
-            /// 
             #region
 
             v.active_DB.masterDBName = "master";
@@ -555,7 +498,6 @@ namespace Tkn_Starter
         void InitLoginComputer()
         {
             //MessageBox.Show(v.tComputer.Network_MACAddress);
-
             /// burada computer hakkında bilgi toplanıyor
             /// computer hakkındaki bilgi merkez datada bulunmakta (MVS3..)
             /// her computer network ethernet macaddresiyle takip edilmekte
@@ -566,17 +508,13 @@ namespace Tkn_Starter
             /// eğer firm_guid yok ise sadece test firmalarını görebilir
             /// Firm_Guid aldığında da bu computer bilgileri sayesinde 
             /// firma için kayıt olan computer sayısı / lisans tespit edilmiş olacak
-                        
             string networkKey = v.tComputer.Network_MACAddress;
             string pcName = v.tComputer.PcName;
-
             /* test için
             networkKey = null;
             pcName = "VIRA-2PC";
-
             v.tMainFirm.FirmId = 116;
             v.tUser.UserFirmGUID = "aab68ddf-1c4c-49e6-a860-80bbd558d945";
-
             v.tComputer.PcName = pcName;
             v.tComputer.Network_MACAddress = null;
             v.tComputer.Processor_Name = null;
@@ -586,39 +524,29 @@ namespace Tkn_Starter
             if (IsNotNull(networkKey) == false) networkKey = "";
             if (IsNotNull(pcName) == false) pcName = "";
             */
-
             /// FirmGUID
             /// NetworkMacAddress
             /// SystemName
             string tSql = "";
-
             tSql = @" Select * from UstadComputers where ( isnull(NetworkMacAddress,'') = '" + networkKey + "' and isnull(SystemName,'') = '" + pcName + "' ) ";
-
             SQL_Read_Execute(v.dBaseNo.UstadCrm, v.ds_Computer, ref tSql, "UstadComputers", "InitLoginComputer");
-
             if (IsNotNull(v.ds_Computer))
             {
                 // Birden fazla computer kaydı var ise 
                 if (v.ds_Computer.Tables[0].Rows.Count > 1)
                 {
                     string delete_sql = " Delete from UstadComputers where ( isnull(NetworkMacAddress,'') = '" + networkKey + "' and isnull(SystemName,'') = '" + pcName + "' ) ";
-
                     DataSet ds_ = new DataSet();
                     SQL_Read_Execute(v.dBaseNo.UstadCrm, ds_, ref delete_sql, "UstadComputers", "Delete");
-
                     // computer bilgisini yeniden kaydet
                     InitRegisterComputer();
-
                     // yeni kaydedilen computer bilgisini oku
                     tSql = @" Select * from UstadComputers where ( isnull(NetworkMacAddress,'') = '" + networkKey + "' and isnull(SystemName,'') = '" + pcName + "' ) ";
                     SQL_Read_Execute(v.dBaseNo.UstadCrm, v.ds_Computer, ref tSql, "UstadComputers", "InitLoginComputer");
-
                 }
-
                 /// yeniden okunduğu için tekrar kontrol
                 if (IsNotNull(v.ds_Computer))
                     v.tComputer.UstadCrmComputerId = Convert.ToInt32(v.ds_Computer.Tables[0].Rows[0]["ComputerId"].ToString());
-
                 /// Bazı Computer bilgileri güncelleniyor
                 /// FirmId
                 /// FirmGUID 
@@ -644,7 +572,6 @@ namespace Tkn_Starter
                 // Hiç kaydı yok ise
                 InitRegisterComputer();
             }
-
             /*
             if (IsNotNull(v.ds_Computer))
             {
@@ -682,7 +609,6 @@ namespace Tkn_Starter
             }
             */
         }
-
         void Screen_Sizes_Get()
         {
             v.Screen_Width = Screen.PrimaryScreen.Bounds.Width - (20 + v.NavBar_Width);
@@ -711,13 +637,11 @@ namespace Tkn_Starter
         
         /// <summary>
         /// Opens standalone login form (no database required)
-        /// This is the SECURE authentication flow - DB connections are only established AFTER successful login
         /// </summary>
         void InitLoginUser()
         {
             try
             {
-                // Use standalone login form that doesn't require database for layout
                 YesiLdefter.ms_User_Standalone loginForm = new YesiLdefter.ms_User_Standalone();
                 loginForm.ShowDialog(v.mainForm);
                 loginForm.Dispose();
@@ -732,7 +656,6 @@ namespace Tkn_Starter
                 v.SP_ApplicationExit = true;
             }
         }
-        
         /// <summary>
         /// Opens legacy login form (uses database-dependent layout)
         /// Only used for Tabim local database mode
@@ -745,7 +668,6 @@ namespace Tkn_Starter
             string FormCode = "UST/CRM/ABO/UstadUserLogin";
             OpenFormPreparing(FormName, FormCode, v.formType.Dialog);
         }
-        
         void InitTabimLoginUser()
         {
             string FormName = "ms_TabimMtsk";
@@ -753,10 +675,5 @@ namespace Tkn_Starter
             OpenFormPreparing(FormName, FormCode, v.formType.Dialog);
         }
         #endregion InitLoginUser
-
-        #region orders
-
-
-        #endregion orders
     }
 }

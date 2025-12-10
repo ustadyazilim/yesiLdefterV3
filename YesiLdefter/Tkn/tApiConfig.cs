@@ -13,14 +13,17 @@ namespace Tkn_UstadAPI
     {
         private const string REGISTRY_KEY_API_BASE_URL = "ApiBaseUrl";
         private const string REGISTRY_KEY_JWT_KEY = "JwtKey";
-        
-        // Default values (fallback if not in registry)
-        private const string DEFAULT_API_BASE_URL = "http://localhost:5000";
-        private const string DEFAULT_JWT_KEY = "UstadSecretKeyForJWTTokenGeneration2026SecureKey32Chars";
-
+        // Default values (fallback if not in registry or environment)
+        // NOTE: Prefer environment variables; these are non-secret placeholders to avoid startup crashes.
+        // Env vars:
+        //   USTAD_API_BASE_URL (e.g., http://localhost:5000)
+        //   USTAD_JWT_KEY      (must match API Jwt:Key)
+        private static readonly string DEFAULT_API_BASE_URL =
+            Environment.GetEnvironmentVariable("USTAD_API_BASE_URL") ?? "http://localhost:5000";
+        private static readonly string DEFAULT_JWT_KEY =
+            Environment.GetEnvironmentVariable("USTAD_JWT_KEY") ?? string.Empty;
         /// <summary>
         /// Get API base URL from registry or return default
-        /// NOTE(@Janberk): Registry path: HKEY_CURRENT_USER\Software\Üstad\YesiLdefter\ApiBaseUrl
         /// </summary>
         public static string GetApiBaseUrl()
         {
@@ -28,7 +31,6 @@ namespace Tkn_UstadAPI
             {
                 var reg = new tRegistry();
                 var value = reg.getRegistryValue(REGISTRY_KEY_API_BASE_URL);
-                
                 if (value != null && !string.IsNullOrWhiteSpace(value.ToString()))
                 {
                     return value.ToString().Trim();
@@ -41,10 +43,8 @@ namespace Tkn_UstadAPI
             
             return DEFAULT_API_BASE_URL;
         }
-
         /// <summary>
         /// Set API base URL in registry
-        /// NOTE(@Janberk): Registry path: HKEY_CURRENT_USER\Software\Üstad\YesiLdefter\ApiBaseUrl
         /// </summary>
         public static void SetApiBaseUrl(string apiBaseUrl)
         {
@@ -54,7 +54,6 @@ namespace Tkn_UstadAPI
                 {
                     throw new ArgumentException("API base URL cannot be empty", nameof(apiBaseUrl));
                 }
-
                 var reg = new tRegistry();
                 reg.SetUstadRegistry(REGISTRY_KEY_API_BASE_URL, apiBaseUrl.Trim());
             }
@@ -64,12 +63,10 @@ namespace Tkn_UstadAPI
                 throw;
             }
         }
-
         /// <summary>
         /// Get JWT key from registry or return default
         /// NOTE(@Janberk): JWT key is used for encrypting/decrypting connection strings.
         /// This is NOT a password but an encryption key - it must match the API's JWT key.
-        /// Registry path: HKEY_CURRENT_USER\Software\Üstad\YesiLdefter\JwtKey
         /// </summary>
         public static string GetJwtKey()
         {
@@ -77,7 +74,6 @@ namespace Tkn_UstadAPI
             {
                 var reg = new tRegistry();
                 var value = reg.getRegistryValue(REGISTRY_KEY_JWT_KEY);
-                
                 if (value != null && !string.IsNullOrWhiteSpace(value.ToString()))
                 {
                     return value.ToString().Trim();
@@ -90,7 +86,6 @@ namespace Tkn_UstadAPI
             
             return DEFAULT_JWT_KEY;
         }
-
         /// <summary>
         /// Set JWT key in registry
         /// NOTE(@Janberk): JWT key must match the API's JWT key for encryption/decryption to work.
@@ -104,12 +99,10 @@ namespace Tkn_UstadAPI
                 {
                     throw new ArgumentException("JWT key cannot be empty", nameof(jwtKey));
                 }
-
                 if (jwtKey.Length < 32)
                 {
                     throw new ArgumentException("JWT key must be at least 32 characters long", nameof(jwtKey));
                 }
-
                 var reg = new tRegistry();
                 reg.SetUstadRegistry(REGISTRY_KEY_JWT_KEY, jwtKey.Trim());
             }
@@ -129,15 +122,11 @@ namespace Tkn_UstadAPI
             try
             {
                 var reg = new tRegistry();
-                
-                // Set API base URL if not exists
                 var apiUrl = reg.getRegistryValue(REGISTRY_KEY_API_BASE_URL);
                 if (apiUrl == null || string.IsNullOrWhiteSpace(apiUrl.ToString()))
                 {
                     SetApiBaseUrl(DEFAULT_API_BASE_URL);
                 }
-                
-                // Set JWT key if not exists
                 var jwtKey = reg.getRegistryValue(REGISTRY_KEY_JWT_KEY);
                 if (jwtKey == null || string.IsNullOrWhiteSpace(jwtKey.ToString()))
                 {
