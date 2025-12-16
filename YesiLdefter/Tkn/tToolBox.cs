@@ -657,7 +657,88 @@ namespace Tkn_ToolBox
                     onay = true;
                 }
             }
+
+            // SOLIDNESS: MsDbUpdates is queried with "Id > lastAppliedId".
+            // If a DB object (procedure) is missing but DbUpdates already contains its MsDbUpdateId,
+            // the incremental query will NOT return it, and the app can fail with "could not find stored procedure".
+            // To make DB state deterministic, we verify procedure existence and re-apply missing procedure-add scripts.
+            try
+            {
+                EnsureProcedureAddsExist();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("EnsureProcedureAddsExist error: " + ex.Message);
+                // Fail fast: DB state is not consistent.
+                throw;
+            }
+
             return onay;
+        }
+
+        private void EnsureProcedureAddsExist()
+        {
+            tSQLs sqls = new tSQLs();
+            DataSet ds = new DataSet();
+            string sql = sqls.Sql_MsDbUpdates_ProcedureAdds_AllForSector();
+
+            if (!SQL_Read_Execute(v.dBaseNo.publishManager, ds, ref sql, "", "MsDbUpdates_ProcedureAdds"))
+                return;
+
+            if (!IsNotNull(ds))
+                return;
+
+            foreach (DataRow row in ds.Tables[0].Rows)
+            {
+                // Load update row into v.tMsDbUpdate
+                readMsDbUpdate(row);
+
+                // Only procedure-add updates
+                if (v.tMsDbUpdate.updateTypeId != 41)
+                    continue;
+
+                // Determine target DB for this update
+                v.dBaseNo targetDb = getDBaseNo(v.tMsDbUpdate.dBaseNoTypeId.ToString());
+
+                // Only act if the target procedure is missing
+                if (ProcedureExists(targetDb, v.tMsDbUpdate.schemaName, v.tMsDbUpdate.tableName))
+                    continue;
+
+                // Apply procedure script (idempotent; runDbUpdateProcedureAdd will drop/create as needed)
+                runDbUpdateProcedureAdd();
+            }
+        }
+
+        private bool ProcedureExists(v.dBaseNo targetDb, string schemaName, string procedureName)
+        {
+            if (string.IsNullOrWhiteSpace(schemaName) || string.IsNullOrWhiteSpace(procedureName))
+                return false;
+
+            DataSet ds = new DataSet();
+            string sql =
+                " Select count(p.object_id) as ADET " +
+                " From sys.procedures p " +
+                " inner join sys.schemas s on s.schema_id = p.schema_id " +
+                " Where p.name = '" + procedureName.Replace("'", "''") + "' " +
+                " and s.name = '" + schemaName.Replace("'", "''") + "' ";
+
+            bool ok = SQL_Read_Execute(targetDb, ds, ref sql, "", "sys_procedures");
+            if (!ok || !IsNotNull(ds))
+                return false;
+
+            try
+            {
+                string adet = ds.Tables[0].Rows[0]["ADET"].ToString();
+                return myInt32(adet) > 0;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                ds.Dispose();
+            }
         }
         private string getMusteriDbUpdateIdList()
         {

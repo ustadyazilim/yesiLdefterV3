@@ -1622,6 +1622,20 @@ INSERT INTO [dbo].[SYS_UPDATES]
               + " and SectorTypeId in ( 0, " + sectorTypeId + " ) ";
             //" Select * from " + v.publishManager_DB.databaseName + ".dbo.MsDbUpdates "
         }
+
+        public string Sql_MsDbUpdates_ProcedureAdds_AllForSector()
+        {
+            // publishManager database - fetch all procedure add updates for current sector (and global=0)
+            string sectorTypeId = v.SP_Firm_SectorTypeId.ToString();
+            if (v.SP_Firm_SectorTypeId == 212) sectorTypeId += ", 211";
+            if (v.SP_Firm_SectorTypeId == 213) sectorTypeId += ", 211";
+
+            return
+                " Select * from dbo.MsDbUpdates "
+              + " Where IsActive = 1 "
+              + " and UpdateTypeId = 41 "
+              + " and SectorTypeId in ( 0, " + sectorTypeId + " ) ";
+        }
         public string Sql_DataUpdate_On_MsDbUpdates(string tableList, string whereAdd)
         {
             // publishManager database
