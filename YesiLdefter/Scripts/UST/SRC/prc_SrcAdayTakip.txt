@@ -1124,6 +1124,9 @@ BEGIN
   ;WITH KayitTipi AS (
     Select t.TalepId as TalepId
     , ( case
+         when t.KayitTipiId = 5 and t.eSinavSonrasiTipiId <> 3 then 3  -- hatalı kayıtı düzelt  
+         when t.KayitTipiId = 6 and t.uSinavSonrasiTipiId <> 3 then 3  -- hatalı kayıtı düzelt        
+
 	     when t.eSinavSonrasiTipiId = 2 and (t.TalepTipiId = 4 or t.TalepTipiId = 5) then 4 -- Ody veya Udy Sertifika aldı
 	     when t.uSinavSonrasiTipiId = 2 and t.TalepTipiId = 1 then 4 -- Src1234 Sertifika aldı 
 

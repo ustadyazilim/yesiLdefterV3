@@ -1,0 +1,167 @@
+﻿/*CreateProcedure*/
+
+CREATE PROCEDURE [dbo].[prc_SrcSinavListesi] (@FirmId int, @Tarih Date)  
+AS BEGIN 
+
+ SET NOCOUNT ON;
+
+ --declare @FirmId int = 4239
+ --declare @Tarih date 
+
+ --set @Tarih = convert(date, '06.12.2025', 103)
+ --set @Tarih = convert(date, '01.11.2025', 103)
+
+ Select 
+   [SrcAdayTakip].[Id]
+ , [SrcAdayTakip].[TalepId]
+ , [SrcAdayTakip].[AdayId]
+ , [SrcAdayTakip].[DonemTipiId]
+ , [SrcAdayTakip].[GrupTipiId]
+ , [SrcAdayTakip].[SubeTipiId]
+ , [SrcAdayTakip].[TeorikBitisTarihi]
+
+ , [SrcAdayTakip].[GirecegiSinavTipiId]
+ , [SrcAdayTakip].[eSinavNo]
+ , [SrcAdayTakip].[eSinavDurumTipiId]
+ , [SrcAdayTakip].[eSinavAdayTarihi]
+ , [SrcAdayTakip].[eSinavPlanTarihi]
+ , [SrcAdayTakip].[eSinavMuracatTarihi]
+ , [SrcAdayTakip].[eSinavUcretTipiId]
+ , [SrcAdayTakip].[IseSinavaGirebilir]
+ , [SrcAdayTakip].[IseSinavBTeslimEdildi]
+
+ , [SrcAdayTakip].[eSinavNoGirdigi]
+ , [SrcAdayTakip].[eSinavSonucTipiId]
+ , [SrcAdayTakip].[eSinavSonrasiTipiId]
+ , [SrcAdayTakip].[eSinavDetayId]
+ , [SrcAdayTakip].[eSinavBasariTarihi]
+
+ , [SrcAdayTakip].[uSinavNo]
+ , [SrcAdayTakip].[uSinavDurumTipiId]
+ , [SrcAdayTakip].[uSinavAdayTarihi]
+ , [SrcAdayTakip].[uSinavPlanTarihi]
+ , [SrcAdayTakip].[uSinavUcretTipiId]
+ , [SrcAdayTakip].[IsuSinavaGirebilir]
+
+ , [SrcAdayTakip].[uSinavNoGirdigi]
+ , [SrcAdayTakip].[uSinavSonucTipiId]
+ , [SrcAdayTakip].[uSinavSonrasiTipiId]
+ , [SrcAdayTakip].[uSinavDetayId]
+ , [SrcAdayTakip].[uSinavBasariTarihi]
+
+ , [SrcAdayTakip].[Asama1TipiId]
+ , [SrcAdayTakip].[Asama1DetayTipiId]
+ , [SrcAdayTakip].[Asama2TipiId]
+ , [SrcAdayTakip].[Asama2DetayTipiId]
+
+ -- JoinTables standart output fields 
+ , [aday].TamAdiSoyadi as Lkp_AdayTamAdiSoyadi 
+ , [aday].TcNo as Lkp_AdayTcNo 
+ , [aday].CepTelefonu as Lkp_CepTelefonu 
+ , [MevcutSertifika].KSertifikaTipi as Lkp_MevcutSertifikaTipi 
+ , [IstenenSertifika].KSertifikaTipi as Lkp_IstenenSertifikaTipi 
+ , [eSinav].SinavTarihSaat as Lkp_eSinavTarihSaat 
+ , [eSinav].TestMerkeziBilgisi as Lkp_TestMerkeziBilgisi 
+ , [eSinav].TeorikPuani as Lkp_TeorikPuani 
+ , [talep].IstenenSertifikaTipiId as Lkp_IstenenSertifikaTipiId 
+ , [talep].DonemTipiId as Lkp_DonemTipiId 
+ , [uSinav].SinavTarihi as Lkp_uSinavTarihi 
+ , [uSinav].PuanTipiId as Lkp_PuanTipiId 
+ , [uSinav].SinavDonemTipiId as Lkp_SinavDonemTipiId 
+ -- LookUp fields
+ , [FNo7].[DonemTipi] as Lkp_DonemTipi
+ , [FNo8].[GrupTipi] as Lkp_GrupTipi
+ , [FNo9].[SubeTipi] as Lkp_SubeTipi
+ , [FNo116].[eSinavUcretTipi] as Lkp_eSinavUcretTipi
+ -- Add Join Table Fields
+ 
+ /*  NOT : Sakın açma kullanıcı hem teorik sınav hemde ayrıca uygulama sınavı için ayrıca borçlandıra biliyor
+     Bu nedenlede çift görünüyor
+
+ , (case SrcAdayTakip.GirecegiSinavTipiId
+    when 3 then odemeUSinav.Id
+           else odemeESinav.Id end ) as Lkp_OdemeId 
+
+ , (case SrcAdayTakip.GirecegiSinavTipiId
+    when 3 then odemeUSinav.VadeTarihi
+           else odemeESinav.VadeTarihi end ) as Lkp_VadeTarihi 
+
+ , (case SrcAdayTakip.GirecegiSinavTipiId
+    when 3 then odemeUSinav.TaksitTutari
+           else odemeESinav.TaksitTutari end ) as Lkp_TaksitTutari 
+
+ , (case SrcAdayTakip.GirecegiSinavTipiId
+    when 3 then odemeUSinav.IsPaid
+           else odemeESinav.IsPaid end ) as Lkp_IsPaid 
+ */
+ -- ucret
+ , ucret.AlacakUcretlerToplami as Lkp_AlacakUcretlerToplami
+ , ucret.TahsilEdilenUcretler as Lkp_TahsilEdilenUcretler
+ , ucret.BorcUcretlerToplami as Lkp_BorcUcretlerToplami
+ , ucret.ESinavUcreti as Lkp_ESinavUcreti
+ , ucret.UygulamaSinavUcreti as Lkp_UygulamaSinavUcreti
+
+ -- Özel field : Lkp_Onay 
+ , Convert(bit,0) as LKP_ONAY 
+ --, dbo.fnc_CrsBildirimCount(SrcAdayTakip.FirmId, SrcAdayTakip.TalepId, 21122, SrcAdayTakip.eSinavNo, 0, 1) as Lkp_BidirimHazirlanan
+ --, dbo.fnc_CrsBildirimCount(SrcAdayTakip.FirmId, SrcAdayTakip.TalepId, 21122, SrcAdayTakip.eSinavNo, 0, 2) as Lkp_BidirimGonderilen
+
+ From [dbo].[SrcAdayTakip] as [SrcAdayTakip] with (nolock)
+   -- Join Tables 
+    left outer join SrcAday as [aday] with (nolock) on ( [SrcAdayTakip].AdayId = [aday].Id ) 
+    left outer join SrcAdayTalep as [talep] with (nolock) on ( [SrcAdayTakip].TalepId = [talep].Id ) 
+    left outer join SrcAdayUcret as [ucret] with (nolock) on ( [SrcAdayTakip].TalepId = [ucret].TalepId ) 
+    left outer join SrcSinavETeorik as [eSinav] with (nolock) on ( [SrcAdayTakip].eSinavDetayId = [eSinav].Id and [eSinav].LineTypeId = 1 ) -- başvuru satırı 
+    left outer join SrcSinavUygulama as [uSinav] with (nolock) on ( [SrcAdayTakip].uSinavDetayId = [uSinav].Id ) 
+   -- LookUp Tables
+    left outer join Lkp.SrcSertifikaTipi as [MevcutSertifika] with (nolock) on ( talep.MevcutSertifikaTipiId = [MevcutSertifika].Id ) 
+    left outer join Lkp.SrcSertifikaTipi as [IstenenSertifika] with (nolock) on ( talep.IstenenSertifikaTipiId = [IstenenSertifika].Id ) 
+    left outer join Lkp.SrcDonemTipi as FNo7 with (nolock) on ( SrcAdayTakip.DonemTipiId = FNo7.Id )
+    left outer join Lkp.SrcGrupTipi as FNo8 with (nolock) on ( SrcAdayTakip.GrupTipiId = FNo8.Id )
+    left outer join Lkp.SrcSubeTipi as FNo9 with (nolock) on ( SrcAdayTakip.SubeTipiId = FNo9.Id )
+    left outer join Lkp.SrcAdayTakipeSinavUcretTipi as FNo116 with (nolock) on ( SrcAdayTakip.eSinavUcretTipiId = FNo116.Id )
+    left outer join Lkp.SrcSinavUygulamaPuanTipi as [uPuanTipi] with (nolock) on ( uSinav.PuanTipiId = [uPuanTipi].Id ) 
+    -- Add Join Table
+    --left outer join dbo.OnmOdemePlani as odemeESinav with (nolock) on ( [SrcAdayTakip].TalepId = odemeESinav.TalepId and [SrcAdayTakip].eSinavNo = odemeESinav.TaksitNo and odemeESinav.UcretTipiId = 23111 ) -- e-sınav ücreti
+    --left outer join dbo.OnmOdemePlani as odemeUSinav with (nolock) on ( [SrcAdayTakip].TalepId = odemeUSinav.TalepId and [SrcAdayTakip].uSinavNo = odemeUSinav.TaksitNo and odemeUSinav.UcretTipiId = 23112 ) -- uyg sınav ücreti
+
+ Where 0 = 0 
+
+ and SrcAdayTakip.TalepId in (   
+
+     Select distinct TalepId From
+     (
+          Select TalepId From dbo.SrcAdayTakip as SrcAdayTakip
+          Where 0 = 0
+          and ( SrcAdayTakip.Asama1TipiId = 300 or SrcAdayTakip.Asama1TipiId = 600 )
+          and SrcAdayTakip.KayitTipiId < 4  
+          and SrcAdayTakip.SubeTipiId  > 0 
+          and SrcAdayTakip.FirmId = @FirmId 
+          and Convert(Date, SrcAdayTakip.eSinavPlanTarihi, 103) = @Tarih
+
+          union all
+
+          Select TalepId From dbo.SrcSinavETeorik 
+          Where 0 = 0
+          and   FirmId = @FirmId
+          and   LineTypeId = 2  
+          and   Convert(Date, SinavTarihi, 103) = Convert(date, @Tarih, 103) 
+
+          union all
+
+          Select TalepId From dbo.SrcSinavUygulama
+          Where 0 = 0
+          and   FirmId = @FirmId
+          and   Convert(Date, SinavTarihi, 103) = @Tarih 
+
+     ) as x
+) -- and SrcAdayTakip.TalepId in (   
+
+order by [SrcAdayTakip].eSinavNoGirdigi, [aday].TamAdiSoyadi
+
+
+END; -- procedure
+
+/*CreateProcedureEnd*/
+
+

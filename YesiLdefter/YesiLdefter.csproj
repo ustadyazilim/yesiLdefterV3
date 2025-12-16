@@ -1190,6 +1190,7 @@
     <Content Include="Scripts\UST\SRC\prc_SrcAdayTakipTalepKaydiSingleSet.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcArtiTalepOlustur.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcDonemKontrolu.txt" />
+    <Content Include="Scripts\UST\SRC\prc_SrcSinavListesi.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcSinavSatiriOlustur.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersPlaniOlustur.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersSablonuOlustur.txt" />
@@ -1198,6 +1199,7 @@
     <Content Include="Scripts\UST\SRC\prc_SrcAdayTablesInsert.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcAdayTablesInsertKontrolu.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcAdayTakip.txt" />
+    <Content Include="Scripts\UST\SRC\SrcAdayPisko.txt" />
     <Content Include="Scripts\UST\SRC\SrcDersinPersoneli.txt" />
     <Content Include="Scripts\UST\SRC\SrcSinavETeorik.txt" />
     <Content Include="Scripts\UST\SRC\SrcSinavTarihi.txt" />

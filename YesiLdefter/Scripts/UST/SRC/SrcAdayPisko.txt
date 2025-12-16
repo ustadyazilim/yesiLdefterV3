@@ -1,0 +1,50 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+ create table dbo.SrcAdayPisko
+ (
+   Id                      Int IDENTITY(1,1) not null, 
+   FirmId                  Int        not null,
+   TalepId                 Int        not null, /* Kullanılmayacak ileride gerebilir, ehliyet AdayBiyometrik resmi gibi tek olacak */
+   AdayId                  Int        not null, 
+   TcNo                    Varchar(11)    null,
+   VeriKaynakId            Int            null, /* Veri transferi edildiği tablodaki Id . Sorun olduğunda bilginin nereden geldiğine referans olsun */
+
+   -- 10
+   TestSebebi              nVarchar(250)  null,
+   IsGozlukKullaniyor      bit            null,
+   GozlukYakinNo           nVarchar(50)   null, /* sağ ayrı, sol ayrı girebilirler */ 
+   GozlukUzakNo            nVarchar(50)   null, /* sağ ayrı, sol ayrı girebilirler */ 
+   IsIsitmeCihaziVar       bit            null,
+   OzurlulukHali           nVarchar(50)   null,
+   IsTrafikKazasiVar       bit            null,
+   TrafikKazaNedeni        nVarchar(100)  null, 
+   -- 20
+   RandevuTarihi           Date           null,  
+   RandevuSaati            Varchar(8)     null,
+   RandevuCihazId          Int            null,
+   DoktorId                Int            null,
+
+   -- 30
+   KullaniciUyarilari      nVarchar(200)  null,
+   EtiketTipiId            SmallInt       null, 
+   ReferansId              Int            null, /* Refreans cari hesaplar bağlanacak */
+
+   -- 40
+   DurumTipiId             SmallInt       null, /* randevu aşamasında, olumlu sonuçlandı, olumsuz sonuçlandı gibi konular  */
+   RaporBaslangicTarihi    Date           null,
+   RaporBitisTarihi        Date           null,
+
+   constraint		pk_SrcAdayPisko primary key (Id)
+ )
+  
+ grant select, insert, update, delete on SrcAdayPisko to public
+
+  create index X_SrcAdayPisko01 on SrcAdayPisko (AdayId)
+  create index X_SrcAdayPisko02 on SrcAdayPisko (TalepId)
+
+commit transaction
+
+/*CreateTableEnd*/
+

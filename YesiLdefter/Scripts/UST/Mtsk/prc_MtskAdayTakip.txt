@@ -2034,7 +2034,7 @@ BEGIN
     , dbo.fnc_getEUSinavNo(t.TalepId , ''YeniUSinavNo'') as yeniSinavNo
 
 	From dbo.MtskAdayTakip as t 
-    left join dbo.MtskSinavRandevu  as rande on ( t.TalepId = rande.TalepId and rande.SinavNo = dbo.fnc_getEUSinavNo(t.TalepId , ''YeniUSinavNo'') )
+    left join dbo.MtskSinavRandevuS as rande on ( t.TalepId = rande.TalepId and rande.SinavNo = dbo.fnc_getEUSinavNo(t.TalepId , ''YeniUSinavNo'') )
     Where @FirmId = t.FirmId
 	--and @TalepId = t.TalepId
     --and ( t.KayitTipiId = 2 or t.KayitTipiId = 3 )
@@ -2367,6 +2367,8 @@ BEGIN
   ;WITH KayitTipi AS (
     Select t.TalepId as TalepId
     , ( case
+         when t.KayitTipiId = 5 and t.eSinavSonrasiTipiId <> 3 then 3  -- hatalı kayıtı düzelt  
+         when t.KayitTipiId = 6 and t.uSinavSonrasiTipiId <> 3 then 3  -- hatalı kayıtı düzelt        
          when t.KayitTipiId > 3 then t.KayitTipiId -- aşamasını bulmui, kayıt tipini değiştirme
          when t.KayitTipiId < 4 
          and  t.DonemTipiId > 0 
