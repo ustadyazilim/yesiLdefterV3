@@ -284,7 +284,7 @@ namespace YesiLdefter
                 if (v.active_DB.projectDBType == v.dBaseType.MSSQL)
                 {
                     t.WaitFormOpen(v.mainForm, "ProjectDB bağlantısı gerçekleşiyor...");
-                    //t.Db_Open(v.active_DB.projectMSSQLConn);
+                    t.Db_Open(v.active_DB.projectMSSQLConn);
                 }
                 
                 t.WaitFormOpen(v.mainForm, "SysTypes tanımları okunuyor...");
