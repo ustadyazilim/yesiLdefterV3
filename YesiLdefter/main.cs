@@ -314,26 +314,12 @@ namespace YesiLdefter
                 if ((v.SP_Firm_SectorTypeId != (Int16)v.msSectorType.UstadCrm) && // Crm
                     (v.SP_Firm_SectorTypeId != (Int16)v.msSectorType.TabimMtsk))
                 {
-                    Task task3 = new Task(() =>
-                    {
-                        t.dbUpdatesChecked();
-                    });
-                    task3.Start();
-
                     if (v.SP_TabimParamsKurumTipi == "")
                     {
-                        // IMPORTANT: dbUpdatesChecked may create/upgrade project DB objects (tables/procedures).
-                        // We must wait for it to complete before calling any project stored procedures.
+                        // DB must be fully updated before any project stored procedures are executed.
+                        // dbUpdatesChecked can create/update procedures in the project DB (UpdateTypeId=41).
                         t.WaitFormOpen(v.mainForm, "Güncellemeler kontrol ediliyor...");
-                        try
-                        {
-                            task3.Wait();
-                        }
-                        catch (AggregateException ae)
-                        {
-                            // Fail fast: startup should not continue with partial DB state.
-                            throw ae.Flatten();
-                        }
+                        t.dbUpdatesChecked();
 
                         t.WaitFormOpen(v.mainForm, "İl ve İlçe listesi okunuyor...");
                         t.SYS_IL_Read();
