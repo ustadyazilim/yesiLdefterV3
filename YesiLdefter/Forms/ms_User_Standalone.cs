@@ -406,6 +406,11 @@ namespace YesiLdefter
                     v.tMainFirm.DbTypeId = firm.DbTypeId ?? 0;
                     v.tMainFirm.FirmMebbisCode = firm.MebbisCode ?? "";
                     v.tMainFirm.FirmMebbisPass = firm.MebbisPass ?? "";
+
+                    // IMPORTANT: mirror legacy flow - set global firm context + project DB connection info
+                    // This drives SP_Firm_SectorTypeId and downstream menu/startup logic.
+                    var t = new Tkn_ToolBox.tToolBox();
+                    t.setSelectFirm(v.tMainFirm);
                     
                     // Save to registry
                     reg.SetUstadRegistry("userFirm" + v.tUser.UserId.ToString(), firm.FirmId.ToString());
