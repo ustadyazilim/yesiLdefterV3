@@ -664,7 +664,19 @@ namespace Tkn_ToolBox
             // To make DB state deterministic, we verify procedure existence and re-apply missing procedure-add scripts.
             try
             {
+                System.Diagnostics.Debug.WriteLine(
+                    $"dbUpdatesChecked: publishManager='{v.publishManager_DB.databaseName}' " +
+                    $"project='{v.active_DB.projectDBName}' sector={v.SP_Firm_SectorTypeId}");
                 EnsureProcedureAddsExist();
+
+                // Hard invariant for current startup path: this proc is called immediately after dbUpdatesChecked.
+                // If it's still missing here, either publishManager MsDbUpdates doesn't contain it, or connections are wrong.
+                if (!ProcedureExists(v.dBaseNo.Project, "dbo", "prc_CrsTakvimiAyarla"))
+                {
+                    throw new InvalidOperationException(
+                        "DB invariant failed: dbo.prc_CrsTakvimiAyarla is missing in Project DB after dbUpdatesChecked. " +
+                        $"Project='{v.active_DB.projectDBName}', PublishManager='{v.publishManager_DB.databaseName}', SectorTypeId={v.SP_Firm_SectorTypeId}");
+                }
             }
             catch (Exception ex)
             {
@@ -683,10 +695,19 @@ namespace Tkn_ToolBox
             string sql = sqls.Sql_MsDbUpdates_ProcedureAdds_AllForSector();
 
             if (!SQL_Read_Execute(v.dBaseNo.publishManager, ds, ref sql, "", "MsDbUpdates_ProcedureAdds"))
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"EnsureProcedureAddsExist: cannot query MsDbUpdates from publishManager. " +
+                    $"PublishManager='{v.publishManager_DB.databaseName}'");
                 return;
+            }
 
             if (!IsNotNull(ds))
                 return;
+
+            int rows = 0;
+            try { rows = ds.Tables[0].Rows.Count; } catch { rows = 0; }
+            System.Diagnostics.Debug.WriteLine($"EnsureProcedureAddsExist: fetched {rows} procedure-add rows from publishManager='{v.publishManager_DB.databaseName}'");
 
             foreach (DataRow row in ds.Tables[0].Rows)
             {
@@ -705,7 +726,25 @@ namespace Tkn_ToolBox
                     continue;
 
                 // Apply procedure script (idempotent; runDbUpdateProcedureAdd will drop/create as needed)
-                runDbUpdateProcedureAdd();
+                System.Diagnostics.Debug.WriteLine(
+                    $"EnsureProcedureAddsExist: applying missing proc '{v.tMsDbUpdate.schemaName}.{v.tMsDbUpdate.tableName}' " +
+                    $"to targetDb={targetDb} (Project='{v.active_DB.projectDBName}', PublishManager='{v.publishManager_DB.databaseName}')");
+
+                bool ok = runDbUpdateProcedureAdd();
+                if (!ok)
+                {
+                    throw new InvalidOperationException(
+                        $"EnsureProcedureAddsExist: failed to apply procedure '{v.tMsDbUpdate.schemaName}.{v.tMsDbUpdate.tableName}' " +
+                        $"to targetDb={targetDb}. Project='{v.active_DB.projectDBName}', PublishManager='{v.publishManager_DB.databaseName}'");
+                }
+
+                // Validate immediately
+                if (!ProcedureExists(targetDb, v.tMsDbUpdate.schemaName, v.tMsDbUpdate.tableName))
+                {
+                    throw new InvalidOperationException(
+                        $"EnsureProcedureAddsExist: procedure still missing after apply: '{v.tMsDbUpdate.schemaName}.{v.tMsDbUpdate.tableName}' " +
+                        $"targetDb={targetDb}. Project='{v.active_DB.projectDBName}', PublishManager='{v.publishManager_DB.databaseName}'");
+                }
             }
         }
 
