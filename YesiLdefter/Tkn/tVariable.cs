@@ -145,8 +145,6 @@ namespace Tkn_Variable
 
         public static DBTypes active_DB = new DBTypes();
 
-        public static string mainManagerPass = "Password = ustad84352Yazilim;";
-        public static string publishManagerPass = "Password = ustad84352Yazilim;";
         public static string destekServiceToolCode = "875421";
         public static string destekTesterServiceToolCode = "784512";
 
@@ -1712,6 +1710,7 @@ namespace Tkn_Variable
         public string MebbisPass { get; set; }
         public string UserTcNo { get; set; }
         public string Username_ { get; set; } /* Tabim users dan gelen bilgi */
+        public string JwtToken { get; set; } // JWT authentication token from API login
 
         public void Clear()
         {
@@ -1734,6 +1733,7 @@ namespace Tkn_Variable
             MebbisPass = "";
             UserTcNo = "";
             Username_ = "";
+            JwtToken = "";
         }
 
     }

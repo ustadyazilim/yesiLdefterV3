@@ -366,3 +366,9 @@ FodyWeavers.xsd
 *.ini
 !*.ini.example
 !*.ini.template
+
+# Production configuration files (contain sensitive credentials)
+appsettings.Production.json
+**/appsettings.Production.json
+.env.production
+.env.production.local

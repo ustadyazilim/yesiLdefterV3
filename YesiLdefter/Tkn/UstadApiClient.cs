@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Tkn_Variable;
 using Newtonsoft.Json;
+using System.Security.Cryptography;
 
 namespace Tkn_UstadAPI
 {
@@ -19,6 +20,7 @@ namespace Tkn_UstadAPI
         private readonly string _apiBaseUrl;
         private bool _disposed = false;
 
+        // Default aligns with Ustad.API dev settings (Kestrel http://localhost:5000)
         public UstadApiClient(string apiBaseUrl = "http://localhost:5000")
         {
             _apiBaseUrl = apiBaseUrl.TrimEnd('/');
@@ -74,8 +76,8 @@ namespace Tkn_UstadAPI
             }
             catch (System.Net.Http.HttpRequestException ex)
             {
-                // This is a network-level HTTP exception (connection issues)
-                throw new Exception($"API connection error: {ex.Message}", ex);
+                // Network-level HTTP exception (connection issues)
+                throw new Exception($"API connection error to {_apiBaseUrl}: {ex.Message}", ex);
             }
             catch (TaskCanceledException)
             {
@@ -240,6 +242,96 @@ namespace Tkn_UstadAPI
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
+        /// <summary>
+        /// Get database connection information from API (requires authentication)
+        /// Returns encrypted connection strings that need to be decrypted using the JWT key
+        /// </summary>
+        public async Task<DatabaseConnectionInfo> GetDatabaseConnectionInfoAsync(string jwtKey)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync("/auth/db-connection-info");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"Get database connection info failed: {errorContent}");
+                }
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var dbInfo = JsonConvert.DeserializeObject<DatabaseConnectionInfo>(responseContent);
+                
+                if (dbInfo != null && !string.IsNullOrEmpty(jwtKey))
+                {
+                    // Decrypt connection strings
+                    if (!string.IsNullOrEmpty(dbInfo.EncryptedUstadCrmConnectionString))
+                    {
+                        dbInfo.UstadCrmConnectionString = DecryptConnectionString(dbInfo.EncryptedUstadCrmConnectionString, jwtKey);
+                    }
+                    if (!string.IsNullOrEmpty(dbInfo.EncryptedManagerConnectionString))
+                    {
+                        dbInfo.ManagerConnectionString = DecryptConnectionString(dbInfo.EncryptedManagerConnectionString, jwtKey);
+                    }
+                }
+
+                return dbInfo;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Get database connection info error: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Decrypt connection string using AES decryption with key derived from JWT secret
+        /// </summary>
+        private string DecryptConnectionString(string encryptedText, string key)
+        {
+            try
+            {
+                // Derive a 32-byte key from the JWT key (same as encryption)
+                byte[] keyBytes = Encoding.UTF8.GetBytes(key);
+                if (keyBytes.Length < 32)
+                {
+                    Array.Resize(ref keyBytes, 32);
+                }
+                else if (keyBytes.Length > 32)
+                {
+                    byte[] truncated = new byte[32];
+                    Array.Copy(keyBytes, truncated, 32);
+                    keyBytes = truncated;
+                }
+
+                byte[] encryptedBytes = Convert.FromBase64String(encryptedText);
+
+                using (Aes aes = Aes.Create())
+                {
+                    aes.Key = keyBytes;
+                    aes.Mode = CipherMode.CBC;
+                    aes.Padding = PaddingMode.PKCS7;
+
+                    // Extract IV (first 16 bytes)
+                    byte[] iv = new byte[16];
+                    Array.Copy(encryptedBytes, 0, iv, 0, 16);
+                    aes.IV = iv;
+
+                    // Extract encrypted data (remaining bytes)
+                    byte[] cipherBytes = new byte[encryptedBytes.Length - 16];
+                    Array.Copy(encryptedBytes, 16, cipherBytes, 0, cipherBytes.Length);
+
+                    using (ICryptoTransform decryptor = aes.CreateDecryptor())
+                    {
+                        byte[] decryptedBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
+                        return Encoding.UTF8.GetString(decryptedBytes);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error decrypting connection string: {ex.Message}", ex);
+            }
+        }
+
         public void Dispose()
         {
             Dispose(true);
@@ -266,12 +358,28 @@ namespace Tkn_UstadAPI
 
         public class LoginResponse
         {
+            [JsonProperty("token")]
             public string Token { get; set; }
+
+            [JsonProperty("userId")]
+            public int UserId { get; set; }
+
+            [JsonProperty("operatorId")]
             public int OperatorId { get; set; }
+
+            [JsonProperty("userGUID")]
             public string UserGUID { get; set; }
+
+            [JsonProperty("fullName")]
             public string FullName { get; set; }
+
+            [JsonProperty("role")]
             public string Role { get; set; }
+
+            [JsonProperty("firmId")]
             public int FirmId { get; set; }
+
+            [JsonProperty("dbTypeId")]
             public short DbTypeId { get; set; }
         }
 
@@ -342,6 +450,22 @@ namespace Tkn_UstadAPI
             public string UserFullName { get; set; }
             public string UserEMail { get; set; }
             public bool IsActive { get; set; }
+        }
+
+        public class DatabaseConnectionInfo
+        {
+            public string UstadCrmServer { get; set; }
+            public string UstadCrmPort { get; set; }
+            public string UstadCrmDatabase { get; set; }
+            public string UstadCrmUsername { get; set; }
+            public string ManagerServer { get; set; }
+            public string ManagerDatabase { get; set; }
+            public string ManagerUsername { get; set; }
+            public string EncryptedUstadCrmConnectionString { get; set; }
+            public string EncryptedManagerConnectionString { get; set; }
+            // Decrypted connection strings (set after decryption)
+            public string UstadCrmConnectionString { get; set; }
+            public string ManagerConnectionString { get; set; }
         }
 
         #endregion

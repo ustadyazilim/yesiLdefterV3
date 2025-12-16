@@ -1,25 +1,19 @@
 /* Core Namespace */
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.Data;
 /* Database Namespace */
 using Microsoft.Data.SqlClient;
 /* JWT Namespace */
 using System.IdentityModel.Tokens.Jwt;
 /* HTTP Namespace */
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
-using System.Linq;
 using System.Globalization;
 /* Threading Namespace */
-using System.Threading.Tasks;
+/* Cryptography Namespace */
+using System.Security.Cryptography;
 
 namespace Ustad.API.Controllers
 {
@@ -82,6 +76,10 @@ namespace Ustad.API.Controllers
             /// User/Operator ID
             /// </summary>
             public int UserId { get; set; }
+            /// <summary>
+            /// Legacy OperatorId (alias for UserId for backward compatibility)
+            /// </summary>
+            public int OperatorId { get; set; }
             /// <summary>
             /// User GUID identifier
             /// </summary>
@@ -192,7 +190,6 @@ BEGIN
     );
     CREATE INDEX IX_UstadUserSecurePasswords_UserId ON UstadUserSecurePasswords(UserId);
 END";
-
         private const string PHASE1_PASSWORD_QUERY = @"
 SELECT 
     u.UserId,
@@ -205,7 +202,6 @@ FROM UstadUsers u
 LEFT JOIN UstadUserSecurePasswords sp ON u.UserId = sp.UserId
 WHERE (u.UserEMail = @u OR u.UserTcNo = @u OR u.UserMobileNo = @u) 
   AND u.IsActive = 1";
-
         private const string PHASE3_USER_DATA_QUERY = @"
 SELECT 
     COALESCE(u.UserFullName, '') AS FullName,
@@ -214,7 +210,6 @@ SELECT
     COALESCE(u.DbTypeId, 0) AS DbTypeId
 FROM UstadUsers u
 WHERE u.UserId = @userId";
-
         private const string UPGRADE_PASSWORD_MERGE = @"
 MERGE UstadUserSecurePasswords AS target
 USING (SELECT @userId AS UserId) AS source
@@ -228,17 +223,30 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (UserId, PasswordHash, Salt, Iterations, CreatedAt)
     VALUES (@userId, @hash, @salt, @iterations, SYSUTCDATETIME());";
-
+        /// <summary>
+        /// Builds database connection string from environment variables or configuration
+        /// </summary>
+        /// <returns>Connection string</returns>
+        /// <exception cref="InvalidOperationException">Thrown if required configuration is missing</exception>
         private string BuildConnectionString()
         {
-            string host = Environment.GetEnvironmentVariable("DB_HOST") ?? _configuration["Db:Host"] ?? string.Empty; 
-            string port = Environment.GetEnvironmentVariable("DB_PORT") ?? _configuration["Db:Port"] ?? "1433";
-            string user = Environment.GetEnvironmentVariable("DB_USER") ?? _configuration["Db:User"] ?? string.Empty;
-            string pass = Environment.GetEnvironmentVariable("DB_PASS") ?? _configuration["Db:Pass"] ?? string.Empty;
-            string db   = Environment.GetEnvironmentVariable("DB_NAME") ?? _configuration["Db:Name"] ?? string.Empty;
-            return !string.IsNullOrWhiteSpace(host) && !string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(db)
-                ? $"Data Source={host},{port}; Initial Catalog={db}; User ID={user}; Password={pass}; TrustServerCertificate=true; Encrypt=false; MultipleActiveResultSets=True"
-                : _configuration.GetConnectionString("BulutCrm") ?? string.Empty; 
+            string host = Environment.GetEnvironmentVariable("DB_HOST") ?? _configuration["Db:Host"];
+            string port = Environment.GetEnvironmentVariable("DB_PORT") ?? _configuration["Db:Port"];
+            string user = Environment.GetEnvironmentVariable("DB_USER") ?? _configuration["Db:User"];
+            string pass = Environment.GetEnvironmentVariable("DB_PASS") ?? _configuration["Db:Pass"];
+            string db   = Environment.GetEnvironmentVariable("DB_NAME") ?? _configuration["Db:Name"];
+
+            if (string.IsNullOrWhiteSpace(host))
+                throw new InvalidOperationException("Database host environment variable or Db:Host configuration is required");
+            if (string.IsNullOrWhiteSpace(port))
+                throw new InvalidOperationException("Database port environment variable or Db:Port configuration is required");
+            if (string.IsNullOrWhiteSpace(user))
+                throw new InvalidOperationException("Database user environment variable or Db:User configuration is required");
+            if (string.IsNullOrWhiteSpace(db))
+                throw new InvalidOperationException("Database name environment variable or Db:Name configuration is required");
+            if (string.IsNullOrWhiteSpace(pass))
+                throw new InvalidOperationException("Database password environment variable or Db:Pass configuration is required");
+            return $"Data Source={host},{port}; Initial Catalog={db}; User ID={user}; Password={pass}; TrustServerCertificate=true; Encrypt=false; MultipleActiveResultSets=True";
         }
         /// <summary>
         /// Validates the Cloudflare Turnstile token
@@ -249,7 +257,7 @@ WHEN NOT MATCHED THEN
         {
             if (string.IsNullOrEmpty(token)) return true;
             var turnstileSecret = Environment.GetEnvironmentVariable("TURNSTILE_SECRET") ?? _configuration["Turnstile:Secret"];
-            // Cloudflare Turnstile is disabled
+            // NOTE(@Janberk): Cloudflare Turnstile is disabled
             if (string.IsNullOrEmpty(turnstileSecret)) return true; 
             try
             {
@@ -283,19 +291,24 @@ WHEN NOT MATCHED THEN
         /// Gets the JWT key from the configuration
         /// </summary>
         /// <returns>Stored JWT key</returns>
+        /// <exception cref="InvalidOperationException">Thrown if JWT key is not configured</exception>
         private string GetJwtKey()
         {
-            var key = Environment.GetEnvironmentVariable("JWT_KEY") ?? _configuration["Jwt:Key"] ?? "UstadSecretKeyForJWTTokenGeneration2024SecureKey32Chars";
-            // Ensure key is at least 32 characters (256 bits) for HS256
+            var key = Environment.GetEnvironmentVariable("JWT_KEY") ?? _configuration["Jwt:Key"];
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                throw new InvalidOperationException(
+                    "JWT key environment variable or Jwt:Key configuration is required. " +
+                    "Do not use hardcoded fallback values for security.");
+            }
+            // NOTE(@Janberk): Ensure key is at least 32 characters (256 bits) for HS256
             if (key.Length < 32)
             {
-                // Pad or repeat the key to meet minimum length requirement
-                while (key.Length < 32)
-                {
-                    key += key;
-                }
-                key = key.Substring(0, 32);
+                throw new InvalidOperationException(
+                    $"JWT key must be at least 32 characters long. Current length: {key.Length}. " +
+                    "Please set JWT key environment variable or Jwt:Key configuration with a secure key.");
             }
+            
             return key;
         }
         /// <summary>
@@ -328,7 +341,6 @@ WHEN NOT MATCHED THEN
             {
                 return envValue;
             }
-
             if (int.TryParse(_configuration["Jwt:ExpiresMinutes"], out var cfgValue) && cfgValue > 0)
             {
                 return cfgValue;
@@ -348,7 +360,6 @@ WHEN NOT MATCHED THEN
             {
                 return envValue;
             }
-
             if (int.TryParse(_configuration["Jwt:RefreshExpiresMinutes"], out var cfgValue) && cfgValue > 0)
             {
                 return cfgValue;
@@ -609,6 +620,7 @@ WHEN NOT MATCHED THEN
                 AccessTokenExpiresInSeconds = GetAccessTokenExpiresMinutes() * 60,
                 RefreshTokenExpiresInSeconds = GetRefreshTokenExpiresMinutes() * 60,
                 UserId = userId,
+                OperatorId = userId,
                 UserGUID = userGuid,
                 FullName = fullName,
                 Role = role,
@@ -986,6 +998,7 @@ ELSE
                 AccessTokenExpiresInSeconds = GetAccessTokenExpiresMinutes() * 60,
                 RefreshTokenExpiresInSeconds = GetRefreshTokenExpiresMinutes() * 60,
                 UserId = userId,
+                OperatorId = userId,
                 UserGUID = userGuid,
                 FullName = fullName,
                 Role = role,
@@ -1052,6 +1065,7 @@ ELSE
                 AccessTokenExpiresInSeconds = GetAccessTokenExpiresMinutes() * 60,
                 RefreshTokenExpiresInSeconds = GetRefreshTokenExpiresMinutes() * 60,
                 UserId = userId,
+                OperatorId = userId,
                 UserGUID = userGuid,
                 FullName = fullName,
                 Role = role,
@@ -1264,6 +1278,163 @@ ELSE
                     ex.Message);
                 return false;
             }
+        }
+        #endregion
+        #region Get Database Connection Info (Authenticated)
+        /// <summary>
+        /// Get database connection information for authenticated desktop application
+        /// Returns connection details (server, database, username) but NOT password for security
+        /// NOTE(@Janberk): Password is handled server-side only via environment variables
+        /// </summary>
+        /// <returns>DatabaseConnectionInfo with server, database, and username</returns>
+        /// <response code="200">Returns database connection info</response>
+        /// <response code="401">Unauthorized - valid JWT token required</response>
+        [HttpGet("db-connection-info")]
+        [Authorize]
+        [ProducesResponseType(typeof(DatabaseConnectionInfo), 200)]
+        [ProducesResponseType(401)]
+        public IActionResult GetDatabaseConnectionInfo()
+        {
+            try
+            {
+                string host = Environment.GetEnvironmentVariable("DB_HOST") ?? _configuration["Db:Host"];
+                string port = Environment.GetEnvironmentVariable("DB_PORT") ?? _configuration["Db:Port"];
+                string user = Environment.GetEnvironmentVariable("DB_USER") ?? _configuration["Db:User"];
+                string dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? _configuration["Db:Name"];
+                string password = Environment.GetEnvironmentVariable("DB_PASS") ?? _configuration["Db:Pass"];
+
+                if (string.IsNullOrWhiteSpace(host))
+                    throw new InvalidOperationException("Database host environment variable or Db:Host configuration is required");
+                if (string.IsNullOrWhiteSpace(port))
+                    throw new InvalidOperationException("Database port environment variable or Db:Port configuration is required");
+                if (string.IsNullOrWhiteSpace(user))
+                    throw new InvalidOperationException("Database user environment variable or Db:User configuration is required");
+                if (string.IsNullOrWhiteSpace(dbName))
+                    throw new InvalidOperationException("Database name environment variable or Db:Name configuration is required");
+                if (string.IsNullOrWhiteSpace(password))
+                    throw new InvalidOperationException("Database password environment variable or Db:Pass configuration is required");
+
+                // NOTE(@Janberk): Get manager DB info from configuration
+                var managerConnStr = _configuration.GetConnectionString("BulutManager");
+                string managerServer = host;
+                string managerDb = null;
+                string managerUser = user;
+                if (!string.IsNullOrEmpty(managerConnStr))
+                {
+                    try
+                    {
+                        var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(managerConnStr);
+                        managerServer = builder.DataSource.Split(',')[0]; 
+                        managerDb = builder.InitialCatalog;
+                        managerUser = builder.UserID;
+                    }
+                    catch
+                    {
+                        // NOTE(@Janberk): Connection string parsing failed, will try configuration fallback below
+                    }
+                }
+                if (string.IsNullOrWhiteSpace(managerDb))
+                {
+                    managerDb = _configuration["Db:ManagerName"];
+                    if (string.IsNullOrWhiteSpace(managerDb))
+                        throw new InvalidOperationException("Manager database name must be configured via BulutManager connection string or Db:ManagerName");
+                }
+                
+                string ustadCrmConnStr = $"Data Source={host},{port};Initial Catalog={dbName};User ID={user};Password={password};MultipleActiveResultSets=True;TrustServerCertificate=true;Encrypt=false";
+                string managerConnStrBuilt = $"Data Source={managerServer},{port};Initial Catalog={managerDb};User ID={managerUser};Password={password};MultipleActiveResultSets=True;TrustServerCertificate=true;Encrypt=false";
+
+                string encryptionKey = GetJwtKey();
+                string encryptedUstadCrm = EncryptConnectionString(ustadCrmConnStr, encryptionKey);
+                string encryptedManager = EncryptConnectionString(managerConnStrBuilt, encryptionKey);
+
+                return Ok(new DatabaseConnectionInfo
+                {
+                    UstadCrmServer = host,
+                    UstadCrmPort = port,
+                    UstadCrmDatabase = dbName,
+                    UstadCrmUsername = user,
+                    ManagerServer = managerServer,
+                    ManagerDatabase = managerDb,
+                    ManagerUsername = managerUser,
+                    EncryptedUstadCrmConnectionString = encryptedUstadCrm,
+                    EncryptedManagerConnectionString = encryptedManager
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting database connection info");
+                return StatusCode(500, "Error retrieving database connection information");
+            }
+        }
+        #endregion
+        #region Private Encryption Methods
+        /// <summary>
+        /// Encrypt connection string using AES encryption with key derived from JWT secret
+        /// </summary>
+        private string EncryptConnectionString(string plainText, string key)
+        {
+            try
+            {
+                // Derive a 32-byte key from the JWT key
+                byte[] keyBytes = Encoding.UTF8.GetBytes(key);
+                if (keyBytes.Length < 32)
+                {
+                    // Pad key to 32 bytes
+                    Array.Resize(ref keyBytes, 32);
+                }
+                else if (keyBytes.Length > 32)
+                {
+                    // Truncate to 32 bytes
+                    byte[] truncated = new byte[32];
+                    Array.Copy(keyBytes, truncated, 32);
+                    keyBytes = truncated;
+                }
+                using (Aes aes = Aes.Create())
+                {
+                    aes.Key = keyBytes;
+                    aes.Mode = CipherMode.CBC;
+                    aes.Padding = PaddingMode.PKCS7;
+                    aes.GenerateIV();
+                    using (ICryptoTransform encryptor = aes.CreateEncryptor())
+                    {
+                        byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
+                        byte[] encryptedBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+                        // Combine IV and encrypted data
+                        byte[] result = new byte[aes.IV.Length + encryptedBytes.Length];
+                        Array.Copy(aes.IV, 0, result, 0, aes.IV.Length);
+                        Array.Copy(encryptedBytes, 0, result, aes.IV.Length, encryptedBytes.Length);
+                        return Convert.ToBase64String(result);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error encrypting connection string");
+                throw;
+            }
+        }
+        #endregion
+        #region Database Connection Info Class
+        /// <summary>
+        /// Database connection information response with encrypted connection strings
+        /// </summary>
+        public class DatabaseConnectionInfo
+        {
+            public string UstadCrmServer { get; set; } = string.Empty;
+            public string UstadCrmPort { get; set; } = "1433";
+            public string UstadCrmDatabase { get; set; } = string.Empty;
+            public string UstadCrmUsername { get; set; } = string.Empty;
+            public string ManagerServer { get; set; } = string.Empty;
+            public string ManagerDatabase { get; set; } = string.Empty;
+            public string ManagerUsername { get; set; } = string.Empty;
+            /// <summary>
+            /// Encrypted UstadCRM connection string - decrypt using JWT key on desktop
+            /// </summary>
+            public string EncryptedUstadCrmConnectionString { get; set; } = string.Empty;
+            /// <summary>
+            /// Encrypted Manager connection string - decrypt using JWT key on desktop
+            /// </summary>
+            public string EncryptedManagerConnectionString { get; set; } = string.Empty;
         }
         #endregion
         #region Private Helper Methods
