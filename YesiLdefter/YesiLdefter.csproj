@@ -444,6 +444,12 @@
     <Compile Include="Forms\ms_UserFirmSelect.cs">
       <SubType>Form</SubType>
     </Compile>
+    <EmbeddedResource Include="Forms\ms_UserFirmSelect.resx">
+      <DependentUpon>ms_UserFirmSelect.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\ms_User_Standalone.resx">
+      <DependentUpon>ms_User_Standalone.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\Templates\LoginTemplate.html" />
     <Compile Include="Forms\ms_UserFirmList.cs">
       <SubType>Form</SubType>

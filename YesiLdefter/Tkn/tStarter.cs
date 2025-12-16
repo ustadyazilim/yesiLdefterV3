@@ -86,8 +86,8 @@ namespace Tkn_Starter
             // NOTE(@Janberk): INI read hydrates legacy DB endpoints (manager/CRM/publish/local). 
             // This is the only source before API handoff.
             //
-            t.WaitFormOpen(v.mainForm, "Ini dosyalar okunuyor...");
-            t.ftpDownloadIniFile();
+            //t.WaitFormOpen(v.mainForm, "Ini dosyalar okunuyor...");
+            //t.ftpDownloadIniFile();
 
             // NOTE(@Janberk): Ensures API base URL and JWT key are set in registry if not already configured
             Tkn_UstadAPI.tApiConfig.InitializeDefaults();
@@ -366,6 +366,7 @@ namespace Tkn_Starter
         /// </summary>
         void ParseConnectionStringFromApi(string connectionString, bool isUstadCrm)
         {
+            /// buradki set işlemleri yanlış
             try
             {
                 var builder = new System.Data.SqlClient.SqlConnectionStringBuilder(connectionString);

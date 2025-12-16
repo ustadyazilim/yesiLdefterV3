@@ -1,21 +1,23 @@
 /* Core Namespace */
 using DevExpress.XtraEditors;
-using Microsoft.Web.WebView2.WinForms;
 using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
 using Newtonsoft.Json.Linq;
-using System.Text;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Collections.Generic;
 /* Internal Namespaces */
 using Tkn_Registry;
+using Tkn_ToolBox;
+using Tkn_UserFirms;
 using Tkn_UstadAPI;
 using Tkn_Variable;
-using Tkn_ToolBox;
+using Tkn_UserFirms;
 
 namespace YesiLdefter
 {
@@ -31,6 +33,7 @@ namespace YesiLdefter
 
         private UstadApiClient apiClient = null;
         private tRegistry reg = new tRegistry();
+        tUserFirms userFirms = new tUserFirms();
 
         // UI Controls
         private LabelControl lblTitle;
@@ -54,8 +57,8 @@ namespace YesiLdefter
         public ms_User_Standalone()
         {
             InitializeStandaloneComponents();
-            LoadUserRegistry();
             InitializeApiClient();
+            LoadUserRegistry();
         }
 
         #endregion
@@ -68,9 +71,10 @@ namespace YesiLdefter
 
             // Form properties
             this.Text = "Giriş Yap";
-            this.Size = new Size(450, 400);
-            this.StartPosition = FormStartPosition.CenterScreen;
+            this.Size = new Size(500, 600);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.AutoScroll = false;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.KeyPreview = true;
@@ -185,12 +189,6 @@ namespace YesiLdefter
                 {
                     BtnForgotPassword_Click(sender, EventArgs.Empty);
                 }
-
-
-                ///// sil
-                cmbEmail.Text = "tekinucar70@hotmail.com";
-                txtPassword.Text = "7470";
-
             }
             catch (Exception ex)
             {
@@ -499,6 +497,8 @@ namespace YesiLdefter
         {
             try
             {
+                userFirms.GetUserRegistry(regPath);
+
                 // Load email list from registry
                 v.tUserRegister.UserLastLoginEMail = reg.getRegistryValue("userLastLoginEMail")?.ToString() ?? "";
                 v.tUserRegister.UserRemember = reg.getRegistryValue("userRemember")?.ToString() == "True";

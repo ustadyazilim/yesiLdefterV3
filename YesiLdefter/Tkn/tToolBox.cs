@@ -14849,7 +14849,6 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
             public string pa { get; set; }
             public string pk { get; set; }
             public string caption { get; set; }
-
         }
 
         public void work_EXPRESSION(Form tForm, string TableIPCode, string fieldName, string newValue)

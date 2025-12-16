@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DevExpress.XtraWaitForm;
+using System;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -19,7 +20,7 @@ namespace YesiLdefter
             SetProcessDpiAwarenessContext((int)DpiAwarenessContext.PerMonitorAwareV2);
 
             DevExpress.UserSkins.BonusSkins.Register();
-
+                        
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new main(args));

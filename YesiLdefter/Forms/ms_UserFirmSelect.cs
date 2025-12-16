@@ -27,8 +27,8 @@ namespace YesiLdefter
             Text = "Firma Seçimi";
             Width = 960;
             Height = 720;
-            StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
+            StartPosition = FormStartPosition.CenterScreen;
             MaximizeBox = false;
             MinimizeBox = false;
 
@@ -332,6 +332,19 @@ namespace YesiLdefter
                 MessageBox.Show($"Firma seçimi okunurken hata: {ex.Message}", "Hata",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            // 
+            // ms_UserFirmSelect
+            // 
+            this.ClientSize = new System.Drawing.Size(542, 490);
+            this.Name = "ms_UserFirmSelect";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.ResumeLayout(false);
+
         }
     }
 }

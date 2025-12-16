@@ -28,7 +28,15 @@ namespace YesiLdefter
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
+            this.SuspendLayout();
+            // 
+            // ms_User_Standalone
+            // 
+            this.ClientSize = new System.Drawing.Size(392, 438);
+            this.Name = "ms_User_Standalone";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.ResumeLayout(false);
+
         }
 
         #endregion
