@@ -322,6 +322,19 @@ namespace YesiLdefter
 
                     if (v.SP_TabimParamsKurumTipi == "")
                     {
+                        // IMPORTANT: dbUpdatesChecked may create/upgrade project DB objects (tables/procedures).
+                        // We must wait for it to complete before calling any project stored procedures.
+                        t.WaitFormOpen(v.mainForm, "Güncellemeler kontrol ediliyor...");
+                        try
+                        {
+                            task3.Wait();
+                        }
+                        catch (AggregateException ae)
+                        {
+                            // Fail fast: startup should not continue with partial DB state.
+                            throw ae.Flatten();
+                        }
+
                         t.WaitFormOpen(v.mainForm, "İl ve İlçe listesi okunuyor...");
                         t.SYS_IL_Read();
                         t.SYS_Ilce_Read();
