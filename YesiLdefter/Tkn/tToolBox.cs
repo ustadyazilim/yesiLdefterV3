@@ -1677,14 +1677,29 @@ namespace Tkn_ToolBox
                 Cursor.Current = Cursors.WaitCursor;
 
             if (vt.msSqlConnection == null)
-                preparing_vTable(null, null, vt, 0);
+            {
+                // If vt.DBaseNo is already set, construct myProp to help preparing_vTable resolve the connection
+                string myProp = "";
+                if (dsData != null && dsData.Namespace != null)
+                {
+                    myProp = dsData.Namespace.ToString();
+                }
+                else if (vt.DBaseNo != v.dBaseNo.None)
+                {
+                    // Construct myProp from existing vt.DBaseNo to help preparing_vTable resolve connection
+                    MyProperties_Set(ref myProp, "DBaseNo", ((byte)vt.DBaseNo).ToString());
+                }
+                preparing_vTable(null, myProp, vt, dsData != null ? dsData.Tables.Count : 0);
+            }
 
             SqlConnection msSqlConn = vt.msSqlConnection;
 
             // Guard: connection object must exist
             if (msSqlConn == null)
             {
-                System.Diagnostics.Debug.WriteLine("Sql_ExecuteNon(DataSet): vt.msSqlConnection is null after preparing_vTable. Aborting command.");
+                System.Diagnostics.Debug.WriteLine(
+                    $"Sql_ExecuteNon(DataSet): vt.msSqlConnection is null after preparing_vTable. " +
+                    $"DBaseNo={vt.DBaseNo}, DBaseName='{vt.DBaseName}', TableName='{vt.TableName}', TableIPCode='{vt.TableIPCode}'. Aborting command.");
                 if (Cursor.Current == Cursors.WaitCursor)
                     Cursor.Current = Cursors.Default;
                 return false;
