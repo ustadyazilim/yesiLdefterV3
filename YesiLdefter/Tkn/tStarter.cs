@@ -332,6 +332,15 @@ namespace Tkn_Starter
                         System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: Connection objects were not created after parsing connection strings.");
                         return false;
                     }
+
+                    // publishManager DB is required for startup operations (MsFileUpdates, MsDbUpdates, MsExeUpdates, etc.)
+                    // In secure/API mode we derive it from the manager connection string + INI-provided publishManager database name.
+                    if (!SetupPublishManagerConnectionFromManager(dbInfo.ManagerConnectionString))
+                    {
+                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: publishManager connection could not be established.");
+                        return false;
+                    }
+
                     return true;
                 }
             }
@@ -390,6 +399,50 @@ namespace Tkn_Starter
                 throw;
             }
         }
+
+        /// <summary>
+        /// publishManager DB is used for publish-time tables (MsFileUpdates/MsDbUpdates/MsExeUpdates).
+        /// In API mode we derive credentials from the manager connection string but swap InitialCatalog to publishManager DB name from INI.
+        /// </summary>
+        private bool SetupPublishManagerConnectionFromManager(string managerConnectionString)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(managerConnectionString))
+                {
+                    System.Diagnostics.Debug.WriteLine("SetupPublishManagerConnectionFromManager: managerConnectionString is empty.");
+                    return false;
+                }
+
+                var b = new System.Data.SqlClient.SqlConnectionStringBuilder(managerConnectionString);
+
+                // INI values are loaded earlier via ftpDownloadIniFile()
+                if (!string.IsNullOrWhiteSpace(v.publishManager_DB.serverName))
+                {
+                    b.DataSource = v.publishManager_DB.serverName;
+                }
+                if (!string.IsNullOrWhiteSpace(v.publishManager_DB.databaseName))
+                {
+                    b.InitialCatalog = v.publishManager_DB.databaseName;
+                }
+
+                v.publishManager_DB.dBaseNo = v.dBaseNo.publishManager;
+                v.publishManager_DB.userName = b.UserID;
+                v.publishManager_DB.connectionText = b.ConnectionString;
+
+                try { v.publishManager_DB.MSSQLConn?.Dispose(); } catch { }
+                v.publishManager_DB.MSSQLConn = new SqlConnection(v.publishManager_DB.connectionText);
+                v.publishManager_DB.MSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+
+                return v.publishManager_DB.MSSQLConn != null;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SetupPublishManagerConnectionFromManager error: {ex.Message}");
+                return false;
+            }
+        }
+
         /// <summary>
         /// LEGACY METHOD: Initialize database connections with hardcoded passwords
         /// NOTE(@Janberk): This method is kept for local DB mode (Tabim) and backward compatibility.
