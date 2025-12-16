@@ -16629,8 +16629,11 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
         public void ftpDownloadIniFile()
         {
             bool onay = false;
-            
-            onay = ftpDownload(v.tExeAbout.activePath, "YesiLdefterConnection.Ini");
+
+            /// Janberk & Tekin
+            /// ftpden ini file indirme iptal oldu
+            ///
+            onay = true; //  ftpDownload(v.tExeAbout.activePath, "YesiLdefterConnection.Ini");
             
             string MainManagerDbUses = "";
             string SourceDbUses = "";
@@ -16656,6 +16659,8 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
             }
             
             var YesiLdefterIni = new tIniFile("YesiLdefter2.Ini");
+            
+            
             MainManagerDbUses = YesiLdefterIni.Read("MainManagerDbUses");
             if (MainManagerDbUses.ToUpper() == "TRUE")
             {
