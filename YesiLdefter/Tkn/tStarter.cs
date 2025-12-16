@@ -158,8 +158,15 @@ namespace Tkn_Starter
                 return;
             }
 
+            t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri hazırlanıyor...");
+            InitPreparingConnection();
+
+            t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
+            Db_Open(v.active_DB.managerMSSQLConn);
+
             // 2. SECURE AUTHENTICATION FLOW: After successful authentication, get database connection info from API
             // NOTE(@Janberk): Database connections are established ONLY after user authentication.
+            /*
             if (v.SP_UserLOGIN == true && v.active_DB.localDbUses == false)
             {
                 t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri API'den alınıyor...");
@@ -204,7 +211,7 @@ namespace Tkn_Starter
                     return;
                 }
             }
-
+            */
             /// Mesaj formu nedense kayboluyor
             /// onun açılması için burada bunlar false yapılıyor
             v.IsWaitOpen = false;
@@ -389,6 +396,8 @@ namespace Tkn_Starter
                 System.Diagnostics.Debug.WriteLine($"Error parsing connection string: {ex.Message}");
                 throw;
             }
+
+
         }
         /// <summary>
         /// LEGACY METHOD: Initialize database connections with hardcoded passwords
@@ -397,6 +406,31 @@ namespace Tkn_Starter
         /// </summary>
         void InitPreparingConnection() 
         {
+
+            bool IsDebugMode = true;
+            string _user = "sa";
+
+            string _managerDbName = "MainManagerV3";
+            string _managerDbPass = "ustad84352Yazilim";
+            string _managerServerName = "46.101.255.224";
+
+            string _crmDbName = "UstadCRMV1";
+            string _crmDbPass = "ustad84352Yazilim";
+            string _crmServerName = "46.101.255.224";
+
+            string _publishDbName = "UstadManagerV3";
+            string _publishDbPass = "ustad84352Yazilim";
+            string _publishServerName = "46.101.255.224";
+
+            /// NOT : Project burada kullanılmıyor
+            /// kullanıcı bir firma seçtiğinde hangi database  kullanılacak ise 
+            /// o bilgi user&firms tablosundaki alınacak
+            /// bu örnek : 
+            string _projectDbName = "";
+            _projectDbName = "Mts00000011";  // vaya
+            _projectDbName = "Src00004204";  // 
+            string _projectDbPass = "ustad84352Yazilim"; /// şimdillik ortak pass kullanılıyor
+
             ///
             /// ------------------------------------------------
             ///
@@ -406,28 +440,30 @@ namespace Tkn_Starter
             v.active_DB.managerDBType = v.dBaseType.MSSQL;
             v.active_DB.ustadCrmDBType = v.dBaseType.MSSQL;
             v.active_DB.projectDBType = v.dBaseType.MSSQL;
-                        
+
+
+            if (IsDebugMode)
+            {
+                /// birşey yapma     
+            }
+            else
+            {
+                _managerDbName = _publishDbName;
+                _managerDbPass = _publishDbPass;
+            }
+
             /// main Manager DB Connections
             #region
-            
-            v.active_DB.managerUserName = "sa";
-            string managerPassword = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS");
-            if (string.IsNullOrWhiteSpace(managerPassword))
-            {
-                throw new InvalidOperationException(
-                    "USTAD_MANAGER_DB_PASS environment variable is required for local database mode. " +
-                    "For cloud mode with API authentication, this is not needed. " +
-                    "Please set this environment variable or use API authentication mode.");
-            }
-            
-            v.active_DB.managerPsw = "Password = " + managerPassword + ";";
+            v.active_DB.managerUserName = _user;
+            v.active_DB.managerServerName = _managerServerName;
+            v.active_DB.managerDBName = _managerDbName;
+            v.active_DB.managerPsw = "Password = " + _managerDbPass + ";";
             v.active_DB.managerConnectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
                 v.active_DB.managerServerName,
                 v.active_DB.managerDBName,
                 v.active_DB.managerUserName,
                 v.active_DB.managerPsw);
-
             v.active_DB.managerMSSQLConn = new SqlConnection(v.active_DB.managerConnectionText);
             v.active_DB.managerMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
             #endregion
@@ -435,8 +471,10 @@ namespace Tkn_Starter
             /// publish Manager DB Connections
             #region
             v.publishManager_DB.dBaseNo = v.dBaseNo.publishManager;
-            v.publishManager_DB.userName = "sa";
-            v.publishManager_DB.psw = "Password = " + managerPassword + ";";
+            v.publishManager_DB.serverName = _publishServerName;
+            v.publishManager_DB.databaseName = _publishDbName;
+            v.publishManager_DB.userName = _user;
+            v.publishManager_DB.psw = "Password = " + _publishDbPass + ";";
             v.publishManager_DB.connectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
                 v.publishManager_DB.serverName,
@@ -451,24 +489,18 @@ namespace Tkn_Starter
             #region
 
             //v.active_DB.ustadCrmDBName = "UstadCRM";
-            v.active_DB.ustadCrmUserName = "sa";
-            string ustadCrmPassword = Environment.GetEnvironmentVariable("USTAD_CRM_DB_PASS");
-            if (string.IsNullOrWhiteSpace(ustadCrmPassword))
-            {
-                ustadCrmPassword = managerPassword;
-            }
-            v.active_DB.ustadCrmPsw = "Password = " + ustadCrmPassword + ";";
-
+            v.active_DB.ustadCrmUserName = _user;
+            v.active_DB.ustadCrmServerName = _crmServerName;
+            v.active_DB.ustadCrmDBName = _crmDbName;
+            v.active_DB.ustadCrmPsw = "Password = " + _crmDbPass + ";";
             v.active_DB.ustadCrmConnectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
                 v.active_DB.ustadCrmServerName,
                 v.active_DB.ustadCrmDBName,
                 v.active_DB.ustadCrmUserName,
                 v.active_DB.ustadCrmPsw);
-
             v.active_DB.ustadCrmMSSQLConn = new SqlConnection(v.active_DB.ustadCrmConnectionText);
             v.active_DB.ustadCrmMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
-            
             #endregion
 
             /// master DB Connections (MSSQL.master)
