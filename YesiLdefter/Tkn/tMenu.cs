@@ -437,7 +437,6 @@ namespace Tkn_Menu
                     // ExtraValue = "FIRM||" + TABLEIPCODE2 + "|ds|"
                     Create_TileNavPane(menuControl, ds_Items, ExtraValue, dontReport, dontEDI, dontExit, reportTableIPCode);
                 }
-            }
             #endregion
 
             #region // 108 - AccordionControl
