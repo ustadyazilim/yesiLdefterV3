@@ -469,12 +469,6 @@
     <Compile Include="Forms\SEK\SekCevHukumlu.Designer.cs">
       <DependentUpon>SekCevHukumlu.cs</DependentUpon>
     </Compile>
-    <Compile Include="main.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="main.Designer.cs">
-      <DependentUpon>main.cs</DependentUpon>
-    </Compile>
     <Compile Include="Forms\ms_Iskonto.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -585,10 +579,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\SEK\SekCevHukumlu.resx">
       <DependentUpon>SekCevHukumlu.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="main.resx">
-      <DependentUpon>main.cs</DependentUpon>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\licenses.licx" />
     <EmbeddedResource Include="Properties\Resources.resx">
