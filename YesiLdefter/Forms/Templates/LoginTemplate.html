@@ -1,122 +1,554 @@
-<style>
-  :root {
-    --bg: {{color-bg}};
-    --grad-start: {{color-gradient-start}};
-    --grad-end: {{color-gradient-end}};
-    --card: {{color-card}};
-    --accent: {{color-accent}};
-    --accent2: {{color-accent2}};
-    --text: {{color-text}};
-    --muted: {{color-muted}};
-    --radius: {{radius}};
-    --shadow: {{shadow}};
-    --font: {{font}};
-  }
-  body {
-    margin:0; padding:0; height:100%; width:100%;
-    background: radial-gradient(circle at 20% 20%, #1e293b, var(--bg) 50%),
-                linear-gradient(135deg, var(--grad-start) 0%, var(--grad-end) 100%);
-    font-family: var(--font); color: var(--text);
-    display:flex; align-items:center; justify-content:center;
-  }
-  .card {
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 28px 32px;
-    max-width: 440px;
-    width: 90%;
-    backdrop-filter: blur(12px);
-    transition: transform .25s ease, box-shadow .25s ease;
-  }
-  .card:hover { transform: translateY(-2px); box-shadow: 0 30px 60px rgba(0,0,0,0.45); }
-  .title {
-    font-size: 22px; font-weight: 700; margin: 0 0 6px 0;
-  }
-  .subtitle {
-    font-size: 13px; color: var(--muted); margin: 0 0 18px 0;
-  }
-  .field-label { font-size: 12px; color: var(--muted); margin: 12px 0 4px 0; display:block; }
-  .field {
-    width: 100%; padding: 12px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.06); color: var(--text); font-size: 14px;
-    box-sizing: border-box;
-  }
-  .field:focus { outline: 1px solid var(--accent2); }
-  .options-row { display:flex; justify-content: space-between; align-items:center; margin-top: 10px; }
-  .remember { display:flex; gap:8px; align-items:center; color: var(--muted); font-size: 13px; user-select: none; }
-  .button-row {
-    display:flex; gap:10px; margin-top: 16px;
-  }
-  .btn {
-    flex:1; padding:12px 14px; border:none; border-radius:10px; cursor:pointer; font-weight:700;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-    color:#0b1727; transition: transform .2s ease, box-shadow .2s ease;
-    box-shadow: 0 10px 25px rgba(34,197,94,0.25);
-  }
-  .btn:active { transform: translateY(1px); box-shadow: none; }
-  .ghost {
-    background: rgba(255,255,255,0.04); color: var(--text);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: none;
-  }
-  .status { margin-top: 12px; font-size: 13px; min-height: 18px; }
-</style>
-<div class='card'>
-  <div class='title'>Hoş Geldiniz</div>
-  <div class='subtitle'>Hesabınıza giriş yapın</div>
-
-  <label class='field-label' for='emailInput'>E-posta / TC No / Telefon</label>
-  <input id='emailInput' class='field' type='text' placeholder='ornek@eposta.com' autocomplete='username' />
-
-  <label class='field-label' for='passwordInput'>Şifre</label>
-  <input id='passwordInput' class='field' type='password' placeholder='••••••••' autocomplete='current-password' />
-
-  <div class='options-row'>
-    <label class='remember'>
-      <input id='rememberCheck' type='checkbox' />
-      <span>Beni Hatırla</span>
-    </label>
-  </div>
-
-  <div class='button-row'>
-    <button id='forgotBtn' class='btn ghost'>Şifremi Unuttum</button>
-    <button id='loginBtn' class='btn'>Giriş Yap</button>
-  </div>
-
-  <div id='statusText' class='status'></div>
-</div>
-
-<script>
-  (function() {
-    const emailInput = document.getElementById('emailInput');
-    const passwordInput = document.getElementById('passwordInput');
-    const rememberCheck = document.getElementById('rememberCheck');
-    const statusText = document.getElementById('statusText');
-
-    function post(action) {
-      if (!(window.chrome && window.chrome.webview && window.chrome.webview.postMessage)) return;
-      const payload = {
-        action,
-        email: emailInput.value || '',
-        password: passwordInput.value || '',
-        remember: !!rememberCheck.checked
-      };
-      window.chrome.webview.postMessage(JSON.stringify(payload));
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #295c00;
+      --primary-light: #8e9c78;
+      --primary-dark: #3a4a0e;
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --text: #111827;
+      --text-secondary: #374151;
+      --text-tertiary: #6b7280;
+      --muted: #374151;
+      --border: rgba(0,0,0,0.08);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 2px 8px 0 rgba(0, 0, 0, 0.04);
+      --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      --radius: 12px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+      --gradient: linear-gradient(180deg, #e6efe4 0%, #f6faf4 70%, #ffffff 100%);
+      --font: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.8;
+      }
+    }
+    
+    @keyframes shimmer {
+      0% {
+        background-position: -1000px 0;
+      }
+      100% {
+        background-position: 1000px 0;
+      }
+    }
+    
+    body {
+      margin:0; padding:0; 
+      height:100vh; width:100vw;
+      min-height: 720px;
+      min-width: 960px;
+      box-sizing: border-box;
+      background: linear-gradient(-45deg, #e6efe4, #f6faf4, #ffffff, #e6efe4);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+      font-family: var(--font); color: var(--text);
+      display:flex; align-items:center; justify-content:center;
+      overflow: auto;
+      position: relative;
+    }
+    
+    body::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(41, 92, 0, 0.03) 0%, transparent 70%);
+      animation: pulse 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+    
+    .shell {
+      display:flex;
+      gap:32px;
+      width: 100%;
+      max-width: 1100px;
+      padding: 40px 48px;
+      box-sizing: border-box;
+      animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: visible;
+    }
+    
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      padding: 40px 48px;
+      flex: 1;
+      min-width: 0;
+      box-sizing: border-box;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      position: relative;
+      animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
+      overflow: visible;
+    }
+    
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card-hover);
+      border-color: rgba(41, 92, 0, 0.12);
+    }
+    
+    .title {
+      font-size: 22px; font-weight: 700; margin: 0 0 6px 0; color: var(--primary);
+      font-family: var(--font);
+      letter-spacing: -0.02em;
+      animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both;
+    }
+    .subtitle {
+      font-size: 13px; color: var(--text-tertiary); margin: 0 0 24px 0;
+      font-family: var(--font);
+      animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.4s both;
+    }
+    .field-label {
+      font-size: 12px; color: var(--text-secondary); margin: 16px 0 6px 0; display:block;
+      font-family: var(--font);
+      font-weight: 500;
+      animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+    .field-label:nth-of-type(1) { animation-delay: 0.5s; }
+    .field-label:nth-of-type(2) { animation-delay: 0.6s; }
+    .field {
+      width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border);
+      background: #f8fafc; color: var(--text); font-size: 14px;
+      box-sizing: border-box; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: var(--font);
+      animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+      position: relative;
+    }
+    .field:nth-of-type(1) { animation-delay: 0.5s; }
+    .field:nth-of-type(2) { animation-delay: 0.6s; }
+    .field::placeholder {
+      transition: opacity 0.3s ease;
+    }
+    .field:focus::placeholder {
+      opacity: 0.5;
+    }
+    .field:focus {
+      outline: none; 
+      border-color: var(--primary); 
+      box-shadow: 0 0 0 3px rgba(41,92,0,0.12), 0 4px 12px rgba(41,92,0,0.1);
+      background: #ffffff;
+      transform: translateY(-2px);
+    }
+    .options-row {
+      display:flex; justify-content: space-between; align-items:center; margin-top: 16px;
+      animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.7s both;
+    }
+    .remember {
+      display:flex; gap:10px; align-items:center; color: var(--text-secondary); font-size: 13px; user-select: none;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: color 0.3s ease;
+    }
+    .remember:hover {
+      color: var(--primary);
+    }
+    .switch {
+      position: relative; width: 42px; height: 22px;
+      background: #e5e7eb; border-radius: var(--radius-pill); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .switch.knob-on { background: rgba(41,92,0,0.22); }
+    .switch::after {
+      content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%;
+      background:#ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.12); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .switch.knob-on::after { transform: translateX(20px); }
+    .switch:hover {
+      transform: scale(1.1);
+    }
+    .button-row {
+      display:flex; gap:10px; margin-top: 24px;
+      animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.8s both;
+    }
+    .btn {
+      flex:1; padding:14px 28px; border:none; border-radius:12px; cursor:pointer; font-weight:600;
+      font-size: 0.9375rem; transition: all 0.2s ease;
+      font-family: var(--font);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #295c00 0%, #5a7323 100%);
+      color:#ffffff;
+      box-shadow: 0 2px 8px 0 rgba(72, 92, 17, 0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px 0 rgba(72, 92, 17, 0.25);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px 0 rgba(72, 92, 17, 0.15);
+    }
+    .btn-ghost {
+      background: #ffffff;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+    .btn-ghost:hover {
+      background: #f8fafc;
+      border-color: var(--primary);
+    }
+    .status {
+      margin-top: 16px; font-size: 13px; min-height: 18px; color: var(--text-tertiary);
+      font-family: var(--font);
+      animation: fadeInUp 0.4s ease both;
+      transition: all 0.3s ease;
+    }
+    .status.error { 
+      color: #ea4335; 
+      animation: fadeInUp 0.4s ease, pulse 2s ease-in-out infinite;
+    }
+    .status.success { 
+      color: #16a34a; 
+      animation: fadeInUp 0.4s ease;
+    }
+    /* Firm selection panel */
+    .hidden { display:none; }
+    .grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      width:100%;
+      max-height: calc(100vh - 280px);
+      min-height: 200px;
+      overflow-y: auto;
+      overflow-x: visible;
+      padding: 8px;
+      box-sizing: border-box;
+      animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
+    }
+    .firm-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: var(--shadow-card);
+      cursor:pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeInScale 0.4s ease both;
+    }
+    .firm-card:nth-child(1) { animation-delay: 0.05s; }
+    .firm-card:nth-child(2) { animation-delay: 0.1s; }
+    .firm-card:nth-child(3) { animation-delay: 0.15s; }
+    .firm-card:nth-child(n+4) { animation-delay: 0.2s; }
+    .firm-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card-hover);
+      border-color: rgba(41, 92, 0, 0.12);
+    }
+    .firm-card.selected {
+      border-color: var(--primary);
+      box-shadow: 0 8px 24px rgba(41,92,0,0.15);
+    }
+    .firm-title {
+      margin:0; font-weight:700; color: var(--primary); font-size:15px;
+      font-family: var(--font);
+      letter-spacing: -0.02em;
+    }
+    .firm-row {
+      display:flex; justify-content:space-between; align-items:center; font-size:12px; color: var(--text-tertiary);
+    }
+    .badge {
+      padding: 4px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(41,92,0,0.12);
+      color: var(--primary);
+      letter-spacing: .3px;
+      text-transform: uppercase;
+    }
+    .firm-meta {
+      margin:0; font-size:12px; color: var(--text-tertiary);
+      font-family: var(--font);
+      line-height: 1.5;
+    }
+    /* Scrollbar styling for better visibility */
+    .grid::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    .grid::-webkit-scrollbar-track,
+    body::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 5px;
+    }
+    .grid::-webkit-scrollbar-thumb,
+    body::-webkit-scrollbar-thumb {
+      background: rgba(41, 92, 0, 0.2);
+      border-radius: 5px;
+    }
+    .grid::-webkit-scrollbar-thumb:hover,
+    body::-webkit-scrollbar-thumb:hover {
+      background: rgba(41, 92, 0, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div id="loginView" class="card">
 
-    document.getElementById('loginBtn')?.addEventListener('click', function() { post('login'); });
-    document.getElementById('forgotBtn')?.addEventListener('click', function() { post('forgot'); });
-    passwordInput?.addEventListener('keydown', function(e) { if (e.key === 'Enter') post('login'); });
-    emailInput?.addEventListener('keydown', function(e) { if (e.key === 'Enter') post('login'); });
+      <div class="title">Hoş Geldiniz</div>
+      <div class="subtitle">Hesabınıza giriş yapın</div>
 
-    // Expose status updater for host
-    window.__ustadSetStatus = function (msg, isError) {
-      if (!statusText) return;
-      statusText.textContent = msg || '';
-      statusText.style.color = isError ? '#ef4444' : '#10b981';
-    };
-  })();
-</script>
+      <label class="field-label" for="emailInput">E-posta / TC No / Telefon</label>
+      <input id="emailInput" class="field" type="text" placeholder="ornek@eposta.com" autocomplete="username" />
 
+      <label class="field-label" for="passwordInput">Şifre</label>
+      <input id="passwordInput" class="field" type="password" placeholder="••••••••" autocomplete="current-password" />
+
+      <div class="options-row">
+        <div class="remember" id="rememberToggle">
+          <div id="rememberSwitch" class="switch"></div>
+          <span>Beni Hatırla</span>
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button id="forgotBtn" class="btn btn-ghost">Şifremi Unuttum</button>
+        <button id="loginBtn" class="btn btn-primary">Giriş Yap</button>
+      </div>
+      <div id="statusText" class="status"></div>
+    </div>
+
+    <div id="firmView" class="card hidden">
+      <div class="title">Firma Seçimi</div>
+      <div class="subtitle">Devam etmek için bir firma seçin.</div>
+      <div id="firmGrid" class="grid"></div>
+      <div class="button-row">
+        <button id="firmCancelBtn" class="btn btn-ghost">Vazgeç</button>
+        <button id="firmConfirmBtn" class="btn btn-primary" disabled>Seç ve Devam Et</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const emailInput = document.getElementById('emailInput');
+      const passwordInput = document.getElementById('passwordInput');
+      const rememberSwitch = document.getElementById('rememberSwitch');
+      const rememberToggle = document.getElementById('rememberToggle');
+      const statusText = document.getElementById('statusText');
+      const loginView = document.getElementById('loginView');
+      const firmView = document.getElementById('firmView');
+      const firmGrid = document.getElementById('firmGrid');
+      const firmConfirmBtn = document.getElementById('firmConfirmBtn');
+      const firmCancelBtn = document.getElementById('firmCancelBtn');
+
+      let rememberState = false;
+      let firmState = { firms: [], lastFirmId: null, selectedFirmGUID: null };
+
+      function post(payload) {
+        if (!(window.chrome && window.chrome.webview && window.chrome.webview.postMessage)) return;
+        window.chrome.webview.postMessage(JSON.stringify(payload));
+      }
+
+      function setRemember(on) {
+        rememberState = !!on;
+        rememberSwitch.classList.toggle('knob-on', rememberState);
+        post({ action: 'rememberChanged', remember: rememberState });
+      }
+
+      rememberToggle?.addEventListener('click', () => setRemember(!rememberState));
+
+      document.getElementById('loginBtn')?.addEventListener('click', function() {
+        post({
+          action: 'login',
+          email: emailInput.value || '',
+          password: passwordInput.value || '',
+          remember: rememberState
+        });
+      });
+      document.getElementById('forgotBtn')?.addEventListener('click', function() {
+        post({
+          action: 'forgot',
+          email: emailInput.value || '',
+          remember: rememberState
+        });
+      });
+      passwordInput?.addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+      emailInput?.addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+
+      function renderFirms() {
+        firmGrid.innerHTML = '';
+        if (!firmState.firms || firmState.firms.length === 0) {
+          firmGrid.innerHTML = '<p class="firm-meta">Firma bulunamadı.</p>';
+          firmConfirmBtn.disabled = true;
+          return;
+        }
+        
+        // Auto-select last firm if no selection and lastFirmId exists
+        if (!firmState.selectedFirmGUID && firmState.lastFirmId) {
+          const lastFirm = firmState.firms.find(f => f.FirmId === firmState.lastFirmId);
+          if (lastFirm && lastFirm.FirmGUID) {
+            firmState.selectedFirmGUID = lastFirm.FirmGUID;
+          }
+        }
+        
+        const effectiveSelected = firmState.selectedFirmGUID;
+
+        firmState.firms.forEach(f => {
+          const firmGuid = f.FirmGUID || '';
+          const selected = firmGuid && firmGuid === effectiveSelected;
+          const card = document.createElement('div');
+          card.className = 'firm-card' + (selected ? ' selected' : '');
+          card.onclick = () => selectFirm(firmGuid);
+          card.innerHTML = `
+            <h3 class="firm-title">${escapeHtml(f.FirmLongName || f.FirmShortName || 'Firma')}</h3>
+            <div class="firm-row">
+              <span class="firm-meta">Kod: ${escapeHtml(f.MenuCode || '-')}</span>
+              <span class="badge">${f.IsActive ? 'AKTİF' : 'PASİF'}</span>
+            </div>
+            <p class="firm-meta">DB: ${censorSensitiveInfo(f.DatabaseName)} • Sunucu: ${censorSensitiveInfo(f.ServerNameIP)}</p>
+          `;
+          firmGrid.appendChild(card);
+        });
+        firmConfirmBtn.disabled = !effectiveSelected;
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      function censorSensitiveInfo(value) {
+        if (!value || typeof value !== 'string') return '-';
+        
+        const trimmed = value.trim();
+        if (!trimmed) return '-';
+        
+        // Check if it looks like an IP address (e.g., 192.168.1.1 or 10.0.0.1)
+        const ipPattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+        const ipMatch = trimmed.match(ipPattern);
+        if (ipMatch) {
+          // Show first and last octet, mask middle: 192.xxx.xxx.45
+          return `${ipMatch[1]}.xxx.xxx.${ipMatch[4]}`;
+        }
+        
+        // Check if it's a short value (less than 8 chars) - show partially masked
+        if (trimmed.length <= 8) {
+          if (trimmed.length <= 3) {
+            return 'xxx';
+          }
+          const visible = Math.max(1, Math.floor(trimmed.length / 3));
+          return trimmed.substring(0, visible) + 'x'.repeat(trimmed.length - visible);
+        }
+        
+        // For longer values (server names, database names), show first 3-4 and last 2-3 chars
+        const showStart = Math.min(4, Math.floor(trimmed.length / 4));
+        const showEnd = Math.min(3, Math.floor(trimmed.length / 4));
+        const masked = 'x'.repeat(Math.max(3, trimmed.length - showStart - showEnd));
+        
+        return trimmed.substring(0, showStart) + masked + trimmed.substring(trimmed.length - showEnd);
+      }
+
+      function selectFirm(firmGuid) {
+        if (!firmGuid) return;
+        firmState.selectedFirmGUID = firmGuid;
+        renderFirms();
+        post({ action: 'firm-select', firmGUID: firmGuid });
+      }
+
+      firmConfirmBtn?.addEventListener('click', function() {
+        if (!firmState.selectedFirmGUID) {
+          console.warn('No firm selected');
+          return;
+        }
+        post({ action: 'firm-confirm', firmGUID: firmState.selectedFirmGUID });
+      });
+      firmCancelBtn?.addEventListener('click', () => {
+        post({ action: 'firm-cancel' });
+      });
+
+      // Host hooks
+      window.__ustadSetStatus = function (msg, isError) {
+        if (!statusText) return;
+        statusText.textContent = msg || '';
+        statusText.className = 'status' + (isError ? ' error' : (msg ? ' success' : ''));
+      };
+
+      window.__ustadSetFormState = function (email, password, remember, lastFirmId) {
+        emailInput.value = email || '';
+        passwordInput.value = password || '';
+        setRemember(!!remember);
+        firmState.lastFirmId = lastFirmId ? parseInt(lastFirmId, 10) : null;
+      };
+
+      window.__ustadShowFirmSelection = function (payload) {
+        firmState.firms = payload?.firms || [];
+        firmState.lastFirmId = payload?.lastFirmId || null;
+        firmState.selectedFirmGUID = null;
+        loginView.classList.add('hidden');
+        firmView.classList.remove('hidden');
+        renderFirms();
+      };
+
+      window.__ustadHighlightFirm = function (firmGuid) {
+        if (!firmGuid) return;
+        firmState.selectedFirmGUID = firmGuid;
+        renderFirms();
+      };
+
+      window.__ustadShowLogin = function () {
+        firmView.classList.add('hidden');
+        loginView.classList.remove('hidden');
+      };
+    })();
+  </script>
+</body>
+</html>

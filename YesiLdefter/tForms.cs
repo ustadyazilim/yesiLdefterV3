@@ -16,7 +16,9 @@ namespace Tkn_Forms
                 tForm.Name = "ms_Form"; 
             }
             if (FormName == "ms_Computer") tForm = new YesiLdefter.ms_Computer();
-            if (FormName == "ms_User") tForm = new YesiLdefter.ms_User();
+            // NOTE(@Janberk): ms_User now maps to ms_User_Standalone for WebView2-based login
+            if (FormName == "ms_User_Standalone") tForm = new YesiLdefter.ms_User_Standalone();
+            if (FormName == "ms_UserFirmSelect") tForm = new YesiLdefter.ms_UserFirmSelect(new System.Collections.Generic.List<Tkn_UstadAPI.UstadApiClient.FirmInfo>());
             if (FormName == "ms_UserFirmList") tForm = new YesiLdefter.ms_UserFirmList();
 
             if (FormName == "ms_DBList") tForm = new YesiLdefter.ms_DBList();

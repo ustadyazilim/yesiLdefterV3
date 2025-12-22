@@ -1,4 +1,3 @@
-/* Core Namespace */
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -12,14 +11,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Reflection;
 using System.IO;
-/* JWT Namespace */
 using Newtonsoft.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-/* HTTP Namespace */
 using System.Text;
 using Microsoft.OpenApi.Models;
-/* Ustad Namespace */
 using Ustad.API.Classes;
 
 namespace Ustad.API
@@ -33,31 +29,37 @@ namespace Ustad.API
 
         public IConfiguration Configuration { get; }
 
+        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // NOTE(@Janberk): Enable CORS
+            // Enable CORS
             services.AddCors(c =>
             {
                 c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             });
+
+            // JSON Serializer
             services.AddControllersWithViews().AddNewtonsoftJson(options =>
             options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore)
                 .AddNewtonsoftJson(options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
+
             services.AddControllers();
-            // NOTE(@Janberk): Swagger/OpenAPI configuration
+
+            // Swagger/OpenAPI configuration
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Title = "Ustad API",
-                    Version = "v1.6.2",
-                    Description = "Authentication and tenant management API for Ustad Web Platform v1.6.2",
+                    Version = "v1",
+                    Description = "Authentication and tenant management API for Ustad Web Platform",
                     Contact = new OpenApiContact
                     {
                         Name = "Ustad Development Team"
                     }
                 });
-                // NOTE(@Janberk): Include XML comments for better documentation
+
+                // Include XML comments for better documentation
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 if (File.Exists(xmlPath))
@@ -66,13 +68,15 @@ namespace Ustad.API
                 }
                 else
                 {
+                    // Try alternative paths for development
                     var altXmlPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "bin", "Debug", "net8.0", xmlFile);
                     if (File.Exists(altXmlPath))
                     {
                         c.IncludeXmlComments(altXmlPath, includeControllerXmlComments: true);
                     }
                 }
-                // NOTE(@Janberk): Add JWT Bearer authentication definition
+
+                // Add JWT Bearer authentication definition
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -81,6 +85,7 @@ namespace Ustad.API
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "Bearer"
                 });
+
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
                     {
@@ -96,8 +101,13 @@ namespace Ustad.API
                     }
                 });
             });
+
+            // Register EmailService as singleton
             services.AddSingleton<EmailService>();
-            var jwtKeyRaw = Environment.GetEnvironmentVariable("JWT_KEY") ?? Configuration["Jwt:Key"];            
+
+            // JWT Auth (for SignalR and protected endpoints)
+            var jwtKeyRaw = Environment.GetEnvironmentVariable("JWT_KEY") ?? Configuration["Jwt:Key"];
+            
             if (string.IsNullOrWhiteSpace(jwtKeyRaw))
             {
                 throw new InvalidOperationException(
@@ -105,7 +115,7 @@ namespace Ustad.API
                     "Do not use hardcoded fallback values for security.");
             }
             
-            // NOTE(@Janberk): Ensure key is at least 32 characters (256 bits) for HS256
+            // Ensure key is at least 32 characters (256 bits) for HS256
             if (jwtKeyRaw.Length < 32)
             {
                 throw new InvalidOperationException(
@@ -114,8 +124,10 @@ namespace Ustad.API
             }
             
             var jwtKey = jwtKeyRaw;
+            
             var issuer = Configuration["Jwt:Issuer"] ?? "UstadAuth";
             var audience = Configuration["Jwt:Audience"] ?? "UstadClients";
+
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -142,33 +154,29 @@ namespace Ustad.API
             services.AddAuthorization();
         }
 
-        /// <summary>
-        /// Configure the HTTP request pipeline.
-        /// </summary>
-        /// <param name="app">The application builder.</param>
-        /// <param name="env">The web host environment.</param>
+        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            // NOTE(@Janberk): Enable CORS
+            // Enable CORS
             app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
-            // NOTE(@Janberk): Enable Swagger middleware
+
+            // Enable Swagger middleware
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Ustad API v1");
                 c.RoutePrefix = "swagger";
             });
-            // NOTE(@Janberk): Use routing
+
             app.UseRouting();
-            // NOTE(@Janberk): Use authentication
             app.UseAuthentication();
-            // NOTE(@Janberk): Use authorization
             app.UseAuthorization();
-            // NOTE(@Janberk): Use endpoints
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();

@@ -53,7 +53,7 @@ namespace Tkn_ToolBox
 
     public class tToolBox: tBase
     {
-        protected bool suppressManagerConnWarning = false;
+
         #region fileUpdates
         public void fileUpdatesChecked()
         {
@@ -1316,37 +1316,8 @@ namespace Tkn_ToolBox
         {
             bool onay = false;
 
-            // Guard: connection object must not be null
-            if (VTbaglanti == null)
-            {
-                v.SP_ConnBool_Manager = false;
-                System.Diagnostics.Debug.WriteLine("Db_Open called with null SqlConnection.");
-                return false;
-            }
-
-            // Guard: connection string must be present
-            if (string.IsNullOrWhiteSpace(VTbaglanti.ConnectionString))
-            {
-                v.SP_ConnBool_Manager = false;
-                System.Diagnostics.Debug.WriteLine("Db_Open called with empty ConnectionString.");
-                return false;
-            }
-
-            // Capture state safely after null check
-            ConnectionState state;
-            try
-            {
-                state = VTbaglanti.State;
-            }
-            catch (NullReferenceException)
-            {
-                v.SP_ConnBool_Manager = false;
-                System.Diagnostics.Debug.WriteLine("Db_Open: SqlConnection became null while checking State.");
-                return false;
-            }
-
             #region Closed ise
-            if (state == ConnectionState.Closed)
+            if (VTbaglanti.State == ConnectionState.Closed)
             {
                 byte i = 0;
 
@@ -1617,22 +1588,8 @@ namespace Tkn_ToolBox
                 Cursor.Current = Cursors.WaitCursor;
 
             SqlConnection msSqlConn = vt.msSqlConnection;
-
-            // Guard: connection object must exist
-            if (msSqlConn == null)
-            {
-                System.Diagnostics.Debug.WriteLine("Sql_ExecuteNon: vt.msSqlConnection is null. Aborting command.");
-                if (Cursor.Current == Cursors.WaitCursor)
-                    Cursor.Current = Cursors.Default;
-                return false;
-            }
-
-            if (!Db_Open(msSqlConn))
-            {
-                if (Cursor.Current == Cursors.WaitCursor)
-                    Cursor.Current = Cursors.Default;
-                return false;
-            }
+            
+            Db_Open(msSqlConn);
                         
             try
             {
@@ -1680,22 +1637,8 @@ namespace Tkn_ToolBox
                 preparing_vTable(null, null, vt, 0);
 
             SqlConnection msSqlConn = vt.msSqlConnection;
-
-            // Guard: connection object must exist
-            if (msSqlConn == null)
-            {
-                System.Diagnostics.Debug.WriteLine("Sql_ExecuteNon(DataSet): vt.msSqlConnection is null after preparing_vTable. Aborting command.");
-                if (Cursor.Current == Cursors.WaitCursor)
-                    Cursor.Current = Cursors.Default;
-                return false;
-            }
-
-            if (!Db_Open(msSqlConn))
-            {
-                if (Cursor.Current == Cursors.WaitCursor)
-                    Cursor.Current = Cursors.Default;
-                return false;
-            }
+            
+            Db_Open(msSqlConn);
             
             SqlCommand SqlComm = null;
             
@@ -1948,7 +1891,7 @@ namespace Tkn_ToolBox
                         preparing_TableIPCodeFieldsList(vt.TableIPCode);
                         if (IsNotNull(vt.TableIPCode))
                         {
-                            if (v.active_DB.mainManagerDbUses || vt.DBaseNo == v.dBaseNo.UstadCrm)
+                            if (v.active_DB.mainManagerDbUses)
                             {
                                 DataTable dt = v.ds_TableIPCodeFields.Tables[vt.TableIPCode];
                                 if (dt != null)
@@ -2024,7 +1967,9 @@ namespace Tkn_ToolBox
         private void readTableIPCodeTableList_(string tableIPCode)
         {
             if (IsNotNull(tableIPCode) == false) return;
+
             string sqlB = msTableIPCodeTableList_SQL(tableIPCode);
+
             SqlDataAdapter msSqlAdapter2 = null;
             if (sqlB != string.Empty)
             {
@@ -2038,6 +1983,7 @@ namespace Tkn_ToolBox
         public void preparing_TableIPCodeFieldsList(string tableIPCode)
         {
             if (IsNotNull(tableIPCode) == false) return;
+
             if (v.active_DB.mainManagerDbUses)
             {
                 TableRemove(v.ds_TableIPCodeFields);
@@ -2062,7 +2008,9 @@ namespace Tkn_ToolBox
         private void readTableIPCodeFieldsList_(string tableIPCode)
         {
             if (IsNotNull(tableIPCode) == false) return;
+
             string sqlC = msTableIPCodeFieldsList_SQL(tableIPCode);
+
             SqlDataAdapter msSqlAdapter3 = null;
             if (sqlC != string.Empty)
             {
@@ -2101,7 +2049,9 @@ namespace Tkn_ToolBox
         private void readTableIPCodeGroupsList_(string tableIPCode)
         {
             if (IsNotNull(tableIPCode) == false) return;
+
             string sqlC = msTableIPCodeGroupsList_SQL(tableIPCode);
+
             SqlDataAdapter msSqlAdapter4 = null;
             if (sqlC != string.Empty)
             {
@@ -2113,6 +2063,7 @@ namespace Tkn_ToolBox
         public void preparing_LayoutItemsList(string masterCode)
         {
             if (IsNotNull(masterCode) == false) return;
+
             if (v.active_DB.mainManagerDbUses)
             {
                 TableRemove(v.ds_MsLayoutItems);
@@ -2137,12 +2088,16 @@ namespace Tkn_ToolBox
         private void readLayoutItemsList_(string masterCode)
         {
             if (IsNotNull(masterCode) == false) return;
+
             string sqlL = msLayoutItemsList_SQL(masterCode);
-            // TODO(@Janberk): Move layout metadata to API/local cache so login can render without opening DB.
-            using (var msSqlAdapter5 = new SqlDataAdapter(sqlL, v.active_DB.managerMSSQLConn))
+
+            SqlDataAdapter msSqlAdapter5 = null;
+            if (sqlL != string.Empty)
             {
+                msSqlAdapter5 = new SqlDataAdapter(sqlL, v.active_DB.managerMSSQLConn);
                 msSqlAdapter5.Fill(v.ds_MsLayoutItems, masterCode);
             }
+            msSqlAdapter5.Dispose();
         }
         public void preparing_MenuItemsList(string masterCode)
         {
@@ -3037,12 +2992,6 @@ namespace Tkn_ToolBox
         public void DBConnectStateManager(object sender, StateChangeEventArgs e)
         {
             v.SP_ConnBool_Manager = (e.CurrentState == ConnectionState.Open);
-
-            if (suppressManagerConnWarning)
-            {
-                v.SP_ConnBool_Manager_Old = v.SP_ConnBool_Manager;
-                return;
-            }
 
             if (v.SP_ConnBool_Manager != v.SP_ConnBool_Manager_Old)
             {
@@ -4651,6 +4600,37 @@ namespace Tkn_ToolBox
             ScreenSize(tForm);
         }
         //---
+        public void Find_Controls_List(Form tForm, string controlType, ref List<Control> list)
+        {
+            if (list == null)
+                list = new List<Control>();
+            else
+                list.Clear();
+
+            string[] controlTypes = new string[] { controlType };
+            Find_Controls_List_Recursive(tForm, controlTypes, list);
+        }
+
+        private void Find_Controls_List_Recursive(Control parent, string[] controlTypes, List<Control> list)
+        {
+            foreach (Control c in parent.Controls)
+            {
+                string controlTypeName = c.GetType().FullName;
+                foreach (string controlType in controlTypes)
+                {
+                    if (controlTypeName == controlType || controlTypeName.Contains(controlType))
+                    {
+                        list.Add(c);
+                        break;
+                    }
+                }
+                if (c.Controls.Count > 0)
+                {
+                    Find_Controls_List_Recursive(c, controlTypes, list);
+                }
+            }
+        }
+
         public void NormalForm_View(Form tForm, FormWindowState state)
         {
             NormalForm_View(tForm, state, string.Empty);
@@ -7349,18 +7329,6 @@ namespace Tkn_ToolBox
             }
         }
 
-        public void FindName_Control_List(Form tForm, List<string> list, string controlName)
-        {
-            list.Clear();
-
-            foreach (Control c in tForm.Controls)
-            {
-                FindName_Control_List_(c, list, controlName);
-            }
-
-            list.Sort();
-        }
-
         public void Find_Control_List(Form tForm, List<string> list, string[] ControlType, string tabPageName)
         {
             if (tForm == null) return;
@@ -7385,33 +7353,17 @@ namespace Tkn_ToolBox
             list.Sort();
         }
 
-        public void Find_Controls_List(Form tForm, string controlName, ref List<Control> list)
+        public void FindName_Control_List(Form tForm, List<string> list, string controlName)
         {
             list.Clear();
 
             foreach (Control c in tForm.Controls)
             {
-                Find_Controls_List_(c, controlName, list);
+                FindName_Control_List_(c, list, controlName);
             }
+
+            list.Sort();
         }
-        private void Find_Controls_List_(Control cntrl, string controlName, List<Control> list)
-        {
-            string cName = cntrl?.Name;
-            cName = cntrl?.GetType().ToString();
-
-            if (cName?.IndexOf(controlName) > -1)
-                list.Add(cntrl);
-
-            if (cntrl.Controls.Count > 0)
-            {
-                foreach (Control item in cntrl.Controls)
-                {
-                    Find_Controls_List_(item, controlName, list);
-                }
-            }
-        }
-
-
 
         private void FindName_Control_List_(Control cntrl, List<string> list, string controlName)
         {
@@ -14849,6 +14801,7 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
             public string pa { get; set; }
             public string pk { get; set; }
             public string caption { get; set; }
+
         }
 
         public void work_EXPRESSION(Form tForm, string TableIPCode, string fieldName, string newValue)
@@ -16629,11 +16582,8 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
         public void ftpDownloadIniFile()
         {
             bool onay = false;
-
-            /// Janberk & Tekin
-            /// ftpden ini file indirme iptal oldu
-            ///
-            onay = true; //  ftpDownload(v.tExeAbout.activePath, "YesiLdefterConnection.Ini");
+            
+            onay = ftpDownload(v.tExeAbout.activePath, "YesiLdefterConnection.Ini");
             
             string MainManagerDbUses = "";
             string SourceDbUses = "";
@@ -16659,8 +16609,6 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
             }
             
             var YesiLdefterIni = new tIniFile("YesiLdefter2.Ini");
-            
-            
             MainManagerDbUses = YesiLdefterIni.Read("MainManagerDbUses");
             if (MainManagerDbUses.ToUpper() == "TRUE")
             {

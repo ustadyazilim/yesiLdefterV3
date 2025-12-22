@@ -118,7 +118,7 @@ namespace YesiLdefter
             preparingWebPagesViewControl();
             msPagesService.preparingMsWebLoginPage(f, ds_LoginPageNodes, this.msWebLoginNodes_);
 
-            preparingKaydetBuutons();
+            preparingKaydetButons();
 
             // TileNavMenu buttons
             t.Find_Button_AddClick(this, menuName, buttonMebbisGiris, myNavElementClick);
@@ -155,7 +155,7 @@ namespace YesiLdefter
             
         }
 
-        private void preparingKaydetBuutons()
+        private void preparingKaydetButons()
         {
             /// Kaydet butonları
             /// 

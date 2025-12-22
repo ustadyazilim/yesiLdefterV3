@@ -23,7 +23,18 @@ namespace YesiLdefter
                         
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new main(args));
+            
+            // NOTE(@Janberk): WebView2 splash enabled for initial app startup
+            // Create and run main form
+            try
+            {
+                Application.Run(new main(args));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Program] Error: {ex.Message}");
+                throw;
+            }
         }
         // DPI farkındalığı için P/Invoke tanımları
         [DllImport("user32.dll")]

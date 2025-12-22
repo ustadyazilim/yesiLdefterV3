@@ -190,6 +190,7 @@ BEGIN
     );
     CREATE INDEX IX_UstadUserSecurePasswords_UserId ON UstadUserSecurePasswords(UserId);
 END";
+
         private const string PHASE1_PASSWORD_QUERY = @"
 SELECT 
     u.UserId,
@@ -202,6 +203,7 @@ FROM UstadUsers u
 LEFT JOIN UstadUserSecurePasswords sp ON u.UserId = sp.UserId
 WHERE (u.UserEMail = @u OR u.UserTcNo = @u OR u.UserMobileNo = @u) 
   AND u.IsActive = 1";
+
         private const string PHASE3_USER_DATA_QUERY = @"
 SELECT 
     COALESCE(u.UserFullName, '') AS FullName,
@@ -210,6 +212,7 @@ SELECT
     COALESCE(u.DbTypeId, 0) AS DbTypeId
 FROM UstadUsers u
 WHERE u.UserId = @userId";
+
         private const string UPGRADE_PASSWORD_MERGE = @"
 MERGE UstadUserSecurePasswords AS target
 USING (SELECT @userId AS UserId) AS source
@@ -223,6 +226,7 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (UserId, PasswordHash, Salt, Iterations, CreatedAt)
     VALUES (@userId, @hash, @salt, @iterations, SYSUTCDATETIME());";
+
         /// <summary>
         /// Builds database connection string from environment variables or configuration
         /// </summary>
@@ -236,16 +240,19 @@ WHEN NOT MATCHED THEN
             string pass = Environment.GetEnvironmentVariable("DB_PASS") ?? _configuration["Db:Pass"];
             string db   = Environment.GetEnvironmentVariable("DB_NAME") ?? _configuration["Db:Name"];
 
+            // Validate required configuration - fail securely if missing
             if (string.IsNullOrWhiteSpace(host))
-                throw new InvalidOperationException("Database host environment variable or Db:Host configuration is required");
+                throw new InvalidOperationException("DB_HOST environment variable or Db:Host configuration is required");
             if (string.IsNullOrWhiteSpace(port))
-                throw new InvalidOperationException("Database port environment variable or Db:Port configuration is required");
+                throw new InvalidOperationException("DB_PORT environment variable or Db:Port configuration is required");
             if (string.IsNullOrWhiteSpace(user))
-                throw new InvalidOperationException("Database user environment variable or Db:User configuration is required");
+                throw new InvalidOperationException("DB_USER environment variable or Db:User configuration is required");
             if (string.IsNullOrWhiteSpace(db))
-                throw new InvalidOperationException("Database name environment variable or Db:Name configuration is required");
+                throw new InvalidOperationException("DB_NAME environment variable or Db:Name configuration is required");
             if (string.IsNullOrWhiteSpace(pass))
-                throw new InvalidOperationException("Database password environment variable or Db:Pass configuration is required");
+                throw new InvalidOperationException("DB_PASS environment variable or Db:Pass configuration is required");
+
+            // Build connection string - all values validated above
             return $"Data Source={host},{port}; Initial Catalog={db}; User ID={user}; Password={pass}; TrustServerCertificate=true; Encrypt=false; MultipleActiveResultSets=True";
         }
         /// <summary>
@@ -257,7 +264,7 @@ WHEN NOT MATCHED THEN
         {
             if (string.IsNullOrEmpty(token)) return true;
             var turnstileSecret = Environment.GetEnvironmentVariable("TURNSTILE_SECRET") ?? _configuration["Turnstile:Secret"];
-            // NOTE(@Janberk): Cloudflare Turnstile is disabled
+            // Cloudflare Turnstile is disabled
             if (string.IsNullOrEmpty(turnstileSecret)) return true; 
             try
             {
@@ -295,18 +302,20 @@ WHEN NOT MATCHED THEN
         private string GetJwtKey()
         {
             var key = Environment.GetEnvironmentVariable("JWT_KEY") ?? _configuration["Jwt:Key"];
+            
             if (string.IsNullOrWhiteSpace(key))
             {
                 throw new InvalidOperationException(
-                    "JWT key environment variable or Jwt:Key configuration is required. " +
+                    "JWT_KEY environment variable or Jwt:Key configuration is required. " +
                     "Do not use hardcoded fallback values for security.");
             }
-            // NOTE(@Janberk): Ensure key is at least 32 characters (256 bits) for HS256
+            
+            // Ensure key is at least 32 characters (256 bits) for HS256
             if (key.Length < 32)
             {
                 throw new InvalidOperationException(
                     $"JWT key must be at least 32 characters long. Current length: {key.Length}. " +
-                    "Please set JWT key environment variable or Jwt:Key configuration with a secure key.");
+                    "Please set JWT_KEY environment variable or Jwt:Key configuration with a secure key.");
             }
             
             return key;
@@ -341,6 +350,7 @@ WHEN NOT MATCHED THEN
             {
                 return envValue;
             }
+
             if (int.TryParse(_configuration["Jwt:ExpiresMinutes"], out var cfgValue) && cfgValue > 0)
             {
                 return cfgValue;
@@ -360,6 +370,7 @@ WHEN NOT MATCHED THEN
             {
                 return envValue;
             }
+
             if (int.TryParse(_configuration["Jwt:RefreshExpiresMinutes"], out var cfgValue) && cfgValue > 0)
             {
                 return cfgValue;
@@ -396,7 +407,9 @@ WHEN NOT MATCHED THEN
         /// <param name="fullName">The user full name</param>
         /// <param name="role">The user role</param>
         /// <param name="firmGuid">The firm GUID</param>
-        private List<Claim> BuildBaseClaims(int userId, string userGuid, string fullName, string role, string firmGuid, string userName, short dbTypeId)
+        /// <param name="firmId">The firm ID (numeric)</param>
+        /// <param name="firmName">The firm name</param>
+        private List<Claim> BuildBaseClaims(int userId, string userGuid, string fullName, string role, string firmGuid, string userName, short dbTypeId, int firmId = 0, string firmName = "")
         {
             var baseClaims = new List<Claim>
             {
@@ -405,6 +418,8 @@ WHEN NOT MATCHED THEN
                 new Claim(ClaimTypes.Name, fullName ?? string.Empty),
                 new Claim(ClaimTypes.Role, string.IsNullOrWhiteSpace(role) ? "Agent" : role),
                 new Claim("firm", firmGuid ?? string.Empty),
+                new Claim("firmId", firmId.ToString(CultureInfo.InvariantCulture)),
+                new Claim("firmName", firmName ?? string.Empty),
                 new Claim("uname", userName ?? string.Empty),
                 new Claim("dbTypeId", dbTypeId.ToString(CultureInfo.InvariantCulture))
             };
@@ -422,13 +437,16 @@ WHEN NOT MATCHED THEN
             var fullName = principal.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
             var role = principal.FindFirst(ClaimTypes.Role)?.Value ?? "Agent";
             var firmGuid = principal.FindFirst("firm")?.Value ?? string.Empty;
+            var firmIdClaim = principal.FindFirst("firmId")?.Value ?? "0";
+            var firmName = principal.FindFirst("firmName")?.Value ?? string.Empty;
             var userName = principal.FindFirst("uname")?.Value ?? string.Empty;
             var dbTypeIdClaim = principal.FindFirst("dbTypeId")?.Value ?? "0";
 
             short.TryParse(dbTypeIdClaim, out var dbTypeId);
             int.TryParse(userId, out var userIdInt);
+            int.TryParse(firmIdClaim, out var firmId);
 
-            return BuildBaseClaims(userIdInt, userGuid, fullName, role, firmGuid, userName, dbTypeId);
+            return BuildBaseClaims(userIdInt, userGuid, fullName, role, firmGuid, userName, dbTypeId, firmId, firmName);
         }
         /// <summary>
         /// Generates the token pair
@@ -609,7 +627,8 @@ WHEN NOT MATCHED THEN
             } // Close connection after Phase 3
             #endregion
             #region Token Generation
-            var baseClaims = BuildBaseClaims(userId, userGuid, fullName, role, firmGuid, request.UserName, dbTypeId);
+            // NOTE(@Janberk): Login token does NOT include firm claim - user must select firm first via /auth/select-firm
+            var baseClaims = BuildBaseClaims(userId, userGuid, fullName, role, "", request.UserName, dbTypeId, 0, "");
             var tokens = GenerateTokenPair(baseClaims);
             #endregion
             #region Return Login Response
@@ -1280,11 +1299,129 @@ ELSE
             }
         }
         #endregion
+        #region Select Firm (Authenticated)
+        /// <summary>
+        /// Select firm endpoint - validates user access to firm and issues new token with firm claim
+        /// </summary>
+        /// <param name="request">Select firm request containing FirmGUID</param>
+        /// <returns>LoginResponse with new token pair including firm claim</returns>
+        /// <response code="200">Firm selected successfully, returns new token pair</response>
+        /// <response code="400">Invalid request (missing FirmGUID)</response>
+        /// <response code="401">Unauthorized - valid JWT token required or user does not have access to firm</response>
+        [HttpPost("select-firm")]
+        [Authorize]
+        [ProducesResponseType(typeof(LoginResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> SelectFirm([FromBody] SelectFirmRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.FirmGUID))
+            {
+                return BadRequest("FirmGUID is required.");
+            }
+
+            try
+            {
+                // Get current user from JWT claims
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userGuidClaim = User.FindFirst("userGUID")?.Value ?? string.Empty;
+                
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized("Invalid user token.");
+                }
+
+                // Validate user has access to the requested firm
+                string connStr = BuildConnectionString();
+                int firmId = 0;
+                string firmName = string.Empty;
+                string firmGUID = request.FirmGUID.Trim();
+
+                using (var con = new SqlConnection(connStr))
+                {
+                    await con.OpenAsync();
+                    using (var cmd = con.CreateCommand())
+                    {
+                        // Check if user has access to this firm via UstadFirmsUsers table
+                        cmd.CommandText = @"
+SELECT TOP 1
+    uf.FirmId,
+    COALESCE(f.FirmLongName, '') AS FirmLongName,
+    COALESCE(uf.FirmGUID, '') AS FirmGUID
+FROM UstadFirmsUsers uf
+LEFT JOIN UstadFirms f ON uf.FirmId = f.FirmId
+WHERE uf.UserGUID = @UserGUID
+  AND uf.FirmGUID = @FirmGUID
+  AND uf.IsActive = 1
+  AND (f.IsActive = 1 OR f.IsActive IS NULL)";
+                        cmd.Parameters.AddWithValue("@UserGUID", userGuidClaim);
+                        cmd.Parameters.AddWithValue("@FirmGUID", firmGUID);
+
+                        using var r = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow);
+                        if (!await r.ReadAsync())
+                        {
+                            return Unauthorized("User does not have access to the specified firm.");
+                        }
+
+                        firmId = r.GetInt32("FirmId");
+                        firmName = r.GetString("FirmLongName");
+                        string dbFirmGUID = r.GetString("FirmGUID");
+                        if (!string.IsNullOrEmpty(dbFirmGUID))
+                        {
+                            firmGUID = dbFirmGUID;
+                        }
+                    }
+                }
+
+                // Get user info for token generation
+                var fullName = User.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
+                var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Agent";
+                var userName = User.FindFirst("uname")?.Value ?? string.Empty;
+                var dbTypeIdClaim = User.FindFirst("dbTypeId")?.Value ?? "0";
+                short.TryParse(dbTypeIdClaim, out var dbTypeId);
+
+                // Build claims with firm information
+                var baseClaims = BuildBaseClaims(userId, userGuidClaim, fullName, role, firmGUID, userName, dbTypeId, firmId, firmName);
+                var tokens = GenerateTokenPair(baseClaims);
+
+                return Ok(new LoginResponse
+                {
+                    Token = tokens.accessToken,
+                    RefreshToken = tokens.refreshToken,
+                    AccessTokenExpiresInSeconds = GetAccessTokenExpiresMinutes() * 60,
+                    RefreshTokenExpiresInSeconds = GetRefreshTokenExpiresMinutes() * 60,
+                    UserId = userId,
+                    OperatorId = userId,
+                    UserGUID = userGuidClaim,
+                    FullName = fullName,
+                    Role = role,
+                    FirmId = firmId,
+                    DbTypeId = dbTypeId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error selecting firm");
+                return StatusCode(500, "Error selecting firm: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Select firm request payload
+        /// </summary>
+        public class SelectFirmRequest
+        {
+            /// <summary>
+            /// Firm GUID to select
+            /// </summary>
+            public string FirmGUID { get; set; } = string.Empty;
+        }
+        #endregion
         #region Get Database Connection Info (Authenticated)
         /// <summary>
         /// Get database connection information for authenticated desktop application
         /// Returns connection details (server, database, username) but NOT password for security
-        /// NOTE(@Janberk): Password is handled server-side only via environment variables
+        /// Password is handled server-side only via environment variables
         /// </summary>
         /// <returns>DatabaseConnectionInfo with server, database, and username</returns>
         /// <response code="200">Returns database connection info</response>
@@ -1297,42 +1434,56 @@ ELSE
         {
             try
             {
+                // NOTE(@Janberk): Require firm claim - user must select firm before getting DB connection info
+                var firmClaim = User.FindFirst("firm")?.Value;
+                var firmIdClaim = User.FindFirst("firmId")?.Value;
+                
+                if (string.IsNullOrWhiteSpace(firmClaim) || string.IsNullOrWhiteSpace(firmIdClaim))
+                {
+                    return Unauthorized("Firm selection required. Please call /auth/select-firm first.");
+                }
+                // Get connection info from environment variables or configuration (NO hardcoded fallbacks)
                 string host = Environment.GetEnvironmentVariable("DB_HOST") ?? _configuration["Db:Host"];
                 string port = Environment.GetEnvironmentVariable("DB_PORT") ?? _configuration["Db:Port"];
                 string user = Environment.GetEnvironmentVariable("DB_USER") ?? _configuration["Db:User"];
                 string dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? _configuration["Db:Name"];
                 string password = Environment.GetEnvironmentVariable("DB_PASS") ?? _configuration["Db:Pass"];
 
+                // Validate required configuration - fail securely if missing
                 if (string.IsNullOrWhiteSpace(host))
-                    throw new InvalidOperationException("Database host environment variable or Db:Host configuration is required");
+                    throw new InvalidOperationException("DB_HOST environment variable or Db:Host configuration is required");
                 if (string.IsNullOrWhiteSpace(port))
-                    throw new InvalidOperationException("Database port environment variable or Db:Port configuration is required");
+                    throw new InvalidOperationException("DB_PORT environment variable or Db:Port configuration is required");
                 if (string.IsNullOrWhiteSpace(user))
-                    throw new InvalidOperationException("Database user environment variable or Db:User configuration is required");
+                    throw new InvalidOperationException("DB_USER environment variable or Db:User configuration is required");
                 if (string.IsNullOrWhiteSpace(dbName))
-                    throw new InvalidOperationException("Database name environment variable or Db:Name configuration is required");
+                    throw new InvalidOperationException("DB_NAME environment variable or Db:Name configuration is required");
                 if (string.IsNullOrWhiteSpace(password))
-                    throw new InvalidOperationException("Database password environment variable or Db:Pass configuration is required");
+                    throw new InvalidOperationException("DB_PASS environment variable or Db:Pass configuration is required");
 
-                // NOTE(@Janberk): Get manager DB info from configuration
+                // Get manager DB info from configuration
                 var managerConnStr = _configuration.GetConnectionString("BulutManager");
                 string managerServer = host;
                 string managerDb = null;
                 string managerUser = user;
+
+                // Parse manager connection string if available
                 if (!string.IsNullOrEmpty(managerConnStr))
                 {
                     try
                     {
                         var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(managerConnStr);
-                        managerServer = builder.DataSource.Split(',')[0]; 
+                        managerServer = builder.DataSource.Split(',')[0]; // Get server without port
                         managerDb = builder.InitialCatalog;
                         managerUser = builder.UserID;
                     }
                     catch
                     {
-                        // NOTE(@Janberk): Connection string parsing failed, will try configuration fallback below
+                        // Connection string parsing failed, will try configuration fallback below
                     }
                 }
+
+                // If manager database name not obtained from connection string, get from configuration
                 if (string.IsNullOrWhiteSpace(managerDb))
                 {
                     managerDb = _configuration["Db:ManagerName"];
@@ -1340,9 +1491,12 @@ ELSE
                         throw new InvalidOperationException("Manager database name must be configured via BulutManager connection string or Db:ManagerName");
                 }
                 
+                // Build connection strings (password included but will be encrypted)
                 string ustadCrmConnStr = $"Data Source={host},{port};Initial Catalog={dbName};User ID={user};Password={password};MultipleActiveResultSets=True;TrustServerCertificate=true;Encrypt=false";
                 string managerConnStrBuilt = $"Data Source={managerServer},{port};Initial Catalog={managerDb};User ID={managerUser};Password={password};MultipleActiveResultSets=True;TrustServerCertificate=true;Encrypt=false";
-
+                
+                // Encrypt connection strings using JWT key for transmission
+                // Desktop app will decrypt using the same key derived from JWT token
                 string encryptionKey = GetJwtKey();
                 string encryptedUstadCrm = EncryptConnectionString(ustadCrmConnStr, encryptionKey);
                 string encryptedManager = EncryptConnectionString(managerConnStrBuilt, encryptionKey);
@@ -1356,6 +1510,7 @@ ELSE
                     ManagerServer = managerServer,
                     ManagerDatabase = managerDb,
                     ManagerUsername = managerUser,
+                    // Encrypted connection strings - decrypt on desktop using JWT token
                     EncryptedUstadCrmConnectionString = encryptedUstadCrm,
                     EncryptedManagerConnectionString = encryptedManager
                 });
@@ -1389,20 +1544,24 @@ ELSE
                     Array.Copy(keyBytes, truncated, 32);
                     keyBytes = truncated;
                 }
+
                 using (Aes aes = Aes.Create())
                 {
                     aes.Key = keyBytes;
                     aes.Mode = CipherMode.CBC;
                     aes.Padding = PaddingMode.PKCS7;
                     aes.GenerateIV();
+
                     using (ICryptoTransform encryptor = aes.CreateEncryptor())
                     {
                         byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
                         byte[] encryptedBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+                        
                         // Combine IV and encrypted data
                         byte[] result = new byte[aes.IV.Length + encryptedBytes.Length];
                         Array.Copy(aes.IV, 0, result, 0, aes.IV.Length);
                         Array.Copy(encryptedBytes, 0, result, aes.IV.Length, encryptedBytes.Length);
+                        
                         return Convert.ToBase64String(result);
                     }
                 }

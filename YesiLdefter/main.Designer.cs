@@ -49,7 +49,7 @@
             this.ClientSize = new System.Drawing.Size(1455, 739);
             this.IconOptions.Icon = ((System.Drawing.Icon)(resources.GetObject("main.IconOptions.Icon")));
             this.Name = "main";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "yesiLdefter";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.main_FormClosing);
             this.Load += new System.EventHandler(this.mainForm_Load);

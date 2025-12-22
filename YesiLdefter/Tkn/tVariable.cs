@@ -317,6 +317,10 @@ namespace Tkn_Variable
         
         public static Boolean IsWaitOpen = false;
         public static Boolean SP_OpenApplication = false;
+        // NOTE(@Janberk): WebView2-based menu rendering (TileNavPane overlay) feature flag
+        // When true, ItemType 106 menus use WebView2 with EntranceTemplate.html instead of DevExpress rendering
+        // When false, uses traditional DevExpress TileNavPane (default)
+        public static Boolean SP_UseHtmlMenu = false;
         public static Boolean SP_ConnectBool_TR = false;
         public static Boolean SP_ConnectBool_Source = false;
         public static Boolean SP_ConnectBool_Target = false;

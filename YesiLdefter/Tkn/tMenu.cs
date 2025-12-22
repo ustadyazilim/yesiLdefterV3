@@ -17,6 +17,8 @@ using Tkn_Report;
 using Tkn_TablesRead;
 using Tkn_ToolBox;
 using Tkn_Variable;
+using Newtonsoft.Json;
+using YesiLdefter;
 
 namespace Tkn_Menu
 {
@@ -115,6 +117,25 @@ namespace Tkn_Menu
             */
         }
 
+        // Static guard to prevent infinite loops from recursive menu creation
+        private static System.Collections.Generic.HashSet<string> _creatingMenus = new System.Collections.Generic.HashSet<string>();
+        private static readonly object _menuCreationLock = new object();
+        // Track WebView2 failures to disable it if it's causing too many issues
+        private static int _webView2FailureCount = 0;
+        private static readonly int MAX_WEBVIEW2_FAILURES = 3;
+        
+        public static void ReportWebView2Failure()
+        {
+            lock (_menuCreationLock)
+            {
+                _webView2FailureCount++;
+                if (_webView2FailureCount >= MAX_WEBVIEW2_FAILURES)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ WebView2 has failed {_webView2FailureCount} times. Disabling WebView2 for this session to prevent infinite loops.");
+                }
+            }
+        }
+
         // 2. NOTE(@Janberk): Create_Menu_IN_Control() is the entry point for building menus from metadata.
         // MenuCode (same as TABLEIPCODE from layout) => definition to load from MS_ITEMS table.
         // ItemType determines which DevExpress control to create 
@@ -123,12 +144,26 @@ namespace Tkn_Menu
         // CMP_BACKCOLOR, MENU_COLOR, CAPTION, etc.
         public void Create_Menu_IN_Control(Control mainControl, string MenuCode, string ExtraValue)
         {
-            tToolBox t = new tToolBox();
-            tEvents ev = new tEvents();
-            tEventsMenu evm = new tEventsMenu();
-            tTablesRead tr = new tTablesRead();
-            
-            DataSet ds_Items = new DataSet();
+            // Prevent infinite loops: check if this menu is already being created
+            string menuKey = $"{mainControl?.Name ?? "null"}_{MenuCode}";
+            lock (_menuCreationLock)
+            {
+                if (_creatingMenus.Contains(menuKey))
+                {
+                    System.Diagnostics.Debug.WriteLine($"tMenu.Create_Menu_IN_Control: ⚠️ Menu {MenuCode} is already being created, skipping to prevent infinite loop");
+                    return;
+                }
+                _creatingMenus.Add(menuKey);
+            }
+
+            try
+            {
+                tToolBox t = new tToolBox();
+                tEvents ev = new tEvents();
+                tEventsMenu evm = new tEventsMenu();
+                tTablesRead tr = new tTablesRead();
+                
+                DataSet ds_Items = new DataSet();
 
             //tr.MS_LayoutOrItems_Read(ds_Items, MenuCode, 3);
             tr.MS_Menu_Read(ds_Items, MenuCode);
@@ -327,79 +362,81 @@ namespace Tkn_Menu
             #region // 105 - TileControl
             if (ItemType == 105)
             {
+                int groupCount = menuControl.Groups.Count;
                 /*
                 // 
                 // tileControl1
                 // 
-                this.tileControl1.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Default;
-                this.tileControl1.Dock = System.Windows.Forms.DockStyle.Fill;
-                this.tileControl1.Groups.Add(this.tileGroup1);
-                this.tileControl1.Location = new System.Drawing.Point(8, 8);
-                this.tileControl1.MaxId = 4;
-                this.tileControl1.Name = "tileControl1";
-                this.tileControl1.ShowGroupText = true;
-                this.tileControl1.ShowText = true;
-                this.tileControl1.Size = new System.Drawing.Size(784, 434);
-                this.tileControl1.TabIndex = 0;
-                this.tileControl1.Text = "tileControl1";
-                */
-                DevExpress.XtraEditors.TileControl menuControl =
-                    new DevExpress.XtraEditors.TileControl();
-                // 
-                // tileControl1
-                //
-                menuControl.AllowSelectedItem = true;
-                menuControl.AllowSelectedItemBorder = true;
-                menuControl.AllowItemHover = true;
-                //menuControl.al
-                menuControl.AppearanceItem.Selected.BackColor = v.AppearanceFocusedColor;
-                menuControl.AppearanceItem.Selected.Options.UseBackColor = true;
-                menuControl.AppearanceItem.Selected.BorderColor = v.AppearanceTextColor;
-                menuControl.AppearanceItem.Selected.Options.UseBorderColor = true;
-                menuControl.AppearanceItem.Selected.ForeColor = v.AppearanceFocusedTextColor;
-                menuControl.AppearanceItem.Selected.Options.UseForeColor = true;
+                    this.tileControl1.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Default;
+                    this.tileControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+                    this.tileControl1.Groups.Add(this.tileGroup1);
+                    this.tileControl1.Location = new System.Drawing.Point(8, 8);
+                    this.tileControl1.MaxId = 4;
+                    this.tileControl1.Name = "tileControl1";
+                    this.tileControl1.ShowGroupText = true;
+                    this.tileControl1.ShowText = true;
+                    this.tileControl1.Size = new System.Drawing.Size(784, 434);
+                    this.tileControl1.TabIndex = 0;
+                    this.tileControl1.Text = "tileControl1";
+                    */
+                    DevExpress.XtraEditors.TileControl menuControl =
+                        new DevExpress.XtraEditors.TileControl();
+                    // 
+                    // tileControl1
+                    //
+                    menuControl.AllowSelectedItem = true;
+                    menuControl.AllowSelectedItemBorder = true;
+                    menuControl.AllowItemHover = true;
+                    //menuControl.al
+                    menuControl.AppearanceItem.Selected.BackColor = v.AppearanceFocusedColor;
+                    menuControl.AppearanceItem.Selected.Options.UseBackColor = true;
+                    menuControl.AppearanceItem.Selected.BorderColor = v.AppearanceTextColor;
+                    menuControl.AppearanceItem.Selected.Options.UseBorderColor = true;
+                    menuControl.AppearanceItem.Selected.ForeColor = v.AppearanceFocusedTextColor;
+                    menuControl.AppearanceItem.Selected.Options.UseForeColor = true;
 
-                menuControl.AppearanceItem.Hovered.BackColor = v.AppearanceFocusedColor;
-                menuControl.AppearanceItem.Hovered.Options.UseBackColor = true;
-                menuControl.AppearanceItem.Hovered.ForeColor = v.AppearanceFocusedTextColor;
-                menuControl.AppearanceItem.Hovered.Options.UseForeColor = true;
+                    menuControl.AppearanceItem.Hovered.BackColor = v.AppearanceFocusedColor;
+                    menuControl.AppearanceItem.Hovered.Options.UseBackColor = true;
+                    menuControl.AppearanceItem.Hovered.ForeColor = v.AppearanceFocusedTextColor;
+                    menuControl.AppearanceItem.Hovered.Options.UseForeColor = true;
 
-                menuControl.AppearanceItem.Pressed.BackColor = v.AppearanceFocusedColor;
-                menuControl.AppearanceItem.Pressed.Options.UseBackColor = true;
-                menuControl.AppearanceItem.Pressed.ForeColor = v.AppearanceFocusedTextColor;
-                menuControl.AppearanceItem.Pressed.Options.UseForeColor = true;
+                    menuControl.AppearanceItem.Pressed.BackColor = v.AppearanceFocusedColor;
+                    menuControl.AppearanceItem.Pressed.Options.UseBackColor = true;
+                    menuControl.AppearanceItem.Pressed.ForeColor = v.AppearanceFocusedTextColor;
+                    menuControl.AppearanceItem.Pressed.Options.UseForeColor = true;
 
+                    //menuControl.
+                    menuControl.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Default;
+                    menuControl.Name = "MENU_" + MasterCode;
+                    menuControl.ShowGroupText = true;
+                    menuControl.ShowText = true;
+                    menuControl.TabIndex = 0;
+                    menuControl.Text = caption;
+                    t.myControl_Size_And_Location(menuControl, width, height, 0, 0);
 
-                //menuControl.
-                menuControl.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Default;
-                menuControl.Name = "MENU_" + MasterCode;
-                menuControl.ShowGroupText = true;
-                menuControl.ShowText = true;
-                menuControl.TabIndex = 0;
-                menuControl.Text = caption;
-                t.myControl_Size_And_Location(menuControl, width, height, 0, 0);
+                    // forma şimdi ekleyelelim
+                    //((Form)mainControl).Controls.Add(menuControl);
+                    //((Form)mainControl).Padding = new System.Windows.Forms.Padding(8);
 
-                // forma şimdi ekleyelelim
-                //((Form)mainControl).Controls.Add(menuControl);
-                //((Form)mainControl).Padding = new System.Windows.Forms.Padding(8);
+                    if (DockType == v.dock_Bottom) menuControl.Dock = DockStyle.Bottom;
+                    if (DockType == v.dock_Fill) menuControl.Dock = DockStyle.Fill;
+                    if (DockType == v.dock_Left) menuControl.Dock = DockStyle.Left;
+                    if (DockType == v.dock_None) menuControl.Dock = DockStyle.None;
+                    if (DockType == v.dock_Right) menuControl.Dock = DockStyle.Right;
+                    if (DockType == v.dock_Top) menuControl.Dock = DockStyle.Top;
 
-                if (DockType == v.dock_Bottom) menuControl.Dock = DockStyle.Bottom;
-                if (DockType == v.dock_Fill) menuControl.Dock = DockStyle.Fill;
-                if (DockType == v.dock_Left) menuControl.Dock = DockStyle.Left;
-                if (DockType == v.dock_None) menuControl.Dock = DockStyle.None;
-                if (DockType == v.dock_Right) menuControl.Dock = DockStyle.Right;
-                if (DockType == v.dock_Top) menuControl.Dock = DockStyle.Top;
+                    if (mainControl is Form)
+                    {
+                        ((Form)mainControl).Controls.Add(menuControl);
+                    }
+                    else
+                    {
+                        mainControl.Controls.Add(menuControl);
+                    }
 
-                if (mainControl is Form)
-                {
-                    ((Form)mainControl).Controls.Add(menuControl);
+                    Create_TileControl(menuControl, ds_Items, MenuCode);
+                    Create_TileControl(menuControl, ds_Items);
                 }
-                else
-                {
-                    mainControl.Controls.Add(menuControl);
-                }
-
-                Create_TileControl(menuControl, ds_Items);
                 
             }
             #endregion TileControl
@@ -407,33 +444,34 @@ namespace Tkn_Menu
             #region // 106 - TileNavPane << --- Genelde Kullanılan Menü Tipi
             if (ItemType == 106)
             {
-                DevExpress.XtraBars.Navigation.TileNavPane menuControl =
-                    new DevExpress.XtraBars.Navigation.TileNavPane();
+                // Traditional DevExpress rendering (used when SP_UseHtmlMenu is false or WebView2 fails)
+                DevExpress.XtraBars.Navigation.TileNavPane
+                menuControl = new DevExpress.XtraBars.Navigation.TileNavPane();
 
-                menuControl.Name = "MENU_" + MasterCode; // RefId.ToString();
+                menuControl.Name = "MENU_" + MasterCode;
                 menuControl.Text = "REF_ID[" + RefId.ToString() + "],CAPTION[" + caption + "]";
                 menuControl.TabStop = false;
                 menuControl.OptionsPrimaryDropDown.CloseOnOuterClick = DefaultBoolean.True;
-                //menuControl.Appearance.Font = new System.Drawing.Font("Roboto", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(162)));
 
-                if (mainControl is Form)
-                {
-                    ((Form)mainControl).Controls.Add(menuControl);
+                    if (mainControl is Form)
+                    {
+                        ((Form)mainControl).Controls.Add(menuControl);
+                    }
+                    else
+                    {
+                        mainControl.Controls.Add(menuControl);
+                    }
+
+                    if (DockType == v.dock_Bottom) menuControl.Dock = DockStyle.Bottom;
+                    if (DockType == v.dock_Fill) menuControl.Dock = DockStyle.Fill;
+                    if (DockType == v.dock_Left) menuControl.Dock = DockStyle.Left;
+                    if (DockType == v.dock_None) menuControl.Dock = DockStyle.None;
+                    if (DockType == v.dock_Right) menuControl.Dock = DockStyle.Right;
+                    if (DockType == v.dock_Top) menuControl.Dock = DockStyle.Top;
+
+                    // ExtraValue = "FIRM||" + TABLEIPCODE2 + "|ds|"
+                    Create_TileNavPane(menuControl, ds_Items, ExtraValue, dontReport, dontEDI, dontExit, reportTableIPCode);
                 }
-                else
-                {
-                    mainControl.Controls.Add(menuControl);
-                }
-
-                if (DockType == v.dock_Bottom) menuControl.Dock = DockStyle.Bottom;
-                if (DockType == v.dock_Fill) menuControl.Dock = DockStyle.Fill;
-                if (DockType == v.dock_Left) menuControl.Dock = DockStyle.Left;
-                if (DockType == v.dock_None) menuControl.Dock = DockStyle.None;
-                if (DockType == v.dock_Right) menuControl.Dock = DockStyle.Right;
-                if (DockType == v.dock_Top) menuControl.Dock = DockStyle.Top;
-
-                // ExtraValue = "FIRM||" + TABLEIPCODE2 + "|ds|"
-                Create_TileNavPane(menuControl, ds_Items, ExtraValue, dontReport, dontEDI, dontExit, reportTableIPCode);
             }
             #endregion
 
@@ -669,6 +707,7 @@ namespace Tkn_Menu
             }
             #endregion
 
+            }
         }
 
         #region Create_BarManager
@@ -679,7 +718,7 @@ namespace Tkn_Menu
         #endregion Create_BarManager
 
         #region Create_Ribbon
-        public void Create_Ribbon(DevExpress.XtraBars.Ribbon.RibbonControl mControl, DataSet ds_Items, string MenuCode)
+        public void Create_Ribbon(DevExpress.XtraBars.Ribbon.RibbonControl mControl, DataSet ds_Items)
         {
             tToolBox t = new tToolBox();
             tEvents ev = new tEvents();
@@ -1508,20 +1547,17 @@ namespace Tkn_Menu
                     tItem.Id = i;
                     tItem.ItemSize = DevExpress.XtraEditors.TileItemSize.Default;
                     tItem.ItemClick += new DevExpress.XtraEditors.TileItemClickEventHandler(evm.tTileItem_ItemClick);
-
-                    tItem.Appearance.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(162)));
-                    tItem.Appearance.Options.UseFont = true;
-
-                    if (backColor != 0)
-                    {
-                        tItem.Appearance.BackColor = Color.FromArgb(backColor);
+                        Color tileBackColor = backColor != 0 ? Color.FromArgb(backColor) : Tkn_ToolBox.tDevExpressTheme.BrandPrimary;
+                        Color tileForeColor = fontColor != 0 ? Color.FromArgb(fontColor) : Tkn_ToolBox.tDevExpressTheme.BgSecondary;
+                        Color tileHoverColor = Tkn_ToolBox.tDevExpressTheme.GetHoverColor(tileBackColor);
+                        
+                        tItem.Appearance.BackColor = tileBackColor;
+                        tItem.Appearance.ForeColor = tileForeColor;
+                        tItem.Appearance.Font = Tkn_ToolBox.tDevExpressTheme.ModernFont;
                         tItem.Appearance.Options.UseBackColor = true;
-                    }
-                    if (fontColor != 0)
-                    {
-                        tItem.Appearance.ForeColor = Color.FromArgb(fontColor);
                         tItem.Appearance.Options.UseForeColor = true;
-                    }
+                        tItem.Appearance.Options.UseFont = true;
+                        Tkn_ToolBox.tDevExpressTheme.ApplyModernTileItemAppearance(tItem, tileBackColor, tileHoverColor);
                     if (glName != "")
                     {
 
@@ -1570,7 +1606,6 @@ namespace Tkn_Menu
         #endregion Create_TileControl
 
         #region Create_TileNavPane    << --- Genelde Kullanılan Menü Tipi
-
         // 3. NOTE(@Janberk): Create_TileNavPane() builds the dashboard tile navigation pane
         // It reads menu items from ds_Items (populated from MS_ITEMS table) and creates:
         // - TileNavCategory (itemType 201): Top-level groups like "Dönem İşlemleri", "e-Sınav İşlemleri"
@@ -1581,7 +1616,8 @@ namespace Tkn_Menu
         // Captions come from CAPTION column. 
         // Actions (form names) come from FORM_NAME or PROP_NAVIGATOR.
         //
-        // TODO(@Janberk): Tile card refactoring tasks for tomorrow:
+        // TODO(@Janberk):
+        // Tile card refactoring tasks for future development:
         // 1. Create DashboardTile model class (Key, Title, Group, BackColor, ForeColor, Font, Action)
         // 2. Create DashboardTheme.cs with centralized color/font constants (CSS-style theming)
         // 3. Extract color parsing logic (hex/ARGB) into ColorHelper.ParseColor(string colorStr) method
@@ -1629,7 +1665,6 @@ namespace Tkn_Menu
 
             TileNavCategory tFirstItemCategory = null;
 
-
             /// tekil formu oluşturmak için ticks kullanıyorum
             /// çünkü  DevExpress.XtraBars.Navigation.NavButton FindFormu yok
             /// kendim başka bir metodla forma ulaşıyorum
@@ -1650,6 +1685,10 @@ namespace Tkn_Menu
             mControl.Leave += new System.EventHandler(evm.tTileNavPane_Leave);
             mControl.SelectedElementChanged += new TileNavPaneElementEventHandler(evm.tileNavPane_SelectedElementChanged);
             menuName = mControl.Name?.ToString();
+
+            // NOTE(@Janberk): Apply entrance screen layout from the @design-system.css file.
+            // TODO(@Janberk): Create a global ApplyEntranceScreenLayout() method to apply the entrance screen layout to the TileNavPane.
+            Tkn_ToolBox.tDevExpressTheme.ApplyEntranceScreenLayout(mControl);
 
             for (int i = 0; i < itemCount; i++)
             {
@@ -1700,6 +1739,17 @@ namespace Tkn_Menu
 
                         //if (clickEvents > 0)
                         pGroup.ElementClick += new DevExpress.XtraBars.Navigation.NavElementClickEventHandler(evm.tNavButton_ElementClick);
+                        
+                        // NOTE(@Janberk): Apply design system colors from the @design-system.css file.
+                        // TODO(@Janberk): Create a global ApplyDesignSystemAppearance() method to apply the design system colors to the TileNavCategory.
+
+                            string backColorStr = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
+                            string menuColorStr = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
+
+                            Color categoryBackColor = Tkn_ToolBox.tDevExpressTheme.ParseColorFromDatabase(backColorStr, Tkn_ToolBox.tDevExpressTheme.BrandPrimary);
+                            Color categoryHoverColor = Tkn_ToolBox.tDevExpressTheme.ParseColorFromDatabase(menuColorStr, Tkn_ToolBox.tDevExpressTheme.BrandAccent);
+                            
+                            Tkn_ToolBox.tDevExpressTheme.ApplyModernCategoryAppearance(pGroup, categoryBackColor, categoryHoverColor);
 
                         #region Image set
                         if (!DBNull.Value.Equals(ds_Items.Tables[0].Rows[i]["LKP_GLYPH16"]))
@@ -1730,22 +1780,19 @@ namespace Tkn_Menu
                         //mControl.Categories.Add(pGroup);
                         if (itemType == 201)
                         {
-                            // 4. NOTE(@Janberk): Hardcoded colors here 
-                            // (Red, Green, Coral, Purple) are test/example values.
-                            // In production, colors should come from metadata (CMP_BACKCOLOR, MENU_COLOR columns)
-                            //string backColorStr = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
-                            //string menuColorStr = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
-                            
-                            pGroup.Tile.AppearanceItem.Normal.BackColor = Color.Red;
-                            pGroup.Tile.AppearanceItem.Hovered.BackColor = Color.Green;
-                            // Customize tile colors in different states.
-                            pGroup.OptionsDropDown.AppearanceItem.Normal.BackColor = Color.Coral;
-                            pGroup.OptionsDropDown.AppearanceItem.Hovered.BackColor = Color.LightCoral;
-                            // Customize the group caption color.
-                            pGroup.OptionsDropDown.AppearanceGroupText.ForeColor = Color.Purple;
+                            // NOTE(@Janberk): For entrance screens, styling is already applied above (line ~1951)
+                            // For non-entrance screens, apply standard modern styling here
+ 
+                                string backColorStr = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
+                                string menuColorStr = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
+                                
+                                Color categoryBackColor = Tkn_ToolBox.tDevExpressTheme.ParseColorFromDatabase(backColorStr, Tkn_ToolBox.tDevExpressTheme.BrandPrimary);
+                                Color categoryHoverColor = Tkn_ToolBox.tDevExpressTheme.ParseColorFromDatabase(menuColorStr, Tkn_ToolBox.tDevExpressTheme.BrandAccent);
+                                
+                                // Apply modern appearance with rounded corners, shadows, and smooth transitions
+                                Tkn_ToolBox.tDevExpressTheme.ApplyModernCategoryAppearance(pGroup, categoryBackColor, categoryHoverColor);
 
                             mControl.Categories.Add(pGroup);
-
                             if (tFirstItemCategory == null)
                                 tFirstItemCategory = pGroup;
 
@@ -1815,14 +1862,8 @@ namespace Tkn_Menu
 
 
                         //tItem.
-                        //tItem.Appearance.BackColor = v.colorNew;
-                        //tItem.AppearanceHovered.BackColor = v.colorFocus;
-                        //tItem.AppearanceHovered.ForeColor = v.AppearanceFocusedTextColor;
-                        //tItem.AppearanceSelected.BackColor = v.colorSave;
-                        //tItem.Appearance.Options.UseBackColor = true;
-                        //tItem.AppearanceHovered.Options.UseBackColor = true;
-                        //tItem.AppearanceHovered.Options.UseForeColor = true;
-                        //tItem.AppearanceSelected.Options.UseBackColor = true;
+                        // NOTE(@Janberk): Modern styling for NavButton - apply sleek appearance
+                        Tkn_ToolBox.tDevExpressTheme.ApplyModernButtonAppearance(tItem);
 
 
                         if ((DockType == v.dock_None) | (DockType == v.dock_Left))
@@ -1905,22 +1946,15 @@ namespace Tkn_Menu
                                 if (t.IsNotNull(Prop_Navigator))
                                     tItem.Tag = Prop_Navigator + "|Prop_Navigator|";
 
-                                // 5. NOTE(@Janberk): Colors are applied here from global variables 
-                                // (v.colorNew, v.colorFocus).
-                                // These come from tVariable.cs.
-                                //string tileBackColor = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
-                                //string tileMenuColor = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
-                                //System.Diagnostics.Debug.WriteLine($"tMenu.Create_TileNavPane: Creating TileNavItem (itemType=206), caption={itemCaption}, BackColor={tileBackColor}, MenuColor={tileMenuColor}, Action={Prop_Navigator}");
+                                // NOTE(@Janberk): Modern styling - read colors from database metadata, apply sleek appearance
+                                string tileBackColor = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
+                                string tileMenuColor = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
                                 
-                                tItem.Appearance.BackColor = v.colorNew;
-                                tItem.AppearanceHovered.BackColor = v.colorFocus;
-                                //tItem.AppearanceSelected.BackColor = v.colorSave;
-                                tItem.Appearance.Options.UseBackColor = true;
-                                tItem.AppearanceHovered.Options.UseBackColor = true;
-                                tItem.AppearanceSelected.Options.UseBackColor = true;
-
-                                tItem.Appearance.Font = new System.Drawing.Font("Tahoma", 12.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(162)));
-                                tItem.Appearance.Options.UseFont = true;
+                                Color itemBackColor = Tkn_ToolBox.tDevExpressTheme.ParseColorFromDatabase(tileBackColor, Tkn_ToolBox.tDevExpressTheme.BrandPrimary);
+                                Color itemHoverColor = Tkn_ToolBox.tDevExpressTheme.ParseColorFromDatabase(tileMenuColor, Tkn_ToolBox.tDevExpressTheme.BrandAccent);
+                                
+                                // Apply modern tile appearance with rounded corners, shadows, and smooth transitions
+                                Tkn_ToolBox.tDevExpressTheme.ApplyModernTileAppearance(tItem, itemBackColor, itemHoverColor);
 
                                 if (clickEvents > 0)
                                 {
@@ -1999,15 +2033,15 @@ namespace Tkn_Menu
                                 if (t.IsNotNull(menuName))
                                     tItem.Tag += menuName + "|MenuName|";
 
-                                tItem.Appearance.BackColor = v.colorNew;
-                                tItem.AppearanceHovered.BackColor = v.colorFocus;
-                                //tItem.AppearanceSelected.BackColor = v.colorSave;
-                                tItem.Appearance.Options.UseBackColor = true;
-                                tItem.AppearanceHovered.Options.UseBackColor = true;
-                                tItem.AppearanceSelected.Options.UseBackColor = true;
-
-                                tItem.Appearance.Font = new System.Drawing.Font("Tahoma", 18.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(162)));
-                                tItem.Appearance.Options.UseFont = true;
+                                // NOTE(@Janberk): Modern styling for TileNavSubItem - read colors from database, apply sleek appearance
+                                string subItemBackColor = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
+                                string subItemMenuColor = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
+                                
+                                Color subBackColor = Tkn_ToolBox.tDevExpressTheme.ParseColorFromDatabase(subItemBackColor, Tkn_ToolBox.tDevExpressTheme.BrandPrimary);
+                                Color subHoverColor = Tkn_ToolBox.tDevExpressTheme.ParseColorFromDatabase(subItemMenuColor, Tkn_ToolBox.tDevExpressTheme.BrandAccent);
+                                
+                                // Apply modern tile appearance
+                                Tkn_ToolBox.tDevExpressTheme.ApplyModernTileAppearance(tItem, subBackColor, subHoverColor);
 
                                 if (clickEvents > 0)
                                 {
@@ -2431,11 +2465,341 @@ namespace Tkn_Menu
             */
             #endregion örnek
             
-            // 6. NOTE(@Janberk): Tile creation complete. All categories, tiles, and buttons have been added to mControl.
-            // The dashboard is now ready for user interaction. Click handlers are wired via tEventsMenu.
         }
 
         #endregion Create_TileNavPane
+
+        #region Extract Menu Structure to JSON (for WebView2)
+
+        /// <obsolete>
+        /// This method is obsolete and will be removed in the future.
+        /// Use ExtractMenuStructureFromDataSet instead.
+        /// </obsolete>
+        /// <summary>
+        /// Extracts menu structure from TileNavPane into JSON format for WebView2 rendering.
+        /// Extracts top-level categories (ItemType 201) which become the entrance screen cards.
+        /// </summary>
+        public string ExtractMenuStructureToJson(DevExpress.XtraBars.Navigation.TileNavPane pane)
+        {
+            tToolBox t = new tToolBox();
+            var cards = new List<Dictionary<string, object>>();
+
+            try
+            {
+                // Extract Categories (ItemType 201) - these become the entrance cards
+                foreach (TileNavCategory category in pane.Categories)
+                {
+                    if (!category.Visible) continue;
+
+                    var card = new Dictionary<string, object>
+                    {
+                        ["refId"] = category.Name.Replace("item_", ""),
+                        ["name"] = category.Name,
+                        ["caption"] = category.Caption ?? category.TileText ?? "",
+                        ["tag"] = category.Tag?.ToString() ?? "",
+                        ["enabled"] = category.Enabled,
+                        ["visible"] = category.Visible,
+                        ["lineNo"] = 0 // LINE_NO not available from control, would need to track from ds_Items
+                    };
+
+                    // Convert icon to base64
+                    if (category.Glyph != null)
+                    {
+                        try
+                        {
+                            using (var ms = new MemoryStream())
+                            {
+                                category.Glyph.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                                byte[] imageBytes = ms.ToArray();
+                                card["iconBase64"] = "data:image/png;base64," + Convert.ToBase64String(imageBytes);
+                            }
+                        }
+                        catch
+                        {
+                            card["iconBase64"] = "";
+                        }
+                    }
+                    else
+                    {
+                        card["iconBase64"] = "";
+                    }
+
+                    // Extract colors (fallback to defaults if not available)
+                    if (category.Tile?.AppearanceItem?.Normal?.BackColor != null)
+                    {
+                        var color = category.Tile.AppearanceItem.Normal.BackColor;
+                        card["backColor"] = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                    }
+                    else
+                    {
+                        card["backColor"] = "#295c00"; // Default primary color
+                    }
+
+                    if (category.Tile?.AppearanceItem?.Hovered?.BackColor != null)
+                    {
+                        var color = category.Tile.AppearanceItem.Hovered.BackColor;
+                        card["hoverColor"] = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                    }
+                    else
+                    {
+                        card["hoverColor"] = "#8e9c78"; // Default primary-light color
+                    }
+
+                    cards.Add(card);
+                }
+
+                // Sort by lineNo (for now, maintain order as added)
+                // In production, would sort by LINE_NO from database
+
+                var result = new Dictionary<string, object>
+                {
+                    ["cards"] = cards,
+                    ["menuName"] = pane.Name ?? ""
+                };
+
+                // Use simple JSON serialization (System.Text.Json or Newtonsoft.Json)
+                // For now, return a simple format that can be parsed
+                return JsonConvert.SerializeObject(result);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ExtractMenuStructureToJson error: {ex.Message}");
+                return "{\"cards\":[],\"menuName\":\"\"}";
+            }
+        }
+
+        /// <obsolete>
+        /// This method is obsolete and will be removed in the future.
+        /// Use ExtractMenuStructureFromTileControl instead.
+        /// </obsolete>
+        /// <summary>
+        /// Alternative: Extract directly from DataSet (more accurate, includes LINE_NO)
+        /// </summary>
+        public string ExtractMenuStructureFromDataSet(DataSet ds_Items, string menuName = "")
+        {
+            tToolBox t = new tToolBox();
+            var cards = new List<Dictionary<string, object>>();
+
+            try
+            {
+                int itemCount = ds_Items.Tables[0].Rows.Count;
+
+                for (int i = 0; i < itemCount; i++)
+                {
+                    int itemType = t.myInt32(ds_Items.Tables[0].Rows[i]["ITEM_TYPE"].ToString());
+                    
+                    // Only extract top-level categories (ItemType 201) with no ITEM_NAME
+                    if (itemType == 201 && DBNull.Value.Equals(ds_Items.Tables[0].Rows[i]["ITEM_NAME"]))
+                    {
+                        string refid = ds_Items.Tables[0].Rows[i]["REF_ID"].ToString();
+                        string caption = t.Set(ds_Items.Tables[0].Rows[i]["CAPTION"].ToString(), "", "");
+                        string propNavigator = t.Set(ds_Items.Tables[0].Rows[i]["PROP_NAVIGATOR"].ToString(), "", "");
+                        bool tenabled = t.Set(ds_Items.Tables[0].Rows[i]["CMP_ENABLED"].ToString(), "", true);
+                        bool tvisible = t.Set(ds_Items.Tables[0].Rows[i]["CMP_VISIBLE"].ToString(), "", true);
+                        int lineNo = t.myInt32(ds_Items.Tables[0].Rows[i]["LINE_NO"].ToString());
+
+                        if (!tvisible) continue;
+
+                        var card = new Dictionary<string, object>
+                        {
+                            ["refId"] = refid,
+                            ["name"] = "item_" + refid,
+                            ["caption"] = caption,
+                            ["tag"] = propNavigator + "|Prop_Navigator|" + menuName + "|MenuName|",
+                            ["enabled"] = tenabled,
+                            ["visible"] = tvisible,
+                            ["lineNo"] = lineNo
+                        };
+
+                        // Convert icon to base64
+                        string iconBase64 = "";
+                        if (!DBNull.Value.Equals(ds_Items.Tables[0].Rows[i]["LKP_GLYPH32"]))
+                        {
+                            try
+                            {
+                                byte[] img32 = (byte[])ds_Items.Tables[0].Rows[i]["LKP_GLYPH32"];
+                                if (img32 != null && img32.Length > 0)
+                                {
+                                    iconBase64 = "data:image/png;base64," + Convert.ToBase64String(img32);
+                                }
+                            }
+                            catch { }
+                        }
+                        card["iconBase64"] = iconBase64;
+
+                        // Extract colors from database (with fallbacks)
+                        // Check if columns exist before accessing them
+                        string backColorStr = "";
+                        string menuColorStr = "";
+                        
+                        if (ds_Items.Tables[0].Columns.Contains("CMP_BACK_COLOR"))
+                        {
+                            backColorStr = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
+                        }
+                        
+                        if (ds_Items.Tables[0].Columns.Contains("MENU_COLOR"))
+                        {
+                            menuColorStr = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
+                        }
+
+                        // Parse colors or use defaults
+                        if (!string.IsNullOrEmpty(backColorStr))
+                        {
+                            try
+                            {
+                                // Try to parse as hex or Color name
+                                card["backColor"] = backColorStr;
+                            }
+                            catch
+                            {
+                                card["backColor"] = "#295c00";
+                            }
+                        }
+                        else
+                        {
+                            card["backColor"] = "#295c00";
+                        }
+
+                        if (!string.IsNullOrEmpty(menuColorStr))
+                        {
+                            card["hoverColor"] = menuColorStr;
+                        }
+                        else
+                        {
+                            card["hoverColor"] = "#8e9c78";
+                        }
+
+                        cards.Add(card);
+                    }
+                }
+
+                // Sort by LINE_NO
+                cards.Sort((a, b) => 
+                {
+                    int aLine = Convert.ToInt32(a["lineNo"]);
+                    int bLine = Convert.ToInt32(b["lineNo"]);
+                    return aLine.CompareTo(bLine);
+                });
+
+                var result = new Dictionary<string, object>
+                {
+                    ["cards"] = cards,
+                    ["menuName"] = menuName
+                };
+
+                return JsonConvert.SerializeObject(result);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ExtractMenuStructureFromDataSet error: {ex.Message}");
+                return "{\"cards\":[],\"menuName\":\"\"}";
+            }
+        }
+
+        /// <obsolete>
+        /// This method is obsolete and will be removed in the future.
+        /// Use ExtractMenuStructureFromTileControl instead.
+        /// </obsolete>
+        /// <summary>
+        /// Extracts menu structure from TileControl into JSON format for WebView2 rendering.
+        /// Extracts TileItems (ItemType 205/206) which become the entrance screen cards.
+        /// For entrance screen: 1 Group contains 9 Items, each Item becomes a card.
+        /// </summary>
+        public string ExtractMenuStructureFromTileControl(DevExpress.XtraEditors.TileControl control, string menuName = "")
+        {
+            tToolBox t = new tToolBox();
+            var cards = new List<Dictionary<string, object>>();
+
+            try
+            {
+                // Extract Items (ItemType 205/206) from all Groups - these become the entrance cards
+                // The entrance screen has 1 Group with 9 Items, each Item is a card
+                foreach (TileGroup group in control.Groups)
+                {
+                    if (!group.Visible) continue;
+
+                    // Extract each Item in the Group as a card
+                    foreach (TileItem item in group.Items)
+                    {
+                        if (!item.Visible) continue;
+
+                        // Get item text from first element
+                        string itemText = "";
+                        if (item.Elements.Count > 0)
+                        {
+                            itemText = item.Elements[0].Text ?? "";
+                        }
+
+                        var card = new Dictionary<string, object>
+                        {
+                            ["refId"] = item.Name.Replace("item_", "").Split('_')[0], // Get base refId
+                            ["name"] = item.Name,
+                            ["caption"] = itemText,
+                            ["tag"] = item.Tag?.ToString() ?? "",
+                            ["enabled"] = item.Enabled,
+                            ["visible"] = item.Visible,
+                            ["lineNo"] = item.Id // Use Id as lineNo
+                        };
+
+                        // Extract colors from item appearance
+                        string backColor = "#295c00"; // Default
+                        string hoverColor = "#8e9c78"; // Default
+
+                        if (item.Appearance.BackColor != Color.Empty)
+                        {
+                            var color = item.Appearance.BackColor;
+                            backColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                        }
+
+                        // Icon extraction from TileItemElement.ImageOptions.Image
+                        string iconBase64 = "";
+                        try
+                        {
+                            // Check each element for an image
+                            foreach (DevExpress.XtraEditors.TileItemElement element in item.Elements)
+                            {
+                                if (element.ImageOptions?.Image != null)
+                                {
+                                    using (var ms = new MemoryStream())
+                                    {
+                                        element.ImageOptions.Image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                                        byte[] imageBytes = ms.ToArray();
+                                        iconBase64 = "data:image/png;base64," + Convert.ToBase64String(imageBytes);
+                                        break; // Use first image found
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Icon extraction error for {item.Name}: {ex.Message}");
+                        }
+
+                        card["iconBase64"] = iconBase64;
+                        card["backColor"] = backColor;
+                        card["hoverColor"] = hoverColor;
+
+                        cards.Add(card);
+                    }
+                }
+
+                // Sort by lineNo (for now, maintain order as added)
+                var result = new Dictionary<string, object>
+                {
+                    ["cards"] = cards,
+                    ["menuName"] = menuName
+                };
+
+                return JsonConvert.SerializeObject(result);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ExtractMenuStructureFromTileControl error: {ex.Message}");
+                return "{\"cards\":[],\"menuName\":\"" + menuName + "\"}";
+            }
+        }
+
+        #endregion Extract Menu Structure to JSON
 
         #region Create_NavigationPane
         public void Create_NavigationPane(DevExpress.XtraBars.Navigation.NavigationPane mControl, DataSet ds_Items)
@@ -2580,7 +2944,9 @@ namespace Tkn_Menu
             }
 
             if (t.IsNotNull(menuCode))
+            {
                 Create_Menu_IN_Control(page, menuCode, string.Empty);
+            }
         }
         #endregion Create_NavigationPane
 

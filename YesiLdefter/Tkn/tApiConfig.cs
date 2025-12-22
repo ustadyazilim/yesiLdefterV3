@@ -1,6 +1,9 @@
 using System;
+using System.IO;
+using System.Text;
 using Tkn_Registry;
 using Tkn_Variable;
+using Newtonsoft.Json.Linq;
 
 namespace Tkn_UstadAPI
 {
@@ -8,25 +11,112 @@ namespace Tkn_UstadAPI
     /// API Configuration Helper
     /// NOTE(@Janberk): Centralized configuration management for API settings.
     /// Stores API base URL and JWT key in Windows Registry for runtime configuration.
+    /// Also supports reading from appsettings.Production.json for production deployments.
     /// </summary>
     public static class tApiConfig
     {
         private const string REGISTRY_KEY_API_BASE_URL = "ApiBaseUrl";
         private const string REGISTRY_KEY_JWT_KEY = "JwtKey";
+        private const string PRODUCTION_SETTINGS_FILE = "appsettings.Production.json";
+        private const string DEFAULT_SETTINGS_FILE = "appsettings.json";
+        
         // Default values (fallback if not in registry or environment)
-        // NOTE: Prefer environment variables; these are non-secret placeholders to avoid startup crashes.
+        // NOTE: Production server is set as default for now until dev mode is configured
         // Env vars:
-        //   USTAD_API_BASE_URL (e.g., http://localhost:5000)
+        //   USTAD_API_BASE_URL (e.g., http://143.198.228.153:5000)
         //   USTAD_JWT_KEY      (must match API Jwt:Key)
+        // Production defaults: http://143.198.228.153:5000 (deployed server)
+        // JWT Key from Development settings: UstadSecretKeyForJWTTokenGeneration2026SecureKey32Chars
         private static readonly string DEFAULT_API_BASE_URL =
-            Environment.GetEnvironmentVariable("USTAD_API_BASE_URL") ?? "http://localhost:5000";
+            Environment.GetEnvironmentVariable("USTAD_API_BASE_URL") ?? "http://143.198.228.153:5000";
         private static readonly string DEFAULT_JWT_KEY =
-            Environment.GetEnvironmentVariable("USTAD_JWT_KEY") ?? string.Empty;
+            Environment.GetEnvironmentVariable("USTAD_JWT_KEY") ?? "UstadSecretKeyForJWTTokenGeneration2026SecureKey32Chars";
+        
         /// <summary>
-        /// Get API base URL from registry or return default
+        /// Load API base URL from settings file (appsettings.json or appsettings.Production.json)
+        /// </summary>
+        private static string LoadSettingsApiBaseUrl()
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            
+            // Try production settings first, then default settings
+            string[] settingsFiles = { PRODUCTION_SETTINGS_FILE, DEFAULT_SETTINGS_FILE };
+            
+            foreach (string settingsFile in settingsFiles)
+            {
+                try
+                {
+                    string settingsPath = Path.Combine(baseDir, settingsFile);
+                    
+                    if (File.Exists(settingsPath))
+                    {
+                        string jsonContent = File.ReadAllText(settingsPath, Encoding.UTF8);
+                        JObject settings = JObject.Parse(jsonContent);
+                        
+                        // Try to get Api.BaseUrl
+                        string apiBaseUrl = settings["Api"]?["BaseUrl"]?.ToString();
+                        if (!string.IsNullOrWhiteSpace(apiBaseUrl))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Loaded API base URL from {settingsFile}: {apiBaseUrl}");
+                            return apiBaseUrl.Trim();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error reading settings file {settingsFile}: {ex.Message}");
+                }
+            }
+            
+            return null;
+        }
+        
+        /// <summary>
+        /// Load JWT key from settings file (appsettings.json or appsettings.Production.json)
+        /// </summary>
+        private static string LoadSettingsJwtKey()
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            
+            // Try production settings first, then default settings
+            string[] settingsFiles = { PRODUCTION_SETTINGS_FILE, DEFAULT_SETTINGS_FILE };
+            
+            foreach (string settingsFile in settingsFiles)
+            {
+                try
+                {
+                    string settingsPath = Path.Combine(baseDir, settingsFile);
+                    
+                    if (File.Exists(settingsPath))
+                    {
+                        string jsonContent = File.ReadAllText(settingsPath, Encoding.UTF8);
+                        JObject settings = JObject.Parse(jsonContent);
+                        
+                        // Try to get Jwt.Key
+                        string jwtKey = settings["Jwt"]?["Key"]?.ToString();
+                        if (!string.IsNullOrWhiteSpace(jwtKey))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Loaded JWT key from {settingsFile}");
+                            return jwtKey.Trim();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error reading settings file {settingsFile}: {ex.Message}");
+                }
+            }
+            
+            return null;
+        }
+        
+        /// <summary>
+        /// Get API base URL from registry, production settings, or return default
+        /// Priority: Registry > Production Settings > Environment Variable > Default
         /// </summary>
         public static string GetApiBaseUrl()
         {
+            // 1. Try registry first (highest priority - user override)
             try
             {
                 var reg = new tRegistry();
@@ -41,6 +131,14 @@ namespace Tkn_UstadAPI
                 System.Diagnostics.Debug.WriteLine($"Error reading API base URL from registry: {ex.Message}");
             }
             
+            // 2. Try settings files (production or default)
+            string settingsUrl = LoadSettingsApiBaseUrl();
+            if (!string.IsNullOrWhiteSpace(settingsUrl))
+            {
+                return settingsUrl;
+            }
+            
+            // 3. Fall back to environment variable or default
             return DEFAULT_API_BASE_URL;
         }
         /// <summary>
@@ -64,12 +162,14 @@ namespace Tkn_UstadAPI
             }
         }
         /// <summary>
-        /// Get JWT key from registry or return default
+        /// Get JWT key from registry, settings files, or return default
         /// NOTE(@Janberk): JWT key is used for encrypting/decrypting connection strings.
         /// This is NOT a password but an encryption key - it must match the API's JWT key.
+        /// Priority: Registry > Settings Files > Environment Variable > Default
         /// </summary>
         public static string GetJwtKey()
         {
+            // 1. Try registry first (highest priority - user override)
             try
             {
                 var reg = new tRegistry();
@@ -84,6 +184,14 @@ namespace Tkn_UstadAPI
                 System.Diagnostics.Debug.WriteLine($"Error reading JWT key from registry: {ex.Message}");
             }
             
+            // 2. Try settings files
+            string settingsJwtKey = LoadSettingsJwtKey();
+            if (!string.IsNullOrWhiteSpace(settingsJwtKey))
+            {
+                return settingsJwtKey;
+            }
+            
+            // 3. Fall back to environment variable or default
             return DEFAULT_JWT_KEY;
         }
         /// <summary>

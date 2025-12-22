@@ -20,7 +20,6 @@ namespace Tkn_UstadAPI
         private readonly string _apiBaseUrl;
         private bool _disposed = false;
 
-        // Default aligns with Ustad.API dev settings (Kestrel http://localhost:5000)
         public UstadApiClient(string apiBaseUrl = "http://localhost:5000")
         {
             _apiBaseUrl = apiBaseUrl.TrimEnd('/');
@@ -76,8 +75,8 @@ namespace Tkn_UstadAPI
             }
             catch (System.Net.Http.HttpRequestException ex)
             {
-                // Network-level HTTP exception (connection issues)
-                throw new Exception($"API connection error to {_apiBaseUrl}: {ex.Message}", ex);
+                // This is a network-level HTTP exception (connection issues)
+                throw new Exception($"API connection error: {ex.Message}", ex);
             }
             catch (TaskCanceledException)
             {
@@ -227,6 +226,51 @@ namespace Tkn_UstadAPI
             catch (Exception ex)
             {
                 throw new Exception($"Get firm details error: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Select firm and get new token with firm claim (requires authentication)
+        /// </summary>
+        public async Task<LoginResponse> SelectFirmAsync(string firmGUID)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(firmGUID))
+                {
+                    throw new Exception("FirmGUID is required.");
+                }
+
+                var request = new SelectFirmRequest
+                {
+                    FirmGUID = firmGUID
+                };
+
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("/auth/select-firm", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"Select firm failed: {errorContent}");
+                }
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var selectFirmResponse = JsonConvert.DeserializeObject<LoginResponse>(responseContent);
+
+                // Update authorization header with new token
+                if (!string.IsNullOrEmpty(selectFirmResponse?.Token))
+                {
+                    _httpClient.DefaultRequestHeaders.Authorization = 
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", selectFirmResponse.Token);
+                }
+
+                return selectFirmResponse;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Select firm error: {ex.Message}", ex);
             }
         }
 
@@ -466,6 +510,11 @@ namespace Tkn_UstadAPI
             // Decrypted connection strings (set after decryption)
             public string UstadCrmConnectionString { get; set; }
             public string ManagerConnectionString { get; set; }
+        }
+
+        public class SelectFirmRequest
+        {
+            public string FirmGUID { get; set; }
         }
 
         #endregion

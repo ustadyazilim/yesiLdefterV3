@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YesiLdefter - Ana Menü</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <style>
+    /* ===== Design Tokens (Consistent with FirmSelectTemplate) ===== */
+    :root {
+      --primary: #295c00;
+      --primary-light: #8e9c78;
+      --primary-dark: #3a4a0e;
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --text: #111827;
+      --text-secondary: #374151;
+      --text-tertiary: #6b7280;
+      --muted: #374151;
+      --border: rgba(0,0,0,0.08);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 2px 8px 0 rgba(0, 0, 0, 0.04);
+      --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      --radius: 12px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+      --gradient: linear-gradient(180deg, #e6efe4 0%, #f6faf4 70%, #ffffff 100%);
+      --font: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    /* ===== Reset ===== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      min-height: 740px;
+      min-width: 1000px;
+      font-family: var(--font);
+      background: var(--gradient);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+      position: relative;
+    }
+
+    /* ===== Page Container ===== */
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 40px 48px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      overflow: visible;
+    }
+
+    /* ===== Header Section ===== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      padding-bottom: 8px;
+    }
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-container {
+      width: 48px;
+      height: 48px;
+      background: var(--card);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .logo-container img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-name span {
+      color: var(--primary-light);
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0;
+      font-family: var(--font);
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      margin: 0;
+      font-family: var(--font);
+    }
+
+    /* ===== Government Logos ===== */
+    .gov-logos {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .gov-logo-container {
+      background: var(--card);
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .gov-logo-container:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .gov-logo {
+      height: 40px;
+      width: auto;
+      max-width: 100px;
+      object-fit: contain;
+    }
+
+    /* ===== Cards Grid ===== */
+    .grid-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      padding: 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 280px);
+      gap: 20px;
+      width: fit-content;
+    }
+
+    /* ===== Card Styles ===== */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      padding: 24px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      overflow: visible;
+      opacity: 0;
+      animation: cardEntrance 0.4s ease forwards;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card-hover);
+      border-color: rgba(41, 92, 0, 0.12);
+    }
+
+    .card:active {
+      transform: translateY(-2px);
+    }
+
+    @keyframes cardEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ===== Card Icon ===== */
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease;
+    }
+
+    .card:hover .card-icon {
+      transform: scale(1.05);
+    }
+
+    .card-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: #ffffff;
+    }
+
+    .card-icon img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+
+    /* ===== Card Content ===== */
+    .card-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--primary);
+      margin: 0;
+      line-height: 1.4;
+      font-family: var(--font);
+      letter-spacing: -0.02em;
+    }
+
+    .card-description {
+      color: var(--text-tertiary);
+      font-size: 13px;
+      margin: 0;
+      line-height: 1.5;
+      font-family: var(--font);
+    }
+
+    /* ===== Footer Section ===== */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 16px;
+      margin-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-logos {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .footer-logo-container {
+      background: var(--card);
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .footer-logo {
+      height: 28px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .footer-text {
+      text-align: right;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .footer-text p {
+      margin: 2px 0;
+    }
+
+    /* ===== Version Badge ===== */
+    .version-badge {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card);
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+
+    /* ===== Scrollbar Styling ===== */
+    body::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    body::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 5px;
+    }
+
+    body::-webkit-scrollbar-thumb {
+      background: rgba(41, 92, 0, 0.2);
+      border-radius: 5px;
+    }
+
+    body::-webkit-scrollbar-thumb:hover {
+      background: rgba(41, 92, 0, 0.3);
+    }
+
+    /* ===== Focus States ===== */
+    .card:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .card:focus:not(:focus-visible) {
+      outline: none;
+    }
+
+    /* ===== Loading State ===== */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    .loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(41, 92, 0, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <div class="page">
+    <!-- Header Section -->
+    <header class="header">
+      <div class="header-left">
+        <div class="brand-row">
+          <div class="logo-container">
+            <img src="{{logo-base64}}" alt="YesiLdefter" onerror="this.outerHTML='<svg viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\' style=\'width:40px;height:40px;\'><rect x=\'10\' y=\'20\' width=\'80\' height=\'60\' rx=\'8\' fill=\'#295c00\' stroke=\'#3a4a0e\' stroke-width=\'2\'/><rect x=\'15\' y=\'25\' width=\'70\' height=\'50\' rx=\'5\' fill=\'#fff\'/><text x=\'50\' y=\'55\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'12\' font-weight=\'bold\' fill=\'#295c00\'>YEŞİL</text><text x=\'50\' y=\'68\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'8\' fill=\'#3a4a0e\'>DEFTER</text></svg>'">
+          </div>
+          <div class="brand-text">
+            <div class="brand-name">Yesi<span>L</span>defter</div>
+            <div class="brand-subtitle">MTSK İşletme Yönetim Sistemi</div>
+          </div>
+        </div>
+        <h1 class="title">Dönem İşlemleri</h1>
+        <p class="subtitle">Sürücü kursu yönetim işlemlerinizi seçin</p>
+      </div>
+      <div class="gov-logos">
+        <div class="gov-logo-container" title="T.C. Milli Eğitim Bakanlığı">
+          <img src="{{asset-base}}meb_emblem.png" alt="MEB" class="gov-logo" onerror="this.parentElement.innerHTML='&lt;span style=&quot;font-size:11px;font-weight:700;color:#C62828;&quot;&gt;MEB&lt;/span&gt;'">
+        </div>
+        <div class="gov-logo-container" title="T.C. Ulaştırma ve Altyapı Bakanlığı">
+          <img src="{{asset-base}}uab_logo.png" alt="UAB" class="gov-logo" onerror="this.parentElement.innerHTML='&lt;span style=&quot;font-size:11px;font-weight:700;color:#C62828;&quot;&gt;UAB&lt;/span&gt;'">
+        </div>
+        <div class="gov-logo-container" title="TABİM">
+          <img src="{{asset-base}}tabim_logo.jpg" alt="TABİM" class="gov-logo" onerror="this.parentElement.innerHTML='&lt;span style=&quot;font-size:11px;font-weight:700;color:#0D3B66;&quot;&gt;TABİM&lt;/span&gt;'">
+        </div>
+      </div>
+    </header>
+
+    <!-- Cards Grid -->
+    <main class="grid-container">
+      <div class="grid" id="cards-grid">
+        <!-- Cards will be rendered dynamically from JSON -->
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-logos">
+        <div class="footer-logo-container" title="MEBBİS - Milli Eğitim Bakanlığı Bilişim Sistemleri">
+          <img src="{{asset-base}}mebbis_logo.jpg" alt="MEBBİS" class="footer-logo" onerror="this.parentElement.innerHTML='&lt;span style=&quot;font-size:10px;font-weight:700;color:#C62828;&quot;&gt;MEBBİS&lt;/span&gt;'">
+        </div>
+      </div>
+      <div class="footer-text">
+        <p>© 2025 YesiLdefter - MTSK İşletme Yönetim Sistemi</p>
+        <p>T.C. Milli Eğitim Bakanlığı MEBBİS Entegrasyonu</p>
+      </div>
+    </footer>
+  </div>
+
+  <div class="version-badge">v3.0.2025</div>
+
+  <script>
+    // Parse injected menu JSON
+    let menuData = { cards: [], menuName: "" };
+    try {
+      // The JSON is injected directly - if replacement worked, this will be the actual JSON string
+      const menuJsonStr = '{{cardsJson}}';
+      console.log('Raw menuJsonStr length:', menuJsonStr.length);
+      console.log('Raw menuJsonStr (first 200 chars):', menuJsonStr.substring(0, Math.min(200, menuJsonStr.length)));
+      
+      // Check if replacement happened: if it's still the placeholder, length will be 12 ({{cardsJson}})
+      // If replaced, it will be much longer and start with {
+      const isReplaced = menuJsonStr.length > 20 && menuJsonStr.trim().startsWith('{');
+      
+      if (isReplaced) {
+        try {
+          menuData = JSON.parse(menuJsonStr);
+          console.log('✅ Successfully parsed JSON. Cards count:', menuData.cards?.length || 0);
+          console.log('✅ Menu name:', menuData.menuName || 'Unknown');
+        } catch (parseError) {
+          console.error('❌ JSON.parse failed:', parseError);
+          console.error('JSON string (first 500 chars):', menuJsonStr.substring(0, Math.min(500, menuJsonStr.length)));
+        }
+      } else {
+        console.error('❌ JSON not replaced or invalid. Length:', menuJsonStr.length);
+        console.error('First 50 chars:', menuJsonStr.substring(0, Math.min(50, menuJsonStr.length)));
+        console.error('Starts with {?', menuJsonStr.trim().startsWith('{'));
+      }
+    } catch (e) {
+      console.error('❌ Error in JSON parsing block:', e);
+    }
+
+    // Render cards dynamically from JSON
+    function renderCards() {
+      const grid = document.getElementById('cards-grid');
+      if (!grid) return;
+
+      grid.innerHTML = '';
+
+      if (!menuData.cards || menuData.cards.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
+            <div style="color: var(--text-tertiary); margin-bottom: 16px; font-size: 16px;">
+              No menu cards found.
+            </div>
+            <div style="color: var(--text-secondary); font-size: 14px; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+              <p><strong>This menu doesn't have any categories (cards).</strong></p>
+              <p>The entrance screen (MEBBIS İşlem Paneli) should have 9 categories (ItemType 201).</p>
+              <p style="margin-top: 12px; font-size: 12px; color: var(--text-tertiary);">
+                Current menu: <code>${menuData.menuName || 'Unknown'}</code><br>
+                This might be a sub-menu or different menu type.
+              </p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      console.log('Rendering cards. Total cards:', menuData.cards?.length || 0);
+      console.log('Full cards array:', JSON.stringify(menuData.cards, null, 2));
+      let renderedCount = 0;
+      let skippedCount = 0;
+      menuData.cards.forEach((card, index) => {
+        // Only skip if explicitly set to false (default to true if undefined)
+        if (card.visible === false) {
+          console.log(`Skipping card ${index} (not visible):`, card.caption);
+          skippedCount++;
+          return;
+        }
+        console.log(`Rendering card ${index}:`, card.name, '-', card.caption, '- visible:', card.visible);
+        renderedCount++;
+
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card';
+        cardEl.setAttribute('data-name', card.name);
+        cardEl.setAttribute('data-refid', card.refId);
+        cardEl.setAttribute('tabindex', '0');
+        cardEl.setAttribute('role', 'button');
+        cardEl.setAttribute('aria-label', card.caption);
+        cardEl.style.animationDelay = `${(index + 1) * 0.05}s`;
+
+        // Icon (use database icon if available, otherwise fallback SVG)
+        let iconHtml = '';
+        if (card.iconBase64) {
+          iconHtml = `<img src="${escapeHtml(card.iconBase64)}" alt="${escapeHtml(card.caption)}" style="width: 24px; height: 24px; object-fit: contain;">`;
+        } else {
+          // Fallback SVG icon
+          iconHtml = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>`;
+        }
+
+        // Apply custom colors if available
+        if (card.backColor) {
+          cardEl.style.setProperty('--card-back-color', card.backColor);
+        }
+        if (card.hoverColor) {
+          cardEl.style.setProperty('--card-hover-color', card.hoverColor);
+        }
+
+        cardEl.innerHTML = `
+          <div class="card-icon" ${card.backColor ? `style="background: linear-gradient(135deg, ${card.backColor} 0%, ${card.hoverColor || card.backColor} 100%);"` : ''}>
+            ${iconHtml}
+          </div>
+          <h3 class="card-title">${escapeHtml(card.caption)}</h3>
+          <p class="card-description">${escapeHtml(card.caption)} işlemleri</p>
+        `;
+
+        // Click handler
+        cardEl.onclick = () => selectModule(card.name, card.tag);
+
+        grid.appendChild(cardEl);
+      });
+      
+      console.log(`✅ Rendered ${renderedCount} cards out of ${menuData.cards?.length || 0} total cards`);
+      if (renderedCount === 0 && menuData.cards && menuData.cards.length > 0) {
+        console.error('⚠️ WARNING: No cards were rendered even though cards array has items!');
+        console.error('Cards array:', JSON.stringify(menuData.cards, null, 2));
+      }
+
+      // Adjust grid for fewer cards
+      if (menuData.cards.length <= 3) {
+        grid.style.gridTemplateColumns = `repeat(${menuData.cards.length}, 280px)`;
+      } else if (menuData.cards.length <= 6) {
+        grid.style.gridTemplateColumns = 'repeat(3, 280px)';
+      } else {
+        grid.style.gridTemplateColumns = 'repeat(3, 280px)';
+      }
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Render cards immediately and on load
+    function initializePage() {
+      console.log('Initializing page...');
+      console.log('menuData:', menuData);
+      console.log('cards-grid element:', document.getElementById('cards-grid'));
+      
+      renderCards();
+      
+      setTimeout(function() {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+          overlay.classList.add('hidden');
+        }
+      }, 200);
+    }
+    
+    // Try to render immediately (in case DOM is already ready)
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initializePage);
+    } else {
+      // DOM is already ready
+      initializePage();
+    }
+    
+    // Also render on window load (fallback)
+    window.addEventListener('load', initializePage);
+
+    // Module selection handler (updated to use buttonName and tag)
+    function selectModule(buttonName, tag) {
+      const cards = document.querySelectorAll('.card');
+      const selectedCard = document.querySelector(`[data-name="${buttonName}"]`);
+      
+      // Visual feedback
+      cards.forEach(card => {
+        if (card !== selectedCard) {
+          card.style.opacity = '0.5';
+          card.style.pointerEvents = 'none';
+        }
+      });
+
+      if (selectedCard) {
+        selectedCard.style.transform = 'scale(1.02)';
+        selectedCard.style.boxShadow = 'var(--shadow-xl)';
+        selectedCard.style.borderColor = 'var(--primary)';
+      }
+
+      // Post message to host application (WebView2)
+      const message = {
+        action: 'tile-click',
+        buttonName: buttonName,
+        tag: tag || '',
+        timestamp: new Date().toISOString()
+      };
+
+      // WebView2 communication
+      if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
+        window.chrome.webview.postMessage(JSON.stringify(message));
+      }
+
+      // Fallback for testing in browser
+      console.log('Tile clicked:', message);
+
+      // Reset animation after delay (for testing purposes only)
+      setTimeout(function() {
+        cards.forEach(card => {
+          card.style.opacity = '';
+          card.style.transform = '';
+          card.style.pointerEvents = '';
+          card.style.boxShadow = '';
+          card.style.borderColor = '';
+        });
+      }, 600);
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+      const cards = document.querySelectorAll('.card');
+      const focused = document.activeElement;
+      let currentIndex = Array.from(cards).indexOf(focused);
+
+      if (currentIndex === -1 && ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+        cards[0]?.focus();
+        return;
+      }
+
+      switch(e.key) {
+        case 'ArrowRight':
+          e.preventDefault();
+          if (currentIndex < cards.length - 1) {
+            cards[currentIndex + 1].focus();
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (currentIndex > 0) {
+            cards[currentIndex - 1].focus();
+          }
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          if (currentIndex + 3 < cards.length) {
+            cards[currentIndex + 3].focus();
+          }
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          if (currentIndex - 3 >= 0) {
+            cards[currentIndex - 3].focus();
+          }
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          if (focused.classList.contains('card')) {
+            focused.click();
+          }
+          break;
+      }
+    });
+  </script>
+</body>
+</html>
+

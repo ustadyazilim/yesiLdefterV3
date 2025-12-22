@@ -9,7 +9,9 @@ using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using System.Windows.Forms;
 /* Internal Namespaces */
 using Tkn_Registry;
@@ -34,6 +36,9 @@ namespace YesiLdefter
         private UstadApiClient apiClient = null;
         private tRegistry reg = new tRegistry();
         tUserFirms userFirms = new tUserFirms();
+        private TaskCompletionSource<UstadApiClient.FirmInfo?> firmSelectionTcs;
+        private Dictionary<string, UstadApiClient.FirmInfo> firmSelectionMap;
+        private bool webViewDomReady = false;
 
         // UI Controls
         private LabelControl lblTitle;
@@ -56,9 +61,28 @@ namespace YesiLdefter
 
         public ms_User_Standalone()
         {
-            InitializeStandaloneComponents();
-            InitializeApiClient();
-            LoadUserRegistry();
+            System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Constructor called");
+            try
+            {
+                // NOTE(@Janberk): InitializeStandaloneComponents() sets up all form properties and controls
+                // We don't need InitializeComponent() from Designer.cs as we're doing everything programmatically
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Initializing standalone components...");
+                InitializeStandaloneComponents();
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Components initialized");
+                
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Initializing API client...");
+                InitializeApiClient();
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] API client initialized");
+                
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Loading user registry...");
+                LoadUserRegistry();
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] User registry loaded");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] ❌ Exception in constructor: {ex.Message}\n{ex.StackTrace}");
+                throw; // Re-throw to let InitLoginUser handle it
+            }
         }
 
         #endregion
@@ -71,7 +95,8 @@ namespace YesiLdefter
 
             // Form properties
             this.Text = "Giriş Yap";
-            this.Size = new Size(500, 600);
+            this.Size = new Size(960, 720);
+            this.MinimumSize = new Size(960, 720);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.AutoScroll = false;
@@ -115,14 +140,24 @@ namespace YesiLdefter
 
         private void Ms_User_Standalone_Load(object sender, EventArgs e)
         {
-            // Focus on email field
-            cmbEmail.Focus();
+            System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Load event fired");
+            try
+            {
+                // Initialize auth state
+                v.SP_UserLOGIN = false;
 
-            // Initialize auth state
-            v.SP_UserLOGIN = false;
-
-            // Initialize WebView2 and load HTML template
-            _ = InitializeWebViewAsync();
+                // Initialize WebView2 and load HTML template
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Starting WebView2 initialization...");
+                _ = InitializeWebViewAsync();
+                
+                // Focus on email field (will work once WebView2 is ready)
+                // cmbEmail.Focus(); // Commented out - WebView2 handles focus
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] ❌ Exception in Load event: {ex.Message}\n{ex.StackTrace}");
+                // Don't re-throw - let the form show even if WebView2 fails
+            }
         }
 
         private void Ms_User_Standalone_FormClosing(object sender, FormClosingEventArgs e)
@@ -165,11 +200,7 @@ namespace YesiLdefter
                 string action = (obj["action"] ?? "").ToString();
                 string email = (obj["email"] ?? "").ToString();
                 string password = (obj["password"] ?? "").ToString();
-                bool remember = false;
-                if (obj["remember"] != null && bool.TryParse(obj["remember"].ToString(), out bool rem))
-                {
-                    remember = rem;
-                }
+                bool remember = obj["remember"] != null && bool.TryParse(obj["remember"].ToString(), out bool rem) && rem;
 
                 if (!string.IsNullOrEmpty(email))
                 {
@@ -188,6 +219,27 @@ namespace YesiLdefter
                 else if (string.Equals(action, "forgot", StringComparison.OrdinalIgnoreCase))
                 {
                     BtnForgotPassword_Click(sender, EventArgs.Empty);
+                }
+                else if (string.Equals(action, "rememberChanged", StringComparison.OrdinalIgnoreCase))
+                {
+                    chkRemember.Checked = remember;
+                }
+                else if (string.Equals(action, "firm-select", StringComparison.OrdinalIgnoreCase))
+                {
+                    string firmGuid = (obj["firmGUID"] ?? "").ToString();
+                    HandleFirmSelectionFromWeb(firmGuid, confirmSelection: false);
+                }
+                else if (string.Equals(action, "firm-confirm", StringComparison.OrdinalIgnoreCase))
+                {
+                    string firmGuid = (obj["firmGUID"] ?? "").ToString();
+                    HandleFirmSelectionFromWeb(firmGuid, confirmSelection: true);
+                }
+                else if (string.Equals(action, "firm-cancel", StringComparison.OrdinalIgnoreCase))
+                {
+                    firmSelectionTcs?.TrySetResult(null);
+                    ShowStatus("Firma seçimi iptal edildi.", true);
+                    SetControlsEnabled(true);
+                    _ = ShowLoginViewAsync();
                 }
             }
             catch (Exception ex)
@@ -342,10 +394,10 @@ namespace YesiLdefter
                         }
                         else
                         {
-                            // Multiple firms - open WebView2-based firm selector
+                            // Multiple firms - open WebView2-based firm selector (falls back to dialog if unavailable)
                             ShowStatus("Firma seçimi bekleniyor...", false);
                             Application.DoEvents();
-                            var selected = ShowFirmSelectionDialog(userFirmsList);
+                            var selected = await PromptFirmSelectionAsync(userFirmsList);
                             if (selected != null)
                             {
                                 ShowStatus("Firma seçiliyor...", false);
@@ -385,7 +437,34 @@ namespace YesiLdefter
         {
             try
             {
+                // NOTE(@Janberk): Step 1 - Select firm via API to get new token with firm claim
+                ShowStatus("Firma seçiliyor...", false);
+                Application.DoEvents();
+
+                var selectFirmResponse = await ExecuteWithRetryAsync(
+                    () => apiClient.SelectFirmAsync(firm.FirmGUID),
+                    maxRetries: 2,
+                    operationName: "Firma seçimi"
+                );
+
+                if (selectFirmResponse == null || string.IsNullOrEmpty(selectFirmResponse.Token))
+                {
+                    ShowStatus("Firma seçimi başarısız oldu.", true);
+                    v.SP_UserLOGIN = false;
+                    SetControlsEnabled(true);
+                    return;
+                }
+
+                // NOTE(@Janberk): Update stored JWT token with firm claim
+                v.tUser.JwtToken = selectFirmResponse.Token;
+                if (selectFirmResponse.FirmId > 0)
+                {
+                    v.tUser.MainFirmId = selectFirmResponse.FirmId;
+                }
+
+                // NOTE(@Janberk): Step 2 - Fetch firm details for UI population
                 ShowStatus("Firma bilgileri alınıyor...", false);
+                Application.DoEvents();
 
                 var firmDetails = await ExecuteWithRetryAsync(
                     () => apiClient.GetFirmDetailsAsync(firm.FirmGUID),
@@ -428,6 +507,16 @@ namespace YesiLdefter
 
                     // Small delay to show success message
                     await Task.Delay(500);
+
+                    // Show splash again before closing login form (main app is loading)
+                    var splash = ms_WebViewSplash.ShowSplash();
+                    Application.DoEvents();
+                    
+                    // Wait for splash to be ready (WebView2 initialized)
+                    await ms_WebViewSplash.WaitForSplashReady(3000);
+                    
+                    ms_WebViewSplash.UpdateStatus("Uygulama yükleniyor...");
+                    System.Diagnostics.Debug.WriteLine("[Login] Splash shown again - main app is loading");
 
                     // Close form and continue to main app
                     this.Close();
@@ -536,6 +625,11 @@ namespace YesiLdefter
                 {
                     v.tUserRegister.UserLastFirmId = firmId;
                 }
+
+                if (webViewDomReady)
+                {
+                    _ = PushFormStateToWebViewAsync();
+                }
             }
             catch (Exception ex)
             {
@@ -580,6 +674,11 @@ namespace YesiLdefter
                     string emailList = string.Join("|", items);
                     reg.SetUstadRegistry("userEmailList", emailList);
                 }
+
+                if (webViewDomReady)
+                {
+                    _ = PushFormStateToWebViewAsync();
+                }
             }
             catch (Exception ex)
             {
@@ -595,9 +694,120 @@ namespace YesiLdefter
             UpdateWebStatusInView(message, isError);
         }
 
+        private async Task<UstadApiClient.FirmInfo?> PromptFirmSelectionAsync(IList<UstadApiClient.FirmInfo> firms)
+        {
+            if (firms == null || firms.Count == 0)
+            {
+                return null;
+            }
+
+            if (htmlLayout?.CoreWebView2 == null || !webViewDomReady)
+            {
+                return ShowFirmSelectionDialog(firms);
+            }
+
+            try
+            {
+                firmSelectionMap = firms
+                    .Where(f => !string.IsNullOrWhiteSpace(f.FirmGUID))
+                    .GroupBy(f => f.FirmGUID)
+                    .Select(g => g.First())
+                    .ToDictionary(f => f.FirmGUID, f => f);
+
+                firmSelectionTcs = new TaskCompletionSource<UstadApiClient.FirmInfo?>();
+                await PushFirmSelectionToWebView(firms);
+                var selectedFirm = await firmSelectionTcs.Task;
+                return selectedFirm;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"PromptFirmSelectionAsync fallback: {ex.Message}");
+                return ShowFirmSelectionDialog(firms);
+            }
+            finally
+            {
+                firmSelectionTcs = null;
+            }
+        }
+
+        private async Task PushFirmSelectionToWebView(IList<UstadApiClient.FirmInfo> firms)
+        {
+            if (htmlLayout?.CoreWebView2 == null)
+            {
+                return;
+            }
+
+            var slimFirms = firms.Select(f => new
+            {
+                f.FirmId,
+                f.FirmGUID,
+                f.FirmLongName,
+                f.FirmShortName,
+                f.MenuCode,
+                f.UserFullName,
+                f.IsActive,
+                f.DatabaseName,
+                f.ServerNameIP
+            }).ToList();
+
+            var payload = new
+            {
+                firms = slimFirms,
+                lastFirmId = v.tUserRegister.UserLastFirmId,
+                userGUID = v.tUser.UserGUID ?? ""
+            };
+
+            string json = JsonConvert.SerializeObject(payload);
+            string js = $"window.__ustadShowFirmSelection && window.__ustadShowFirmSelection({json});";
+            await htmlLayout.CoreWebView2.ExecuteScriptAsync(js);
+        }
+
+        private void HandleFirmSelectionFromWeb(string firmGuid, bool confirmSelection)
+        {
+            if (string.IsNullOrWhiteSpace(firmGuid))
+            {
+                if (confirmSelection)
+                {
+                    firmSelectionTcs?.TrySetResult(null);
+                }
+                return;
+            }
+
+            if (firmSelectionMap != null && firmSelectionMap.TryGetValue(firmGuid, out var firm))
+            {
+                if (confirmSelection)
+                {
+                    firmSelectionTcs?.TrySetResult(firm);
+                }
+                else
+                {
+                    _ = HighlightSelectedFirmAsync(firmGuid);
+                }
+            }
+        }
+
+        private async Task HighlightSelectedFirmAsync(string firmGuid)
+        {
+            if (htmlLayout?.CoreWebView2 == null)
+            {
+                return;
+            }
+
+            string guidEscaped = JavaScriptStringEncode(firmGuid, true);
+            string js = $"window.__ustadHighlightFirm && window.__ustadHighlightFirm({guidEscaped});";
+            await htmlLayout.CoreWebView2.ExecuteScriptAsync(js);
+        }
+
         private UstadApiClient.FirmInfo ShowFirmSelectionDialog(IList<UstadApiClient.FirmInfo> firms)
         {
-            using (var dlg = new ms_UserFirmSelect(firms))
+            string apiBaseUrl = "";
+            try
+            {
+                apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
+            }
+            catch { }
+            
+            using (var dlg = new ms_UserFirmSelect(firms, v.tUser.UserGUID, apiBaseUrl))
             {
                 var result = dlg.ShowDialog(this);
                 if (result == DialogResult.OK && dlg.SelectedFirm != null)
@@ -616,6 +826,32 @@ namespace YesiLdefter
             btnLogin.Enabled = enabled;
             btnForgotPassword.Enabled = enabled;
             Application.DoEvents();
+        }
+
+        private async Task ShowLoginViewAsync()
+        {
+            if (htmlLayout?.CoreWebView2 == null)
+            {
+                return;
+            }
+
+            await htmlLayout.CoreWebView2.ExecuteScriptAsync("window.__ustadShowLogin && window.__ustadShowLogin();");
+            await PushFormStateToWebViewAsync();
+        }
+
+        private async Task PushFormStateToWebViewAsync()
+        {
+            if (htmlLayout?.CoreWebView2 == null || !webViewDomReady)
+            {
+                return;
+            }
+
+            string email = cmbEmail.EditValue?.ToString() ?? "";
+            string password = chkRemember.Checked ? (txtPassword.Text ?? "") : "";
+            string lastFirm = v.tUserRegister.UserLastFirmId > 0 ? v.tUserRegister.UserLastFirmId.ToString() : "";
+
+            string js = $"window.__ustadSetFormState && window.__ustadSetFormState({JavaScriptStringEncode(email, true)}, {JavaScriptStringEncode(password, true)}, {(chkRemember.Checked ? "true" : "false")}, {JavaScriptStringEncode(lastFirm, true)});";
+            await htmlLayout.CoreWebView2.ExecuteScriptAsync(js);
         }
 
         private async void UpdateWebStatusInView(string message, bool isError)
@@ -736,6 +972,15 @@ namespace YesiLdefter
 
                 // Wire message handler
                 htmlLayout.CoreWebView2.WebMessageReceived += HtmlLayout_WebMessageReceived;
+                htmlLayout.CoreWebView2.DOMContentLoaded += async (_, __) =>
+                {
+                    webViewDomReady = true;
+                    await PushFormStateToWebViewAsync();
+                    
+                    // Close splash screen when login form is ready (rendered)
+                    ms_WebViewSplash.CloseSplash();
+                    System.Diagnostics.Debug.WriteLine("[Login] Splash closed - login form is ready");
+                };
 
                 // Load template
                 string html = LoadHtmlTemplateWithTokens();
@@ -760,12 +1005,27 @@ namespace YesiLdefter
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"WebView2 init failed: {ex.Message}\n{ex.StackTrace}");
-                MessageBox.Show(
-                    "WebView2 initialization failed: " + ex.Message + "\n\n" +
-                    "Ensure the WebView2 Runtime is installed on this machine and the Microsoft.Web.WebView2 NuGet package is compatible.",
-                    "WebView2 init error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                // NOTE(@Janberk): Don't show error dialog - let the form show with fallback UI
+                // The form will still be visible even if WebView2 fails, allowing user to see the error
+                // MessageBox.Show(
+                //     "WebView2 initialization failed: " + ex.Message + "\n\n" +
+                //     "Ensure the WebView2 Runtime is installed on this machine and the Microsoft.Web.WebView2 NuGet package is compatible.",
+                //     "WebView2 init error",
+                //     MessageBoxButtons.OK,
+                //     MessageBoxIcon.Error);
+                
+                // Show minimal fallback UI so form is still usable
+                string fallbackHtml = "<!doctype html><html><head><meta charset='UTF-8'><style>body{font-family:Segoe UI;padding:40px;background:#f8f9fa;color:#111827;}h2{color:#295c00;}.error{color:#ea4335;margin-top:20px;}</style></head><body><h2>YesiLdefter Giriş</h2><div class='error'><strong>WebView2 yüklenemedi:</strong><br>" + 
+                    System.Security.SecurityElement.Escape(ex.Message) + 
+                    "<br><br>Lütfen WebView2 Runtime'ın yüklü olduğundan emin olun.</div></body></html>";
+                try
+                {
+                    htmlLayout?.NavigateToString(fallbackHtml);
+                }
+                catch
+                {
+                    // If even fallback fails, form will still be visible (just empty)
+                }
             }
         }
 
@@ -823,6 +1083,88 @@ namespace YesiLdefter
 
         private string ResolveTokens(string template)
         {
+            string assetBase = "";
+            string logoBase64 = "";
+            try
+            {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string assetPath = Path.Combine(baseDir, "Templates", "public");
+                // Ensure directory exists
+                if (!Directory.Exists(assetPath))
+                {
+                    Directory.CreateDirectory(assetPath);
+                }
+                // Use file:// protocol for local files
+                assetBase = new Uri(assetPath + Path.DirectorySeparatorChar).AbsoluteUri;
+
+                // Try multiple paths for logo
+                string[] logoPaths = new[]
+                {
+                    Path.Combine(assetPath, "yesildefter_horizontal_color.png"),
+                    Path.Combine(assetPath, "yesildefter_horizontal.png"),
+                    Path.Combine(baseDir, "yesildefter_horizontal_color.png"),
+                    Path.Combine(baseDir, "yesildefter_horizontal.png"),
+                    // Try relative to executable
+                    Path.Combine(Application.StartupPath, "Templates", "public", "yesildefter_horizontal_color.png"),
+                    Path.Combine(Application.StartupPath, "Templates", "public", "yesildefter_horizontal.png"),
+                    Path.Combine(Application.StartupPath, "yesildefter_horizontal_color.png"),
+                    Path.Combine(Application.StartupPath, "yesildefter_horizontal.png")
+                };
+
+                bool logoFound = false;
+                foreach (string logoPath in logoPaths)
+                {
+                    if (File.Exists(logoPath))
+                    {
+                        try
+                        {
+                            byte[] logoBytes = File.ReadAllBytes(logoPath);
+                            logoBase64 = "data:image/png;base64," + Convert.ToBase64String(logoBytes);
+                            System.Diagnostics.Debug.WriteLine($"✓ Logo loaded successfully from: {logoPath}");
+                            logoFound = true;
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"✗ Error reading logo from {logoPath}: {ex.Message}");
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"✗ Logo not found at: {logoPath}");
+                    }
+                }
+
+                if (!logoFound)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠ Logo file not found in any expected location. Expected locations:");
+                    foreach (string path in logoPaths)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  - {path}");
+                    }
+                }
+
+                // If still no logo, try embedded resource as last resort
+                if (string.IsNullOrEmpty(logoBase64))
+                {
+                    logoBase64 = LoadLogoFromEmbeddedResource();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error resolving asset-base: {ex.Message}");
+                assetBase = "";
+                // Try embedded resource as fallback
+                if (string.IsNullOrEmpty(logoBase64))
+                {
+                    logoBase64 = LoadLogoFromEmbeddedResource();
+                }
+            }
+
+            // Get API base URL from configuration
+            string apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
+
             return template
                 .Replace("{{color-bg}}", UiTokens.ColorBg)
                 .Replace("{{color-gradient-start}}", UiTokens.ColorGradientStart)
@@ -834,7 +1176,45 @@ namespace YesiLdefter
                 .Replace("{{color-muted}}", UiTokens.ColorMuted)
                 .Replace("{{radius}}", UiTokens.Radius)
                 .Replace("{{shadow}}", UiTokens.Shadow)
-                .Replace("{{font}}", UiTokens.Font);
+                .Replace("{{font}}", UiTokens.Font)
+                .Replace("{{asset-base}}", assetBase)
+                .Replace("{{logo-base64}}", logoBase64)
+                .Replace("{{api-base-url}}", apiBaseUrl);
+        }
+
+        private string LoadLogoFromEmbeddedResource()
+        {
+            try
+            {
+                var asm = Assembly.GetExecutingAssembly();
+                string[] resourceNames = new[]
+                {
+                    "YesiLdefter.Forms.Templates.public.yesildefter_horizontal_color.png",
+                    "YesiLdefter.Forms.Templates.public.yesildefter_horizontal.png",
+                    "YesiLdefter.Resources.yesildefter_horizontal_color.png",
+                    "YesiLdefter.Resources.yesildefter_horizontal.png"
+                };
+
+                foreach (string resourceName in resourceNames)
+                {
+                    using (var stream = asm.GetManifestResourceStream(resourceName))
+                    {
+                        if (stream != null)
+                        {
+                            byte[] buffer = new byte[stream.Length];
+                            stream.Read(buffer, 0, buffer.Length);
+                            string base64 = "data:image/png;base64," + Convert.ToBase64String(buffer);
+                            System.Diagnostics.Debug.WriteLine($"Logo loaded from embedded resource: {resourceName}");
+                            return base64;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading logo from embedded resource: {ex.Message}");
+            }
+            return "";
         }
 
         private static class UiTokens
