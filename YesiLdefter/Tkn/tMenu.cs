@@ -404,7 +404,6 @@ namespace Tkn_Menu
                     Create_TileControl(menuControl, ds_Items, MenuCode);
                     Create_TileControl(menuControl, ds_Items);
                 }
-                
             }
             #endregion TileControl
 
