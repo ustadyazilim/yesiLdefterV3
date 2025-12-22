@@ -412,8 +412,7 @@ namespace Tkn_Menu
             if (ItemType == 106)
             {
                 // Traditional DevExpress rendering (used when SP_UseHtmlMenu is false or WebView2 fails)
-                DevExpress.XtraBars.Navigation.TileNavPane
-                menuControl = new DevExpress.XtraBars.Navigation.TileNavPane();
+                DevExpress.XtraBars.Navigation.TileNavPane menuControl = new DevExpress.XtraBars.Navigation.TileNavPane();
 
                 menuControl.Name = "MENU_" + MasterCode; // RefId.ToString();
                 menuControl.Text = "REF_ID[" + RefId.ToString() + "],CAPTION[" + caption + "]";
@@ -674,6 +673,11 @@ namespace Tkn_Menu
             }
             #endregion
 
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"tMenu.Create_Menu_IN_Control error: {ex.Message}");
+                // Log error but don't throw to prevent application crash
             }
         }
 
