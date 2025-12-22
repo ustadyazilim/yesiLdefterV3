@@ -112,7 +112,9 @@ namespace YesiLdefter
             {
                 cefBrowser_.Dispose();
                 cefBrowser_ = null;
-                Cef.Shutdown();
+                // Use CEFHelper.Shutdown() instead of direct Cef.Shutdown() to ensure thread safety
+                // Only shutdown if this is the last form using CefSharp
+                // Cef.Shutdown() should be called from main form closing, not individual forms
             }
         }
 

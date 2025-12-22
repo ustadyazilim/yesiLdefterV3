@@ -1,4 +1,5 @@
-﻿using DevExpress.XtraWaitForm;
+﻿using CefSharp;
+using DevExpress.XtraWaitForm;
 using System;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -13,6 +14,11 @@ namespace YesiLdefter
         [STAThread]
         static void Main(string[] args)
         {
+            // CRITICAL: Disable CefSharp auto-shutdown BEFORE any CefSharp code is loaded
+            // This prevents the DevExpress SplashScreen thread from triggering Cef.Shutdown()
+            // on the wrong thread when calling Application.RaiseExit()
+            CefSharpSettings.ShutdownOnExit = false;
+            
             // DPI farkındalığını sistem seviyesinde ayarla
             SetProcessDPIAware();
 
@@ -24,7 +30,6 @@ namespace YesiLdefter
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             
-            // NOTE(@Janberk): WebView2 splash enabled for initial app startup
             // Create and run main form
             try
             {
@@ -33,7 +38,22 @@ namespace YesiLdefter
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Program] Error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[Program] Stack: {ex.StackTrace}");
                 throw;
+            }
+            finally
+            {
+                // Shutdown CefSharp on the UI thread after Application.Run() completes
+                // This is the correct place because we're still on the main UI thread (Thread 1)
+                try
+                {
+                    YesiLdefter.CEFSharp.CEFHelper.Shutdown();
+                    System.Diagnostics.Debug.WriteLine("[Program] CefSharp shutdown completed successfully");
+                }
+                catch (Exception cefEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Program] CefSharp shutdown error: {cefEx.Message}");
+                }
             }
         }
         // DPI farkındalığı için P/Invoke tanımları

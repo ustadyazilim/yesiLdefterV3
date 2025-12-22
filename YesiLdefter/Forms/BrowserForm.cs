@@ -155,7 +155,9 @@ namespace CefSharp.MinimalExample.WinForms
         private void ExitMenuItemClick(object sender, EventArgs e)
         {
             browser.Dispose();
-            Cef.Shutdown();
+            // Use CEFHelper.Shutdown() for thread-safe shutdown
+            // Only shutdown if this is the last form using CefSharp
+            // YesiLdefter.CEFSharp.CEFHelper.Shutdown();
             Close();
         }
 

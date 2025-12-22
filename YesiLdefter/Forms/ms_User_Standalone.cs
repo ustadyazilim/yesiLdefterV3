@@ -85,10 +85,10 @@ namespace YesiLdefter
         {
             this.SuspendLayout();
 
-            // Form properties
+            // Form properties - Balanced login card design
             this.Text = "Giriş Yap";
-            this.Size = new Size(640, 480);
-            this.MinimumSize = new Size(640, 480);
+            this.Size = new Size(800, 600);
+            this.MinimumSize = new Size(650, 500); 
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.AutoScroll = false;
@@ -499,16 +499,6 @@ namespace YesiLdefter
 
                     // Small delay to show success message
                     await Task.Delay(500);
-
-                    // Show splash again before closing login form (main app is loading)
-                    var splash = ms_WebViewSplash.ShowSplash();
-                    Application.DoEvents();
-                    
-                    // Wait for splash to be ready (WebView2 initialized)
-                    await ms_WebViewSplash.WaitForSplashReady(3000);
-                    
-                    ms_WebViewSplash.UpdateStatus("Uygulama yükleniyor...");
-                    System.Diagnostics.Debug.WriteLine("[Login] Splash shown again - main app is loading");
 
                     // Close form and continue to main app
                     this.Close();
@@ -968,10 +958,6 @@ namespace YesiLdefter
                 {
                     webViewDomReady = true;
                     await PushFormStateToWebViewAsync();
-                    
-                    // Close splash screen when login form is ready (rendered)
-                    ms_WebViewSplash.CloseSplash();
-                    System.Diagnostics.Debug.WriteLine("[Login] Splash closed - login form is ready");
                 };
 
                 // Load template
@@ -1089,14 +1075,21 @@ namespace YesiLdefter
                 // Use file:// protocol for local files
                 assetBase = new Uri(assetPath + Path.DirectorySeparatorChar).AbsoluteUri;
 
-                // Try multiple paths for logo
+                // Try multiple paths for logo (including Forms/Templates/public where source files are)
+                // User requested: use yesildefter_horizontal.png specifically
                 string[] logoPaths = new[]
                 {
+                    // First try Forms/Templates/public (where source files are) - use horizontal.png as requested
+                    Path.Combine(baseDir, "Forms", "Templates", "public", "yesildefter_horizontal.png"),
+                    Path.Combine(baseDir, "Forms", "Templates", "public", "yesildefter_horizontal_color.png"),
+                    // Then try Templates/public (compiled output location)
                     Path.Combine(assetPath, "yesildefter_horizontal_color.png"),
                     Path.Combine(assetPath, "yesildefter_horizontal.png"),
                     Path.Combine(baseDir, "yesildefter_horizontal_color.png"),
                     Path.Combine(baseDir, "yesildefter_horizontal.png"),
                     // Try relative to executable
+                    Path.Combine(Application.StartupPath, "Forms", "Templates", "public", "yesildefter_horizontal_color.png"),
+                    Path.Combine(Application.StartupPath, "Forms", "Templates", "public", "yesildefter_horizontal.png"),
                     Path.Combine(Application.StartupPath, "Templates", "public", "yesildefter_horizontal_color.png"),
                     Path.Combine(Application.StartupPath, "Templates", "public", "yesildefter_horizontal.png"),
                     Path.Combine(Application.StartupPath, "yesildefter_horizontal_color.png"),
@@ -1179,32 +1172,59 @@ namespace YesiLdefter
             try
             {
                 var asm = Assembly.GetExecutingAssembly();
-                string[] resourceNames = new[]
+                
+                // First, get all available resources to see what we actually have
+                string[] allResources = asm.GetManifestResourceNames();
+                System.Diagnostics.Debug.WriteLine($"[Logo] Available embedded resources: {string.Join(", ", allResources)}");
+                
+                // Try to find logo by searching all resources (more flexible)
+                // User requested: use yesildefter_horizontal.png specifically
+                string[] searchPatterns = new[]
                 {
-                    "YesiLdefter.Forms.Templates.public.yesildefter_horizontal_color.png",
-                    "YesiLdefter.Forms.Templates.public.yesildefter_horizontal.png",
-                    "YesiLdefter.Resources.yesildefter_horizontal_color.png",
-                    "YesiLdefter.Resources.yesildefter_horizontal.png"
+                    "yesildefter_horizontal.png",
+                    "yesildefter_horizontal_color.png",
+                    "yesildefter"
                 };
-
-                foreach (string resourceName in resourceNames)
+                
+                foreach (string pattern in searchPatterns)
                 {
-                    using (var stream = asm.GetManifestResourceStream(resourceName))
+                    string foundResource = Array.Find(allResources, r => 
+                        r.EndsWith(pattern, StringComparison.OrdinalIgnoreCase) ||
+                        (r.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0));
+                    
+                    if (!string.IsNullOrEmpty(foundResource))
                     {
-                        if (stream != null)
+                        using (var stream = asm.GetManifestResourceStream(foundResource))
                         {
-                            byte[] buffer = new byte[stream.Length];
-                            stream.Read(buffer, 0, buffer.Length);
-                            string base64 = "data:image/png;base64," + Convert.ToBase64String(buffer);
-                            System.Diagnostics.Debug.WriteLine($"Logo loaded from embedded resource: {resourceName}");
-                            return base64;
+                            if (stream != null)
+                            {
+                                byte[] buffer = new byte[stream.Length];
+                                stream.Read(buffer, 0, buffer.Length);
+                                string base64 = "data:image/png;base64," + Convert.ToBase64String(buffer);
+                                System.Diagnostics.Debug.WriteLine($"✓ Logo loaded from embedded resource: {foundResource}");
+                                return base64;
+                            }
                         }
                     }
+                }
+                
+                // If not found as embedded resource, try loading from source directory at compile time location
+                // This helps during development when files aren't embedded yet
+                string sourceLogoPath = Path.Combine(
+                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                    "..", "..", "..", "Forms", "Templates", "public", "yesildefter_horizontal_color.png");
+                
+                if (File.Exists(sourceLogoPath))
+                {
+                    byte[] logoBytes = File.ReadAllBytes(sourceLogoPath);
+                    string base64 = "data:image/png;base64," + Convert.ToBase64String(logoBytes);
+                    System.Diagnostics.Debug.WriteLine($"✓ Logo loaded from source directory: {sourceLogoPath}");
+                    return base64;
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading logo from embedded resource: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"✗ Error loading logo from embedded resource: {ex.Message}\n{ex.StackTrace}");
             }
             return "";
         }

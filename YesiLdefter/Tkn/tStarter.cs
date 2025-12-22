@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using Tkn_ToolBox;
 using Tkn_UserFirms;
 using Tkn_Variable;
+using YesiLdefter;
 
 namespace Tkn_Starter
 {
@@ -87,7 +88,7 @@ namespace Tkn_Starter
             // YesiLdefter.Ini
             // YesiLdefterConnection.Ini
             //
-            t.WaitFormOpen(v.mainForm, "Ini dosyalar okunuyor...");
+            ms_WebViewSplash.UpdateStatus("Ini dosyalar okunuyor...");
             t.ftpDownloadIniFile();
 
             // NOTE(@Janberk): Ensures API base URL and JWT key are set in registry if not already configured
@@ -112,7 +113,7 @@ namespace Tkn_Starter
 */
             // 1. SECURE AUTHENTICATION FLOW: Authenticate user FIRST before any database connections
             // NOTE(@Janberk): Authentication happens via API. The login form (ms_User) uses checkedInputApi() which calls /auth/login endpoint. ms_User_Standalone is used for WebView2-based login with LoginTemplate.html
-            t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
+            ms_WebViewSplash.UpdateStatus("Kullanıcı Girişi...");
             if (v.active_DB.localDbUses == false)
             {
                 // NOTE(@Janberk): Ustad YesiLdester user girişi - NO DB CONNECTION NEEDED
@@ -155,74 +156,105 @@ namespace Tkn_Starter
                 return;
             }
             
-            t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri hazırlanıyor...");
-            InitPreparingConnection();
-
-            t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-            Db_Open(v.active_DB.managerMSSQLConn);
-
             // 2. SECURE AUTHENTICATION FLOW: After successful authentication, get database connection info from API and establish database connections.
             // NOTE(@Janberk): Database connections are established ONLY after user authentication. Connection strings are retrieved from API and decrypted using JWT key.
             if (v.SP_UserLOGIN == true && v.active_DB.localDbUses == false)
             {
-                t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri API'den alınıyor...");
+                ms_WebViewSplash.UpdateStatus("Database bağlantı bilgileri API'den alınıyor...");
                 bool dbConnectionsEstablished = InitPreparingConnectionFromApi();
                 if (!dbConnectionsEstablished)
                 {
                     MessageBox.Show("Database bağlantı bilgileri alınamadı. Lütfen sistem yöneticinize başvurun.",
                         "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     v.SP_ApplicationExit = true;
+                    ms_WebViewSplash.CloseSplash();
                     return;
                 }
-                t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-                Db_Open(v.active_DB.managerMSSQLConn);
+                if (v.active_DB.managerMSSQLConn == null)
+                {
+                    MessageBox.Show("Database bağlantısı başlatılamadı. Lütfen sistem yöneticinize başvurun.",
+                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    v.SP_ApplicationExit = true;
+                    ms_WebViewSplash.CloseSplash();
+                    return;
+                }
+                
+                ms_WebViewSplash.UpdateStatus("ManagerDB bağlantısı gerçekleşiyor...");
+                bool dbOpened = Db_Open(v.active_DB.managerMSSQLConn);
+                if (!dbOpened || v.active_DB.managerMSSQLConn.State != System.Data.ConnectionState.Open)
+                {
+                    MessageBox.Show("Database bağlantısı açılamadı. Lütfen sistem yöneticinize başvurun.",
+                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    v.SP_ApplicationExit = true;
+                    ms_WebViewSplash.CloseSplash();
+                    return;
+                }
+                System.Diagnostics.Debug.WriteLine($"✓ ManagerDB connection verified: State={v.active_DB.managerMSSQLConn.State}, Database={v.active_DB.managerDBName}");
             }
             else if (v.active_DB.localDbUses == true)
             {
-                t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri hazırlanıyor...");
+                ms_WebViewSplash.UpdateStatus("Database bağlantı bilgileri hazırlanıyor...");
                 InitPreparingConnection();
                 
-                t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-                Db_Open(v.active_DB.managerMSSQLConn);
+                if (v.active_DB.managerMSSQLConn == null)
+                {
+                    MessageBox.Show("Database bağlantısı başlatılamadı. Lütfen sistem yöneticinize başvurun.",
+                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    v.SP_ApplicationExit = true;
+                    ms_WebViewSplash.CloseSplash();
+                    return;
+                }
+                
+                ms_WebViewSplash.UpdateStatus("ManagerDB bağlantısı gerçekleşiyor...");
+                bool dbOpened = Db_Open(v.active_DB.managerMSSQLConn);
+                if (!dbOpened || v.active_DB.managerMSSQLConn.State != System.Data.ConnectionState.Open)
+                {
+                    MessageBox.Show("Database bağlantısı açılamadı. Lütfen sistem yöneticinize başvurun.",
+                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    v.SP_ApplicationExit = true;
+                    ms_WebViewSplash.CloseSplash();
+                    return;
+                }
+                System.Diagnostics.Debug.WriteLine($"✓ ManagerDB connection verified: State={v.active_DB.managerMSSQLConn.State}, Database={v.active_DB.managerDBName}");
             }
 
             /// Mesaj formu nedense kayboluyor
             /// onun açılması için burada bunlar false yapılıyor
             v.IsWaitOpen = false;
             v.SP_OpenApplication = false;
-            t.WaitFormOpen(v.mainForm, "İşlemler devam ediyor...");
+            ms_WebViewSplash.UpdateStatus("İşlemler devam ediyor...");
 
-            t.WaitFormOpen(v.mainForm, "Kullanıcı teması hazırlanıyor...");
+            ms_WebViewSplash.UpdateStatus("Kullanıcı teması hazırlanıyor...");
             setLoginSkins();
 
-            t.WaitFormOpen(v.mainForm, "Bilgisayar hakkındaki bilgi sorgulaması...");
+            ms_WebViewSplash.UpdateStatus("Bilgisayar hakkındaki bilgi sorgulaması...");
             InitLoginComputer();
 
-            t.WaitFormOpen(v.mainForm, "Ekran çözünürlüğünün tespiti...");
+            ms_WebViewSplash.UpdateStatus("Ekran çözünürlüğünün tespiti...");
             Screen_Sizes_Get();
 
             // önce yeni dosya varsa onla download olması gerekiyor
-            t.WaitFormOpen(v.mainForm, "FileUpdates işlemleri yapılıyor...");
+            ms_WebViewSplash.UpdateStatus("FileUpdates işlemleri yapılıyor...");
             t.read_MsFileUpdates();
 
-            t.WaitFormOpen(v.mainForm, "Data Updates işlemleri yapılıyor...");
+            ms_WebViewSplash.UpdateStatus("Data Updates işlemleri yapılıyor...");
             t.dataUpdates();
 
             // dosyalardan son yeni exenin download olması gerekiyor
-            t.WaitFormOpen(v.mainForm, "Exe güncelleme kontrolü yapılıyor...");
+            ms_WebViewSplash.UpdateStatus("Exe güncelleme kontrolü yapılıyor...");
             t.read_MsExeUpdates(v.SP_tUserType);
 
-            t.WaitFormOpen(v.mainForm, "Sistem tarihleri okunuyor, hazırlanıyor...");
+            ms_WebViewSplash.UpdateStatus("Sistem tarihleri okunuyor, hazırlanıyor...");
             t.MSSQL_Server_Tarihi();
             //t.DonemTipiYilAyRead();
 
             // Settings table
-            t.WaitFormOpen(v.mainForm, "Settings okunuyor...");
+            ms_WebViewSplash.UpdateStatus("Settings okunuyor...");
             t.read_Settings();
 
 
             // 3S_MSGLY 
-            t.WaitFormOpen(v.mainForm, "Images okunuyor...");
+            ms_WebViewSplash.UpdateStatus("Images okunuyor...");
             //t.SYS_Glyph_Read();
 
             //t.TestRead();
@@ -240,6 +272,9 @@ namespace Tkn_Starter
             // - read_Settings()
             // - SYS_Glyph_Read()
             // - TestRead()
+            
+            // Close splash screen after initialization completes
+            ms_WebViewSplash.CloseSplash();
             v.SP_UserIN = true;
         }
 
@@ -295,9 +330,13 @@ namespace Tkn_Starter
                     var dbInfoTask = apiClient.GetDatabaseConnectionInfoAsync(jwtKey);
                     dbInfoTask.Wait(); 
                     var dbInfo = dbInfoTask.Result;
-                    if (dbInfo == null || string.IsNullOrEmpty(dbInfo.UstadCrmConnectionString))
+                    if (dbInfo == null || 
+                        string.IsNullOrEmpty(dbInfo.UstadCrmConnectionString) ||
+                        string.IsNullOrEmpty(dbInfo.ManagerConnectionString))
                     {
                         System.Diagnostics.Debug.WriteLine("Failed to get database connection info from API.");
+                        System.Diagnostics.Debug.WriteLine($"UstadCrmConnectionString: {(dbInfo?.UstadCrmConnectionString != null ? "present" : "null")}");
+                        System.Diagnostics.Debug.WriteLine($"ManagerConnectionString: {(dbInfo?.ManagerConnectionString != null ? "present" : "null")}");
                         return false;
                     }
                     // Set up connection strings from API response
@@ -305,7 +344,25 @@ namespace Tkn_Starter
                     v.active_DB.ustadCrmDBType = v.dBaseType.MSSQL;
                     v.active_DB.projectDBType = v.dBaseType.MSSQL;
                     ParseConnectionStringFromApi(dbInfo.UstadCrmConnectionString, true); 
-                    ParseConnectionStringFromApi(dbInfo.ManagerConnectionString, false); 
+                    ParseConnectionStringFromApi(dbInfo.ManagerConnectionString, false);
+                    
+                    // Verify that manager connection was actually created
+                    if (v.active_DB.managerMSSQLConn == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Error: managerMSSQLConn was not created after ParseConnectionStringFromApi.");
+                        return false;
+                    }
+                    
+                    // Initialize publishManager_DB connection (uses same connection as manager)
+                    // NOTE(@Janberk): publishManager_DB is a copy of manager connection for publishing purposes
+                    v.publishManager_DB.dBaseNo = v.dBaseNo.publishManager;
+                    v.publishManager_DB.userName = v.active_DB.managerUserName;
+                    v.publishManager_DB.serverName = v.active_DB.managerServerName;
+                    v.publishManager_DB.databaseName = v.active_DB.managerDBName;
+                    v.publishManager_DB.connectionText = v.active_DB.managerConnectionText;
+                    v.publishManager_DB.MSSQLConn = new SqlConnection(v.publishManager_DB.connectionText);
+                    v.publishManager_DB.MSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                    
                     return true;
                 }
             }
@@ -335,6 +392,12 @@ namespace Tkn_Starter
         /// </summary>
         void ParseConnectionStringFromApi(string connectionString, bool isUstadCrm)
         {
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                string dbType = isUstadCrm ? "UstadCrm" : "Manager";
+                throw new ArgumentException($"{dbType} connection string is null or empty.");
+            }
+            
             try
             {
                 var builder = new System.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
@@ -386,18 +449,30 @@ namespace Tkn_Starter
             v.active_DB.managerUserName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_USER");
             v.active_DB.managerServerName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_SERVER");
             v.active_DB.managerDBName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_NAME");
-            v.active_DB.managerPsw = "Password = " + Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS") + ";";
+            string managerPass = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS");
+            
+            // Validate required environment variables
+            if (string.IsNullOrWhiteSpace(v.active_DB.managerUserName) ||
+                string.IsNullOrWhiteSpace(v.active_DB.managerServerName) ||
+                string.IsNullOrWhiteSpace(v.active_DB.managerDBName) ||
+                string.IsNullOrWhiteSpace(managerPass))
+            {
+                System.Diagnostics.Debug.WriteLine("Warning: Database environment variables not set. Connection strings will not be initialized.");
+                System.Diagnostics.Debug.WriteLine($"USTAD_MANAGER_DB_USER: {v.active_DB.managerUserName ?? "NULL"}");
+                System.Diagnostics.Debug.WriteLine($"USTAD_MANAGER_DB_SERVER: {v.active_DB.managerServerName ?? "NULL"}");
+                System.Diagnostics.Debug.WriteLine($"USTAD_MANAGER_DB_NAME: {v.active_DB.managerDBName ?? "NULL"}");
+                System.Diagnostics.Debug.WriteLine($"USTAD_MANAGER_DB_PASS: {(string.IsNullOrWhiteSpace(managerPass) ? "NULL" : "***")}");
+                return; // Exit early to prevent building invalid connection strings
+            }
+            
+            v.active_DB.managerPsw = "Password = " + managerPass + ";";
                         
             ///
             /// main Manager DB Connections
             /// 
             #region
             
-            // TODO(@Janberk): RmanagerPsw emove hardcoded password fallback when all modes use API.
-            v.active_DB.managerUserName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_USER");
-            // LEGACY: fallback to old manager password so layout can be loaded before auth.
-
-            v.active_DB.managerPsw = "Password = " + Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS") + ";";
+            // Connection strings are already validated above, safe to build
             v.active_DB.managerConnectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
                 v.active_DB.managerServerName,
@@ -413,10 +488,11 @@ namespace Tkn_Starter
             /// 
             #region
             v.publishManager_DB.dBaseNo = v.dBaseNo.publishManager;
-            v.publishManager_DB.userName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_USER");
-            v.publishManager_DB.serverName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_SERVER");
-            v.publishManager_DB.databaseName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_NAME");
-            v.publishManager_DB.psw = "Password = " + Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS") + ";";
+            // Use already validated values from manager connection
+            v.publishManager_DB.userName = v.active_DB.managerUserName;
+            v.publishManager_DB.serverName = v.active_DB.managerServerName;
+            v.publishManager_DB.databaseName = v.active_DB.managerDBName;
+            v.publishManager_DB.psw = v.active_DB.managerPsw;
             v.publishManager_DB.connectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
                 v.publishManager_DB.serverName,
@@ -437,17 +513,35 @@ namespace Tkn_Starter
             v.active_DB.ustadCrmUserName = Environment.GetEnvironmentVariable("USTAD_CRM_DB_USER");
             v.active_DB.ustadCrmServerName = Environment.GetEnvironmentVariable("USTAD_CRM_DB_SERVER");
             v.active_DB.ustadCrmDBName = Environment.GetEnvironmentVariable("USTAD_CRM_DB_NAME");
-            v.active_DB.ustadCrmPsw = "Password = " + Environment.GetEnvironmentVariable("USTAD_CRM_DB_PASS") + ";";
+            string crmPass = Environment.GetEnvironmentVariable("USTAD_CRM_DB_PASS");
+            
+            // Validate CRM environment variables (optional - may not be needed for all modes)
+            if (!string.IsNullOrWhiteSpace(v.active_DB.ustadCrmServerName) &&
+                !string.IsNullOrWhiteSpace(v.active_DB.ustadCrmDBName) &&
+                !string.IsNullOrWhiteSpace(v.active_DB.ustadCrmUserName) &&
+                !string.IsNullOrWhiteSpace(crmPass))
+            {
+                v.active_DB.ustadCrmPsw = "Password = " + crmPass + ";";
+                v.active_DB.ustadCrmConnectionText =
+                    string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
+                    v.active_DB.ustadCrmServerName,
+                    v.active_DB.ustadCrmDBName,
+                    v.active_DB.ustadCrmUserName,
+                    v.active_DB.ustadCrmPsw);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("Warning: CRM database environment variables not set. CRM connection will not be initialized.");
+                // Set empty connection text to prevent null reference
+                v.active_DB.ustadCrmConnectionText = "";
+            }
 
-            v.active_DB.ustadCrmConnectionText =
-                string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
-                v.active_DB.ustadCrmServerName,
-                v.active_DB.ustadCrmDBName,
-                v.active_DB.ustadCrmUserName,
-                v.active_DB.ustadCrmPsw);
-
-            v.active_DB.ustadCrmMSSQLConn = new SqlConnection(v.active_DB.ustadCrmConnectionText);
-            v.active_DB.ustadCrmMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+            // Only create connection if connection text is valid
+            if (!string.IsNullOrWhiteSpace(v.active_DB.ustadCrmConnectionText))
+            {
+                v.active_DB.ustadCrmMSSQLConn = new SqlConnection(v.active_DB.ustadCrmConnectionText);
+                v.active_DB.ustadCrmMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+            }
             
             #endregion
 
@@ -459,16 +553,36 @@ namespace Tkn_Starter
             v.active_DB.masterDBName = "master";
             if (IsNotNull(v.active_DB.masterUserName) == false)
                 v.active_DB.masterUserName = "sa";
+            
+            // Use manager server and password for master connection if not explicitly set
+            if (string.IsNullOrWhiteSpace(v.active_DB.masterServerName))
+                v.active_DB.masterServerName = v.active_DB.managerServerName;
+            if (string.IsNullOrWhiteSpace(v.active_DB.masterPsw))
+                v.active_DB.masterPsw = v.active_DB.managerPsw;
+            
+            // Validate master connection parameters
+            if (string.IsNullOrWhiteSpace(v.active_DB.masterServerName) ||
+                string.IsNullOrWhiteSpace(v.active_DB.masterPsw))
+            {
+                System.Diagnostics.Debug.WriteLine("Warning: Master database connection parameters not set. Master connection will not be initialized.");
+                v.active_DB.masterConnectionText = "";
+            }
+            else
+            {
+                v.active_DB.masterConnectionText =
+                    string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
+                    v.active_DB.masterServerName,
+                    v.active_DB.masterDBName,
+                    v.active_DB.masterUserName,
+                    v.active_DB.masterPsw);
+            }
 
-            v.active_DB.masterConnectionText =
-                string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
-                v.active_DB.masterServerName,
-                v.active_DB.masterDBName,
-                v.active_DB.masterUserName,
-                v.active_DB.masterPsw);
-
-            v.active_DB.masterMSSQLConn = new SqlConnection(v.active_DB.masterConnectionText);
-            v.active_DB.masterMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+            // Only create connection if connection text is valid
+            if (!string.IsNullOrWhiteSpace(v.active_DB.masterConnectionText))
+            {
+                v.active_DB.masterMSSQLConn = new SqlConnection(v.active_DB.masterConnectionText);
+                v.active_DB.masterMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+            }
 
             #endregion
 

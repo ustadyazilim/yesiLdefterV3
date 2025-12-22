@@ -475,6 +475,12 @@
     <Compile Include="Forms\ms_Iskonto.Designer.cs">
       <DependentUpon>ms_Iskonto.cs</DependentUpon>
     </Compile>
+    <Compile Include="main.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="main.Designer.cs">
+      <DependentUpon>main.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Selenium\Helpers\DriverFactory.cs" />
@@ -531,6 +537,9 @@
     <Compile Include="Tkn\tXMLRead.cs" />
     <Compile Include="tMainForm.cs" />
     <Compile Include="Uyumsoft\tEFaturaUyum.cs" />
+    <EmbeddedResource Include="main.resx">
+      <DependentUpon>main.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\BrowserForm.resx">
       <DependentUpon>BrowserForm.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -588,7 +597,6 @@
     </EmbeddedResource>
     <!-- NOTE(@Janberk): WebView2 HTML templates as embedded resources -->
     <EmbeddedResource Include="Forms\Templates\LoginTemplate.html" />
-    <EmbeddedResource Include="Forms\Templates\LoadingTemplate.html" />
     <EmbeddedResource Include="Forms\Templates\FirmSelectTemplate.html" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>

@@ -1314,10 +1314,17 @@ namespace Tkn_ToolBox
         /// </summary>
         public Boolean Db_Open(SqlConnection VTbaglanti)
         {
+            // Null check to prevent NullReferenceException
+            if (VTbaglanti == null)
+            {
+                System.Diagnostics.Debug.WriteLine("**VTbaglanti** was null.");
+                return false;
+            }
+            
             bool onay = false;
 
             #region Closed ise
-            if (state == ConnectionState.Closed)
+            if (VTbaglanti.State == ConnectionState.Closed)
             {
                 byte i = 0;
 
@@ -1559,6 +1566,12 @@ namespace Tkn_ToolBox
                 if ((tForm.AccessibleName != null) && (tForm.AccessibleDescription != null))
                     vt.FormCode = tForm.AccessibleDescription;
             }
+            
+            // Warn if connection is still null after assignment
+            if (vt.msSqlConnection == null && vt.DBaseNo != v.dBaseNo.None)
+            {
+                System.Diagnostics.Debug.WriteLine($"Warning: msSqlConnection is null after preparing_vTable. DBaseNo: {vt.DBaseNo}, TableName: {vt.TableName}");
+            }
         }
         
         private bool IsDataTable(DataSet dsData)
@@ -1588,6 +1601,16 @@ namespace Tkn_ToolBox
                 Cursor.Current = Cursors.WaitCursor;
 
             SqlConnection msSqlConn = vt.msSqlConnection;
+            
+            if (msSqlConn == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"**VTbaglanti** was null in Sql_ExecuteNon (SqlCommand) for TableName: {vt.TableName}");
+                if (Cursor.Current == Cursors.WaitCursor)
+                    Cursor.Current = Cursors.Default;
+                MessageBox.Show($"Database bağlantısı bulunamadı. TableName: {vt.TableName}\n\nLütfen uygulamayı kapatıp yeniden açın veya sistem yöneticinize başvurun.",
+                    "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
             
             Db_Open(msSqlConn);
                         
@@ -1637,6 +1660,16 @@ namespace Tkn_ToolBox
                 preparing_vTable(null, null, vt, 0);
 
             SqlConnection msSqlConn = vt.msSqlConnection;
+            
+            if (msSqlConn == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"**VTbaglanti** was null in Sql_ExecuteNon for DBaseNo: {vt.DBaseNo}, TableName: {vt.TableName}");
+                if (Cursor.Current == Cursors.WaitCursor)
+                    Cursor.Current = Cursors.Default;
+                MessageBox.Show($"Database bağlantısı bulunamadı. DBaseNo: {vt.DBaseNo}, TableName: {vt.TableName}\n\nLütfen uygulamayı kapatıp yeniden açın veya sistem yöneticinize başvurun.",
+                    "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
             
             Db_Open(msSqlConn);
             
@@ -1695,6 +1728,16 @@ namespace Tkn_ToolBox
             Boolean onay = false;
 
             SqlConnection msSqlConn = vt.msSqlConnection;
+            
+            if (msSqlConn == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"**VTbaglanti** was null in Sql_Execute for DBaseNo: {vt.DBaseNo}, TableName: {vt.TableName}");
+                if (Cursor.Current == Cursors.WaitCursor)
+                    Cursor.Current = Cursors.Default;
+                MessageBox.Show($"Database bağlantısı bulunamadı. DBaseNo: {vt.DBaseNo}, TableName: {vt.TableName}\n\nLütfen uygulamayı kapatıp yeniden açın veya sistem yöneticinize başvurun.",
+                    "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
                         
             Db_Open(msSqlConn);
 
@@ -1891,7 +1934,7 @@ namespace Tkn_ToolBox
                         preparing_TableIPCodeFieldsList(vt.TableIPCode);
                         if (IsNotNull(vt.TableIPCode))
                         {
-                            if (v.active_DB.mainManagerDbUses || vt.DBaseNo == v.dBaseNo.UstadCrm))
+                            if (v.active_DB.mainManagerDbUses || vt.DBaseNo == v.dBaseNo.UstadCrm)
                             {
                                 DataTable dt = v.ds_TableIPCodeFields.Tables[vt.TableIPCode];
                                 if (dt != null)
@@ -4561,6 +4604,13 @@ namespace Tkn_ToolBox
 
         public void ChildForm_View(Form tForm, Form tMdiForm, string myFormLoadValue)
         {
+            // Ensure we're on the UI thread to avoid cross-thread exceptions
+            if (tMdiForm != null && tMdiForm.InvokeRequired)
+            {
+                tMdiForm.Invoke(new Action(() => ChildForm_View(tForm, tMdiForm, myFormLoadValue)));
+                return;
+            }
+            
             // Formun üzerinde MyFormBox isimli memo yok ise eklesin
             tCreateObject co = new tCreateObject();
             co.Create_MyFormBox(tForm, myFormLoadValue);
@@ -4568,8 +4618,10 @@ namespace Tkn_ToolBox
             v.con_FormOpen = true;
             v.sp_OpenFormState = "CHILD";
             tForm.Tag = v.sp_OpenFormState;
-            if (tMdiForm.IsMdiContainer)
+            
+            if (tMdiForm != null && tMdiForm.IsMdiContainer)
                 tForm.MdiParent = tMdiForm;
+            
             tForm.Show();
             v.con_FormOpen = false;
 
@@ -4587,12 +4639,12 @@ namespace Tkn_ToolBox
             tCreateObject co = new tCreateObject();
             co.Create_MyFormBox(tForm, myFormLoadValue);
 
-            if (tMdiForm.IsMdiContainer)
-                tForm.MdiParent = tMdiForm;
-
             v.con_FormOpen = true;
             v.sp_OpenFormState = "CHILD";
             tForm.Tag = v.sp_OpenFormState;
+            
+            if (tMdiForm != null && tMdiForm.IsMdiContainer)
+                tForm.MdiParent = tMdiForm;
             tForm.WindowState = state;
             tForm.Show();
             v.con_FormOpen = false;

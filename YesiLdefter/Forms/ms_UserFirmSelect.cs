@@ -30,9 +30,7 @@ namespace YesiLdefter
             _apiBaseUrl = apiBaseUrl ?? "";
 
             Text = "Firma Seçimi";
-            // Golden ratio-inspired dimensions (approximately 1.618:1)
-            // Width: 1200px, Height: 740px (ratio ~1.62:1)
-            // This provides ample space for firm selection grid (left) and QR panel (right: 420px)
+
             Width = 1200;
             Height = 740;
             FormBorderStyle = FormBorderStyle.FixedDialog;

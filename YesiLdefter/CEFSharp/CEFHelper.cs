@@ -15,6 +15,9 @@ namespace YesiLdefter.CEFSharp
     {
         
         private static ChromiumWebBrowser _cefBrowser = null;
+        private static bool _isInitialized = false;
+        private static int _initializedThreadId = -1;
+        private static readonly object _lockObject = new object();
 
         public static ChromiumWebBrowser CreateBrowser
         {
@@ -25,34 +28,110 @@ namespace YesiLdefter.CEFSharp
                     return _cefBrowser;
                 }
 
-                CefSettings settings = new CefSettings() { RemoteDebuggingPort = 8090 };
-                settings.CefCommandLineArgs.Add("remote-allow-origins", "*");
-
-                /* local html kullanacığın zaman açacaksın
-                 * 
-                settings.RegisterScheme(new CefCustomScheme
+                lock (_lockObject)
                 {
-                    SchemeName = CustomProtocolSchemeHandlerFactory.SchemeName,
-                    SchemeHandlerFactory = new CustomProtocolSchemeHandlerFactory()
-                });
+                    if (_cefBrowser != null)
+                    {
+                        return _cefBrowser;
+                    }
 
-                // yüklemek için
+                    // CRITICAL: Disable automatic shutdown on Application.Exit
+                    // This prevents CefSharp from calling Cef.Shutdown() from the wrong thread
+                    // (e.g., DevExpress SplashScreen thread instead of UI thread)
+                    // We will call Shutdown() manually from CEFHelper.Shutdown()
+                    CefSharpSettings.ShutdownOnExit = false;
+                    
+                    CefSettings settings = new CefSettings() { RemoteDebuggingPort = 8090 };
+                    settings.CefCommandLineArgs.Add("remote-allow-origins", "*");
 
-                chromiumWebBrowser.LoadUrl("resource://ui/index.html");
+                    /* local html kullanacığın zaman açacaksın
+                     * 
+                    settings.RegisterScheme(new CefCustomScheme
+                    {
+                        SchemeName = CustomProtocolSchemeHandlerFactory.SchemeName,
+                        SchemeHandlerFactory = new CustomProtocolSchemeHandlerFactory()
+                    });
 
-                /// unutma index.html sayfasını projenin kaynak kodlarına ekledikten sonra (yesiLdefterV3.sln)
-                /// index.html dosyasının properties ini açarak
-                /// Build Action : Content
-                /// Build Action : Embedded Resource  
-                /// şeklinde değiştirmen gerekiyor
-                /// Eğer index.html içinde çağırdığın resim dosyaları var ise onlara aynısı yapacaksın
+                    // yüklemek için
 
-                */
+                    chromiumWebBrowser.LoadUrl("resource://ui/index.html");
 
-                Cef.Initialize(settings);
-                _cefBrowser = new ChromiumWebBrowser();
+                    /// unutma index.html sayfasını projenin kaynak kodlarına ekledikten sonra (yesiLdefterV3.sln)
+                    /// index.html dosyasının properties ini açarak
+                    /// Build Action : Content
+                    /// Build Action : Embedded Resource  
+                    /// şeklinde değiştirmen gerekiyor
+                    /// Eğer index.html içinde çağırdığın resim dosyaları var ise onlara aynısı yapacaksın
 
-                return _cefBrowser;
+                    */
+
+                    Cef.Initialize(settings);
+                    _isInitialized = true;
+                    _initializedThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+                    _cefBrowser = new ChromiumWebBrowser();
+
+                    return _cefBrowser;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Safely shutdown CefSharp on the same thread it was initialized on
+        /// </summary>
+        public static void Shutdown()
+        {
+            lock (_lockObject)
+            {
+                if (!_isInitialized)
+                {
+                    return;
+                }
+
+                try
+                {
+                    // Dispose browser first
+                    if (_cefBrowser != null)
+                    {
+                        _cefBrowser.Dispose();
+                        _cefBrowser = null;
+                    }
+
+                    // Check if we're on the correct thread
+                    int currentThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+                    if (currentThreadId != _initializedThreadId)
+                    {
+                        // If not on UI thread, invoke on UI thread
+                        if (System.Windows.Forms.Application.OpenForms.Count > 0)
+                        {
+                            var mainForm = System.Windows.Forms.Application.OpenForms[0];
+                            if (mainForm != null && mainForm.InvokeRequired)
+                            {
+                                mainForm.Invoke(new System.Action(() =>
+                                {
+                                    if (Cef.IsInitialized == true)
+                                    {
+                                        Cef.Shutdown();
+                                    }
+                                }));
+                                _isInitialized = false;
+                                _initializedThreadId = -1;
+                                return;
+                            }
+                        }
+                    }
+
+                    // Shutdown on current thread (should be UI thread)
+                    if (Cef.IsInitialized == true)
+                    {
+                        Cef.Shutdown();
+                    }
+                    _isInitialized = false;
+                    _initializedThreadId = -1;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CEFHelper] Shutdown error: {ex.Message}");
+                }
             }
         }
 
