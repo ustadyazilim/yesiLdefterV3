@@ -93,17 +93,6 @@ namespace Tkn_Starter
             // NOTE(@Janberk): Ensures API base URL and JWT key are set in registry if not already configured
             Tkn_UstadAPI.tApiConfig.InitializeDefaults();
 
-            // TODO(@Janberk): Remove this once layouts are served from API/local cache so no DB is touched before auth/tenant selection.
-            if (v.active_DB.localDbUses == false)
-            {
-                t.WaitFormOpen(v.mainForm, "ManagerDB bağlantı bilgileri hazırlanıyor...");
-                // NOTE(@Janberk): legacy connection preparation (uses ini + legacy password fallback)
-                InitPreparingConnection(); 
-
-                t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı açılıyor...");
-                Db_Open(v.active_DB.managerMSSQLConn);
-            }
-
             //Version clrVersion = Environment.Version;
             //string appVersion = Application.ProductVersion;
 /*
@@ -165,6 +154,13 @@ namespace Tkn_Starter
                 //Application.Exit();
                 return;
             }
+            
+            t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri hazırlanıyor...");
+            InitPreparingConnection();
+
+            t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
+            Db_Open(v.active_DB.managerMSSQLConn);
+
             // 2. SECURE AUTHENTICATION FLOW: After successful authentication, get database connection info from API and establish database connections.
             // NOTE(@Janberk): Database connections are established ONLY after user authentication. Connection strings are retrieved from API and decrypted using JWT key.
             if (v.SP_UserLOGIN == true && v.active_DB.localDbUses == false)
@@ -387,21 +383,21 @@ namespace Tkn_Starter
             v.active_DB.ustadCrmDBType = v.dBaseType.MSSQL;
             v.active_DB.projectDBType = v.dBaseType.MSSQL;
                         
+            v.active_DB.managerUserName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_USER");
+            v.active_DB.managerServerName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_SERVER");
+            v.active_DB.managerDBName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_NAME");
+            v.active_DB.managerPsw = "Password = " + Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS") + ";";
+                        
             ///
             /// main Manager DB Connections
             /// 
             #region
             
-            // TODO(@Janberk): Remove hardcoded password fallback when all modes use API.
-            v.active_DB.managerUserName = "sa";
+            // TODO(@Janberk): RmanagerPsw emove hardcoded password fallback when all modes use API.
+            v.active_DB.managerUserName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_USER");
             // LEGACY: fallback to old manager password so layout can be loaded before auth.
-            string managerPassword = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS");
-            if (string.IsNullOrWhiteSpace(managerPassword))
-            {
-                managerPassword = "ustad84352Yazilim"; 
-                // TODO(@Janberk): Remove legacy fallback when all modes use API.
-            }
-            v.active_DB.managerPsw = "Password = " + managerPassword + ";";
+
+            v.active_DB.managerPsw = "Password = " + Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS") + ";";
             v.active_DB.managerConnectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
                 v.active_DB.managerServerName,
@@ -417,9 +413,10 @@ namespace Tkn_Starter
             /// 
             #region
             v.publishManager_DB.dBaseNo = v.dBaseNo.publishManager;
-            v.publishManager_DB.userName = "sa";
-            // TODO(@Janberk): Remove legacy password fallback when all modes use API.
-            v.publishManager_DB.psw = "Password = " + managerPassword + ";";
+            v.publishManager_DB.userName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_USER");
+            v.publishManager_DB.serverName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_SERVER");
+            v.publishManager_DB.databaseName = Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_NAME");
+            v.publishManager_DB.psw = "Password = " + Environment.GetEnvironmentVariable("USTAD_MANAGER_DB_PASS") + ";";
             v.publishManager_DB.connectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
                 v.publishManager_DB.serverName,
@@ -437,15 +434,10 @@ namespace Tkn_Starter
             #region
 
             //v.active_DB.ustadCrmDBName = "UstadCRM";
-            v.active_DB.ustadCrmUserName = "sa";
-            
-            // Use CRM password override if provided, else legacy fallback.
-            string ustadCrmPassword = Environment.GetEnvironmentVariable("USTAD_CRM_DB_PASS");
-            if (string.IsNullOrWhiteSpace(ustadCrmPassword))
-            {
-                ustadCrmPassword = managerPassword;
-            }
-            v.active_DB.ustadCrmPsw = "Password = " + ustadCrmPassword + ";";
+            v.active_DB.ustadCrmUserName = Environment.GetEnvironmentVariable("USTAD_CRM_DB_USER");
+            v.active_DB.ustadCrmServerName = Environment.GetEnvironmentVariable("USTAD_CRM_DB_SERVER");
+            v.active_DB.ustadCrmDBName = Environment.GetEnvironmentVariable("USTAD_CRM_DB_NAME");
+            v.active_DB.ustadCrmPsw = "Password = " + Environment.GetEnvironmentVariable("USTAD_CRM_DB_PASS") + ";";
 
             v.active_DB.ustadCrmConnectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
@@ -668,6 +660,20 @@ namespace Tkn_Starter
                     MessageBoxIcon.Error);
             }
         }
+
+        /// <summary>
+        /// Opens legacy login form (uses database-dependent layout)
+        /// Only used for Tabim local database mode
+        /// </summary>
+        void InitLoginUserLegacy()
+        {
+            // LEGACY: This method uses database-dependent form layouts
+            // Only used for local database mode (Tabim)
+            string FormName = "ms_User";
+            string FormCode = "UST/CRM/ABO/UstadUserLogin";
+            OpenFormPreparing(FormName, FormCode, v.formType.Dialog);
+        }
+
         void InitTabimLoginUser()
         {
             string FormName = "ms_TabimMtsk";
@@ -675,10 +681,5 @@ namespace Tkn_Starter
             OpenFormPreparing(FormName, FormCode, v.formType.Dialog);
         }
         #endregion InitLoginUser
-
-        #region orders
-
-
-        #endregion orders
     }
 }

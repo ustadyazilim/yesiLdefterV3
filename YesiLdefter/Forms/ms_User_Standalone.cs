@@ -61,27 +61,19 @@ namespace YesiLdefter
 
         public ms_User_Standalone()
         {
-            System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Constructor called");
             try
             {
                 // NOTE(@Janberk): InitializeStandaloneComponents() sets up all form properties and controls
                 // We don't need InitializeComponent() from Designer.cs as we're doing everything programmatically
-                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Initializing standalone components...");
                 InitializeStandaloneComponents();
-                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Components initialized");
-                
-                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Initializing API client...");
                 InitializeApiClient();
-                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] API client initialized");
-                
-                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Loading user registry...");
                 LoadUserRegistry();
-                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] User registry loaded");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] ❌ Exception in constructor: {ex.Message}\n{ex.StackTrace}");
-                throw; // Re-throw to let InitLoginUser handle it
+                throw; 
+                // Re-throw to let InitLoginUser handle it
             }
         }
 
@@ -95,8 +87,8 @@ namespace YesiLdefter
 
             // Form properties
             this.Text = "Giriş Yap";
-            this.Size = new Size(960, 720);
-            this.MinimumSize = new Size(960, 720);
+            this.Size = new Size(640, 480);
+            this.MinimumSize = new Size(640, 480);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.AutoScroll = false;

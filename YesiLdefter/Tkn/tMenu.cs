@@ -117,25 +117,6 @@ namespace Tkn_Menu
             */
         }
 
-        // Static guard to prevent infinite loops from recursive menu creation
-        private static System.Collections.Generic.HashSet<string> _creatingMenus = new System.Collections.Generic.HashSet<string>();
-        private static readonly object _menuCreationLock = new object();
-        // Track WebView2 failures to disable it if it's causing too many issues
-        private static int _webView2FailureCount = 0;
-        private static readonly int MAX_WEBVIEW2_FAILURES = 3;
-        
-        public static void ReportWebView2Failure()
-        {
-            lock (_menuCreationLock)
-            {
-                _webView2FailureCount++;
-                if (_webView2FailureCount >= MAX_WEBVIEW2_FAILURES)
-                {
-                    System.Diagnostics.Debug.WriteLine($"⚠️ WebView2 has failed {_webView2FailureCount} times. Disabling WebView2 for this session to prevent infinite loops.");
-                }
-            }
-        }
-
         // 2. NOTE(@Janberk): Create_Menu_IN_Control() is the entry point for building menus from metadata.
         // MenuCode (same as TABLEIPCODE from layout) => definition to load from MS_ITEMS table.
         // ItemType determines which DevExpress control to create 
@@ -144,25 +125,12 @@ namespace Tkn_Menu
         // CMP_BACKCOLOR, MENU_COLOR, CAPTION, etc.
         public void Create_Menu_IN_Control(Control mainControl, string MenuCode, string ExtraValue)
         {
-            // Prevent infinite loops: check if this menu is already being created
-            string menuKey = $"{mainControl?.Name ?? "null"}_{MenuCode}";
-            lock (_menuCreationLock)
-            {
-                if (_creatingMenus.Contains(menuKey))
-                {
-                    System.Diagnostics.Debug.WriteLine($"tMenu.Create_Menu_IN_Control: ⚠️ Menu {MenuCode} is already being created, skipping to prevent infinite loop");
-                    return;
-                }
-                _creatingMenus.Add(menuKey);
-            }
-
             try
             {
                 tToolBox t = new tToolBox();
                 tEvents ev = new tEvents();
                 tEventsMenu evm = new tEventsMenu();
                 tTablesRead tr = new tTablesRead();
-                
                 DataSet ds_Items = new DataSet();
 
             //tr.MS_LayoutOrItems_Read(ds_Items, MenuCode, 3);
@@ -181,7 +149,6 @@ namespace Tkn_Menu
             string about = t.Set(ds_Items.Tables[0].Rows[0]["ABOUT"].ToString(), "", "");
             string Prop_View = t.Set(ds_Items.Tables[0].Rows[0]["PROP_VIEWS"].ToString(), "", "");
 
-            System.Diagnostics.Debug.WriteLine($"tMenu.Create_Menu_IN_Control: MenuCode={MenuCode}, ItemType={ItemType}, Caption={caption}, RefId={RefId}");
             int DockType = t.myInt16(ds_Items.Tables[0].Rows[0]["DOCK_TYPE"].ToString());
             if (DockType == 0) DockType = v.dock_Top;
             int width = t.myInt32(ds_Items.Tables[0].Rows[0]["CMP_WIDTH"].ToString());
@@ -448,7 +415,7 @@ namespace Tkn_Menu
                 DevExpress.XtraBars.Navigation.TileNavPane
                 menuControl = new DevExpress.XtraBars.Navigation.TileNavPane();
 
-                menuControl.Name = "MENU_" + MasterCode;
+                menuControl.Name = "MENU_" + MasterCode; // RefId.ToString();
                 menuControl.Text = "REF_ID[" + RefId.ToString() + "],CAPTION[" + caption + "]";
                 menuControl.TabStop = false;
                 menuControl.OptionsPrimaryDropDown.CloseOnOuterClick = DefaultBoolean.True;
@@ -718,7 +685,7 @@ namespace Tkn_Menu
         #endregion Create_BarManager
 
         #region Create_Ribbon
-        public void Create_Ribbon(DevExpress.XtraBars.Ribbon.RibbonControl mControl, DataSet ds_Items)
+        public void Create_Ribbon(DevExpress.XtraBars.Ribbon.RibbonControl mControl, DataSet ds_Items, string MenuCode)
         {
             tToolBox t = new tToolBox();
             tEvents ev = new tEvents();
@@ -1780,9 +1747,6 @@ namespace Tkn_Menu
                         //mControl.Categories.Add(pGroup);
                         if (itemType == 201)
                         {
-                            // NOTE(@Janberk): For entrance screens, styling is already applied above (line ~1951)
-                            // For non-entrance screens, apply standard modern styling here
- 
                                 string backColorStr = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
                                 string menuColorStr = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
                                 

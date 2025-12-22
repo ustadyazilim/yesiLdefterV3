@@ -23,9 +23,7 @@ namespace Tkn_UstadAPI
         // Default values (fallback if not in registry or environment)
         // NOTE: Production server is set as default for now until dev mode is configured
         // Env vars:
-        //   USTAD_API_BASE_URL (e.g., http://143.198.228.153:5000)
         //   USTAD_JWT_KEY      (must match API Jwt:Key)
-        // Production defaults: http://143.198.228.153:5000 (deployed server)
         // JWT Key from Development settings: UstadSecretKeyForJWTTokenGeneration2026SecureKey32Chars
         private static readonly string DEFAULT_API_BASE_URL =
             Environment.GetEnvironmentVariable("USTAD_API_BASE_URL") ?? "http://143.198.228.153:5000";

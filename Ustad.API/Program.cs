@@ -25,7 +25,7 @@ namespace Ustad.API
                     webBuilder.UseStartup<Startup>();
                     // Explicitly configure to listen on all interfaces (0.0.0.0)
                     // This allows connections from other devices on the network
-                    webBuilder.UseUrls("http://0.0.0.0:5000");
+                    //webBuilder.UseUrls("http://0.0.0.0:5000");
                 });
     
     }

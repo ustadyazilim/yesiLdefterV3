@@ -62,7 +62,14 @@ namespace Tkn_Layout
             Create_Layout(tForm, null, ds_Layout);
         }
 
-
+     // 1. NOTE(@Janberk): Create_Layout() is the main orchestrator for building form layouts
+        // It reads layout definitions from ds_Layout
+        // (populated by tTablesRead.MS_Layout_Read from MS_LAYOUT table).
+        // The method dispatches to specific preparers 
+        // (lMenu_Preparing, lPanelControl_Preparing, etc.) based on LAYOUT_TYPE.
+        // /////////////////////////////////////////////////////////////////
+        // EXAMPLE: when LayoutType == v.lyt_menu => 
+        // it calls lMenu_Preparing which then calls tMenu.Create_Menu_IN_Control.
         private void Create_Layout(Form tForm, Control subView, DataSet ds_Layout)
         {
             Cursor.Current = Cursors.Hand;
@@ -76,6 +83,7 @@ namespace Tkn_Layout
             short MasterLayoutType = 0;
             string LayoutType = string.Empty;
             string visible = string.Empty;
+            string layoutCode = string.Empty;
             
             string setfocus_TableIPCode = string.Empty;
             string setfocus_FieldName = string.Empty;
@@ -91,7 +99,7 @@ namespace Tkn_Layout
                 MasterLayoutType = t.myInt16(row["MASTER_LAYOUT_TYPE"].ToString());
                 LayoutType = row["LAYOUT_TYPE"].ToString();
                 visible = t.Set(row["CMP_VISIBLE"].ToString(), "", "");
-
+                layoutCode = row["LAYOUT_CODE"].ToString();
                 if ((MasterLayoutType == 1) && (LayoutType == ""))
                 {
                     // sf : SetFocus
@@ -261,6 +269,10 @@ namespace Tkn_Layout
             tForm.Text = caption;
         }
 
+         //NOTE(@Janberk): lMenu_Preparing() handles menu creation within a layout.
+        // It extracts TABLEIPCODE from the layout row, which points to a menu definition in MS_ITEMS.
+        // This TABLEIPCODE is passed to tMenu.Create_Menu_IN_Control(),
+        // which reads menu items and builds DevExpress controls (TileNavPane, Ribbon, NavBar, etc.).
         private void lMenu_Preparing(Form tForm, Control subView, DataSet ds_Layout, DataRow row, int pos)
         {
             tMenu mn = new tMenu();

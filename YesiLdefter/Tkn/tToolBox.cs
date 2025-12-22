@@ -1317,7 +1317,7 @@ namespace Tkn_ToolBox
             bool onay = false;
 
             #region Closed ise
-            if (VTbaglanti.State == ConnectionState.Closed)
+            if (state == ConnectionState.Closed)
             {
                 byte i = 0;
 
@@ -1891,7 +1891,7 @@ namespace Tkn_ToolBox
                         preparing_TableIPCodeFieldsList(vt.TableIPCode);
                         if (IsNotNull(vt.TableIPCode))
                         {
-                            if (v.active_DB.mainManagerDbUses)
+                            if (v.active_DB.mainManagerDbUses || vt.DBaseNo == v.dBaseNo.UstadCrm))
                             {
                                 DataTable dt = v.ds_TableIPCodeFields.Tables[vt.TableIPCode];
                                 if (dt != null)

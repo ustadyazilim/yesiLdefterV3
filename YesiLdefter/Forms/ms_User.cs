@@ -399,15 +399,13 @@ namespace YesiLdefter
                             v.tUser.UserDbTypeId = loginResponse.DbTypeId;
                             v.tUser.eMail = u_user_email;
                             // NOTE(@Janberk): API must return both UserId (numeric) and UserGUID; OperatorId currently maps to legacy UserId usage.
-                            
                             // NOTE(@Janberk): Store JWT token for later use in getting DB connection info
                             // The token is needed to authenticate API calls to /auth/db-connection-info
                             v.tUser.JwtToken = loginResponse.Token;
                             // TODO(@Janberk): Add refresh-token support and persist token securely (registry/DPAPI) with expiry tracking.
 
                             apiClient.SetAuthToken(loginResponse.Token);
-                            
-                            // NOTE(@Janberk): Show loading indicator while fetching user firms
+
                             t.WaitFormOpen(this, "Firma bilgileri alınıyor...");
                             Application.DoEvents();
                             
@@ -447,7 +445,6 @@ namespace YesiLdefter
                     }
                     catch (Exception ex)
                     {
-                        // NOTE(@Janberk): Improved error handling with better user feedback
                         string errorMsg = ex.Message;
                         bool isAuthError = false;
                         bool isNetworkError = false;
@@ -506,7 +503,6 @@ namespace YesiLdefter
                     }
                     finally
                     {
-                        // NOTE(@Janberk): Always close loading indicator
                         t.WaitFormClose();
                     }
                 }
@@ -545,7 +541,6 @@ namespace YesiLdefter
 
         /// <summary>
         /// Extract FirmInfo from DataRow (populated from firm selection list)
-        /// NOTE(@Janberk): Helper method to reconstruct FirmInfo from DataRow for API-based flow
         /// </summary>
         private UstadApiClient.FirmInfo ExtractFirmInfoFromRow(DataRow row)
         {
@@ -716,7 +711,6 @@ namespace YesiLdefter
 
             try
             {
-                // NOTE(@Janberk): Show loading indicator during user check
                 if (work == "SEND_EMAIL")
                 {
                     t.WaitFormOpen(this, "Şifre sıfırlama talebi gönderiliyor...");
@@ -794,7 +788,6 @@ namespace YesiLdefter
             }
             finally
             {
-                // NOTE(@Janberk): Always close loading indicator
                 t.WaitFormClose();
             }
         }
@@ -870,7 +863,6 @@ namespace YesiLdefter
             }
             finally
             {
-                // NOTE(@Janberk): Always close loading indicator
                 t.WaitFormClose();
             }
         }
@@ -1023,8 +1015,6 @@ namespace YesiLdefter
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
-
-                // NOTE(@Janberk): Show loading indicator while fetching firm details
                 t.WaitFormOpen(this, "Firma bilgileri alınıyor...");
                 Application.DoEvents();
 
@@ -1073,7 +1063,6 @@ namespace YesiLdefter
             }
             finally
             {
-                // NOTE(@Janberk): Always close loading indicator
                 t.WaitFormClose();
             }
         }
@@ -1255,7 +1244,6 @@ namespace YesiLdefter
                     return;
                 }
 
-                // NOTE(@Janberk): Show loading indicator during password change
                 t.WaitFormOpen(this, "Şifre değiştiriliyor...");
                 Application.DoEvents();
 
@@ -1291,7 +1279,6 @@ namespace YesiLdefter
             }
             finally
             {
-                // NOTE(@Janberk): Always close loading indicator
                 t.WaitFormClose();
             }
         }

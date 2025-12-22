@@ -1144,7 +1144,7 @@ namespace Tkn_Events
 
                     tGridHint.tableIPCode = ((DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.AccessibleName;
                     tGridHint.view = sender;
-                    // ((DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.Views;
+                    //DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.Views;
 
                     if (((DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.AccessibleDescription != null)
                         tGridHint.gridPropNavigator = ((DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.AccessibleDescription;

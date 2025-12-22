@@ -225,7 +225,6 @@ namespace YesiLdefter
                 if (!initialized)
                 {
                     System.Diagnostics.Debug.WriteLine($"[WebView2] ❌ Failed to initialize WebView2 for {_menuCode} after {maxRetries} attempts");
-                    Tkn_Menu.tMenu.ReportWebView2Failure();
                     return;
                 }
 
@@ -431,15 +430,11 @@ namespace YesiLdefter
                 // HRESULT errors (like E_ABORT 0x80004004) - often caused by too many simultaneous initializations
                 System.Diagnostics.Debug.WriteLine($"[WebView2] ⚠️ COMException (HRESULT) during initialization for {_menuCode}: {comEx.Message}");
                 System.Diagnostics.Debug.WriteLine($"[WebView2] HRESULT: 0x{comEx.ErrorCode:X8}");
-                // Report failure to tMenu.cs to track and potentially disable WebView2
-                Tkn_Menu.tMenu.ReportWebView2Failure();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[WebView2] InitializeWebViewAsync error for {_menuCode}: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"[WebView2] Stack trace: {ex.StackTrace}");
-                // Report failure to tMenu.cs to track and potentially disable WebView2
-                Tkn_Menu.tMenu.ReportWebView2Failure();
             }
             finally
             {
