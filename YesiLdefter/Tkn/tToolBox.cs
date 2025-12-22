@@ -1891,7 +1891,7 @@ namespace Tkn_ToolBox
                         preparing_TableIPCodeFieldsList(vt.TableIPCode);
                         if (IsNotNull(vt.TableIPCode))
                         {
-                            if (v.active_DB.mainManagerDbUses || vt.DBaseNo == v.dBaseNo.UstadCrm))
+                            if (v.active_DB.mainManagerDbUses || vt.DBaseNo == v.dBaseNo.UstadCrm)
                             {
                                 DataTable dt = v.ds_TableIPCodeFields.Tables[vt.TableIPCode];
                                 if (dt != null)

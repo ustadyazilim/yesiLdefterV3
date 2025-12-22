@@ -329,7 +329,6 @@ namespace Tkn_Menu
             #region // 105 - TileControl
             if (ItemType == 105)
             {
-                int groupCount = menuControl.Groups.Count;
                 /*
                 // 
                 // tileControl1
@@ -348,6 +347,7 @@ namespace Tkn_Menu
                     */
                     DevExpress.XtraEditors.TileControl menuControl =
                         new DevExpress.XtraEditors.TileControl();
+                    int groupCount = menuControl.Groups.Count;
                     // 
                     // tileControl1
                     //
@@ -401,9 +401,7 @@ namespace Tkn_Menu
                         mainControl.Controls.Add(menuControl);
                     }
 
-                    Create_TileControl(menuControl, ds_Items, MenuCode);
                     Create_TileControl(menuControl, ds_Items);
-                }
             }
             #endregion TileControl
 
@@ -1749,12 +1747,7 @@ namespace Tkn_Menu
                         //mControl.Categories.Add(pGroup);
                         if (itemType == 201)
                         {
-                                string backColorStr = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"]?.ToString(), "", "");
-                                string menuColorStr = t.Set(ds_Items.Tables[0].Rows[i]["MENU_COLOR"]?.ToString(), "", "");
-                                
-                                Color categoryBackColor = Tkn_ToolBox.tDevExpressTheme.ParseColorFromDatabase(backColorStr, Tkn_ToolBox.tDevExpressTheme.BrandPrimary);
-                                Color categoryHoverColor = Tkn_ToolBox.tDevExpressTheme.ParseColorFromDatabase(menuColorStr, Tkn_ToolBox.tDevExpressTheme.BrandAccent);
-                                
+                                // Variables already declared above, reuse them
                                 // Apply modern appearance with rounded corners, shadows, and smooth transitions
                                 Tkn_ToolBox.tDevExpressTheme.ApplyModernCategoryAppearance(pGroup, categoryBackColor, categoryHoverColor);
 
