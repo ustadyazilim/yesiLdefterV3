@@ -1,0 +1,26 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+ create table SrcUcretPisko
+ (
+
+   Id                     Int IDENTITY(1,1) NOT NULL, 
+   FirmId                 Int        not null,
+   IsActive               Bit        not null, /* default : 1 = active, 0 = not active */  
+   IlKodu                 Varchar(3) not null, /* il bazlı */  
+   GecerlilikTarihiId     Int        not null,
+
+   /* Ücretler */  
+   PiskoteknikUcreti      Numeric(22,5) null,  
+
+  constraint pk_SrcUcretPisko primary key (Id)
+ )
+
+ create index X_SrcUcretPisko01 on SrcUcretPisko (IlKodu, GecerlilikTarihiId)
+ 
+ grant select, insert, update, delete on SrcUcretPisko to public
+
+commit transaction
+
+/*CreateTableEnd*/

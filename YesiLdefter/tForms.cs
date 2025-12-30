@@ -15,6 +15,7 @@ namespace Tkn_Forms
                 tForm = new YesiLdefter.ms_Form();
                 tForm.Name = "ms_Form"; 
             }
+            if (FormName == "ms_TileControl") tForm = new YesiLdefter.ms_TileControl();
             if (FormName == "ms_Computer") tForm = new YesiLdefter.ms_Computer();
             if (FormName == "ms_User") tForm = new YesiLdefter.ms_User();
             if (FormName == "ms_UserFirmList") tForm = new YesiLdefter.ms_UserFirmList();

@@ -115,7 +115,9 @@ namespace Tkn_Starter
             t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
             if (v.active_DB.localDbUses == false)
             {
-                InitLoginUser();
+                //InitLoginUser();
+                InitPreparingConnection();// mecburen burada connection hazırlanıyor
+                InitLoginUserLegacy();
             }
             else
             {
@@ -249,7 +251,7 @@ namespace Tkn_Starter
 
             // 3S_MSGLY 
             t.WaitFormOpen(v.mainForm, "Images okunuyor...");
-            //t.SYS_Glyph_Read();
+            t.SYS_Glyph_Read();
 
             //t.TestRead();
 
@@ -405,23 +407,23 @@ namespace Tkn_Starter
         /// NOTE(@Janberk): This method is kept for local DB mode (Tabim) and backward compatibility.
         /// For secure mode, use InitPreparingConnectionFromApi() instead.
         /// </summary>
-        void InitPreparingConnection() 
+        private void InitPreparingConnection() 
         {
 
-            bool IsDebugMode = true;
+            bool IsDebugMode = v.active_DB.mainManagerDbUses;   //false;// true;
             string _user = "sa";
 
             string _managerDbName = "MainManagerV3";
-            string _managerDbPass = "ustad84352Yazilim";
-            string _managerServerName = "46.101.255.224";
+            string _managerDbPass = v.db_PASSWORD;
+            string _managerServerName = v.db_SERVERIP;
 
             string _crmDbName = "UstadCRMV1";
-            string _crmDbPass = "ustad84352Yazilim";
-            string _crmServerName = "46.101.255.224";
+            string _crmDbPass = v.db_PASSWORD;
+            string _crmServerName = v.db_SERVERIP;
 
             string _publishDbName = "UstadManagerV3";
-            string _publishDbPass = "ustad84352Yazilim";
-            string _publishServerName = "46.101.255.224";
+            string _publishDbPass = v.db_PASSWORD;
+            string _publishServerName = v.db_SERVERIP;
 
             /// NOT : Project burada kullanılmıyor
             /// kullanıcı bir firma seçtiğinde hangi database  kullanılacak ise 
@@ -430,7 +432,7 @@ namespace Tkn_Starter
             string _projectDbName = "";
             _projectDbName = "Mts00000011";  // vaya
             _projectDbName = "Src00004204";  // 
-            string _projectDbPass = "ustad84352Yazilim"; /// şimdillik ortak pass kullanılıyor
+            string _projectDbPass = v.db_PASSWORD; /// şimdillik ortak pass kullanılıyor
 
             ///
             /// ------------------------------------------------
@@ -525,6 +527,8 @@ namespace Tkn_Starter
 
             // DİKKAT : BU METODU KULLANMA MASTER-DETAIL de DETAIL kırılıyor
             // v.SP_Conn_Text_Manager_MSSQL = " Server=94.73.145.8; Database=MSV3DFTRBLT; Uid=user4601;Pwd=CanBerk98";
+            tToolBox t = new tToolBox();
+            t.Db_Open(v.active_DB.managerMSSQLConn);
 
         }
 

@@ -48,7 +48,9 @@ INSERT INTO [Lkp].[GecerlilikTarihiKonuTipi] (Id, KonuTipi, GrupTipiId)
   ( 21101,  N'Teorik saatler', 201),
   ( 21102,  N'Uygulama saatleri', 201),
   ( 21103,  N'Sınav ücreti', 201),
-  ( 21104,  N'Sertifika/ders ücreti', 201)
+  ( 21104,  N'Sertifika/ders ücreti', 201),
+  ( 21105,  N'Piskoteknik ücreti', 201)
+
   
 commit transaction
 

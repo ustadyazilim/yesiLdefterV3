@@ -6,13 +6,19 @@ begin transaction
  (
    Id                      Int IDENTITY(1,1) not null, 
    FirmId                  Int        not null,
+   IsActive                Bit        not null, /* default : 1 = active, 0 = not active */  
    TalepId                 Int        not null, /* Kullanılmayacak ileride gerebilir, ehliyet AdayBiyometrik resmi gibi tek olacak */
    AdayId                  Int        not null, 
    TcNo                    Varchar(11)    null,
+   TamAdiSoyadi            nVarchar(100)  null,
+   CepTelefonu             Varchar(15)    null,
    VeriKaynakId            Int            null, /* Veri transferi edildiği tablodaki Id . Sorun olduğunda bilginin nereden geldiğine referans olsun */
 
    -- 10
-   TestSebebi              nVarchar(250)  null,
+   KayitTarihi             date           null,
+   TestSebebiTipiId        smallInt       null,
+
+   -- 20 sağlık 
    IsGozlukKullaniyor      bit            null,
    GozlukYakinNo           nVarchar(50)   null, /* sağ ayrı, sol ayrı girebilirler */ 
    GozlukUzakNo            nVarchar(50)   null, /* sağ ayrı, sol ayrı girebilirler */ 
@@ -20,21 +26,31 @@ begin transaction
    OzurlulukHali           nVarchar(50)   null,
    IsTrafikKazasiVar       bit            null,
    TrafikKazaNedeni        nVarchar(100)  null, 
-   -- 20
+
+   -- 30 randevu
    RandevuTarihi           Date           null,  
    RandevuSaati            Varchar(8)     null,
    RandevuCihazId          Int            null,
-   DoktorId                Int            null,
+   BaslamaSaati            Datetime       null, /* Calender and Scheduling için gerekli */
+   BitisSaati              Datetime       null, /* Calender and Scheduling için gerekli */
 
-   -- 30
+   -- 40 doktor - Piskoteknik kısmı
+   DoktorId                Int            null,
+   TestDurumuTipiId        smallInt       null, /* 0. Tanımsız 1. randevuya bekleniyor,  2. Teste girdi, 3. Teste girmedi, 4. Durumu girilmemiş */
+   TestSonucTipiId         smallInt       null, /* 0. Tanımsız 1. Başarılı, 2. Başarısız */
+
+   -- 50
+   PsikiyatirOnayTipiId    SmallInt       null, /* 0. Tanımsız, 1. Bekliyor, 2. Onaylandı, 3. Onaylanmadı */
+   RaporBaslangicTarihi    Date           null,
+   RaporSuresiYil          smallInt       null, /* default 5 yıl, 4, 3, 2, 1 */
+   RaporBitisTarihi        Date           null,
+
+   -- 60
    KullaniciUyarilari      nVarchar(200)  null,
    EtiketTipiId            SmallInt       null, 
    ReferansId              Int            null, /* Refreans cari hesaplar bağlanacak */
 
-   -- 40
-   DurumTipiId             SmallInt       null, /* randevu aşamasında, olumlu sonuçlandı, olumsuz sonuçlandı gibi konular  */
-   RaporBaslangicTarihi    Date           null,
-   RaporBitisTarihi        Date           null,
+
 
    constraint		pk_SrcAdayPisko primary key (Id)
  )
@@ -43,6 +59,8 @@ begin transaction
 
   create index X_SrcAdayPisko01 on SrcAdayPisko (AdayId)
   create index X_SrcAdayPisko02 on SrcAdayPisko (TalepId)
+  create index X_SrcAdayPisko03 on SrcAdayPisko (KayitTarihi)
+  create index X_SrcAdayPisko04 on SrcAdayPisko (RandevuTarihi)
 
 commit transaction
 

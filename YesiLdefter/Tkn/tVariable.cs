@@ -273,7 +273,8 @@ namespace Tkn_Variable
         public static string db_MAINMANAGER_DBNAME = "SystemMS"; // { get; set; } // "ManagerServer"
         //public static string db_PROJE_DBNAME { get; set; }   // SP_DATABASENAME
         //public static string db_USER_NAME { get; set; }
-        //public static string db_PASSWORD { get; set; }
+        public static string db_PASSWORD { get; set; } = "ustad84352Yazilim";
+        public static string db_SERVERIP { get; set; } = "46.101.255.224";
 
         public static string SP_MENU { get; set; }
         public static string EXE_DRIVE = string.Empty;

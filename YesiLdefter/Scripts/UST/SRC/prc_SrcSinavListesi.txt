@@ -3,16 +3,19 @@
 CREATE PROCEDURE [dbo].[prc_SrcSinavListesi] (@FirmId int, @Tarih Date)  
 AS BEGIN 
 
- SET NOCOUNT ON;
 
- --declare @FirmId int = 4239
- --declare @Tarih date 
+ SET NOCOUNT ON;
+ /*
+ declare @FirmId int = 4204
+ declare @Tarih date 
 
  --set @Tarih = convert(date, '06.12.2025', 103)
- --set @Tarih = convert(date, '01.11.2025', 103)
-
+ set @Tarih = convert(date, '01.11.2025', 103)
+ */
  Select 
+
    [SrcAdayTakip].[Id]
+,  ROW_NUMBER() OVER (ORDER BY [aday].TamAdiSoyadi, [SrcAdayTakip].Id) AS Lkp_SiraNo
  , [SrcAdayTakip].[TalepId]
  , [SrcAdayTakip].[AdayId]
  , [SrcAdayTakip].[DonemTipiId]
@@ -20,6 +23,7 @@ AS BEGIN
  , [SrcAdayTakip].[SubeTipiId]
  , [SrcAdayTakip].[TeorikBitisTarihi]
 
+ , [SrcAdayTakip].[SinavGirisNedeniTipiId]
  , [SrcAdayTakip].[GirecegiSinavTipiId]
  , [SrcAdayTakip].[eSinavNo]
  , [SrcAdayTakip].[eSinavDurumTipiId]
@@ -56,18 +60,31 @@ AS BEGIN
 
  -- JoinTables standart output fields 
  , [aday].TamAdiSoyadi as Lkp_AdayTamAdiSoyadi 
+ , [aday].Adi as Lkp_AdayAdi
+ , [aday].Soyadi as Lkp_AdaySoyadi
  , [aday].TcNo as Lkp_AdayTcNo 
  , [aday].CepTelefonu as Lkp_CepTelefonu 
- , [MevcutSertifika].KSertifikaTipi as Lkp_MevcutSertifikaTipi 
- , [IstenenSertifika].KSertifikaTipi as Lkp_IstenenSertifikaTipi 
- , [eSinav].SinavTarihSaat as Lkp_eSinavTarihSaat 
- , [eSinav].TestMerkeziBilgisi as Lkp_TestMerkeziBilgisi 
- , [eSinav].TeorikPuani as Lkp_TeorikPuani 
+ , [aday].BabaAdi as Lkp_BabaAdi
+ , [aday].DogumTarihi as Lkp_DogumTarihi
+
  , [talep].IstenenSertifikaTipiId as Lkp_IstenenSertifikaTipiId 
  , [talep].DonemTipiId as Lkp_DonemTipiId 
+ , [MevcutSertifika].KSertifikaTipi as Lkp_MevcutSertifikaTipi 
+ , [IstenenSertifika].KSertifikaTipi as Lkp_IstenenSertifikaTipi 
+ 
+ , (case [SrcAdayTakip].[GirecegiSinavTipiId] 
+    when 3 then [IstenenSertifika].KSertifikaTipi + ' [Uyg]'  
+    else [IstenenSertifika].KSertifikaTipi
+    end) as Lkp_IstenenSertifikaTipi_GirecegiSinav
+
+ , [eSinav].SinavTarihi as Lkp_eSinavTarihSaat 
+ , [eSinav].TeorikPuani as Lkp_TeorikPuani 
+ , [eSinavDurumu].DurumuTipi as Lkp_TeorikSinavDurumu
+
  , [uSinav].SinavTarihi as Lkp_uSinavTarihi 
- , [uSinav].PuanTipiId as Lkp_PuanTipiId 
- , [uSinav].SinavDonemTipiId as Lkp_SinavDonemTipiId 
+ , [uSinav].PuanTipiId  as Lkp_PuanTipiId 
+ , [uSinavDurumu].PuanTipi as Lkp_UygulamaSinavDurumu
+
  -- LookUp fields
  , [FNo7].[DonemTipi] as Lkp_DonemTipi
  , [FNo8].[GrupTipi] as Lkp_GrupTipi
@@ -111,8 +128,13 @@ AS BEGIN
     left outer join SrcAday as [aday] with (nolock) on ( [SrcAdayTakip].AdayId = [aday].Id ) 
     left outer join SrcAdayTalep as [talep] with (nolock) on ( [SrcAdayTakip].TalepId = [talep].Id ) 
     left outer join SrcAdayUcret as [ucret] with (nolock) on ( [SrcAdayTakip].TalepId = [ucret].TalepId ) 
-    left outer join SrcSinavETeorik as [eSinav] with (nolock) on ( [SrcAdayTakip].eSinavDetayId = [eSinav].Id and [eSinav].LineTypeId = 1 ) -- başvuru satırı 
-    left outer join SrcSinavUygulama as [uSinav] with (nolock) on ( [SrcAdayTakip].uSinavDetayId = [uSinav].Id ) 
+
+    left outer join SrcSinavETeorik  as [eSinav] with (nolock) on ( [SrcAdayTakip].TalepId = [eSinav].TalepId and [eSinav].SinavTarihi = Convert(date, @Tarih, 103) and [eSinav].LineTypeId = 2 ) -- başvuru satırı 
+    left outer join SrcSinavUygulama as [uSinav] with (nolock) on ( [SrcAdayTakip].TalepId = [uSinav].TalepId and [uSinav].SinavTarihi = Convert(date, @Tarih, 103) ) 
+
+    left outer join [Lkp].[SrcSinavETeorikDurumuTipi] as [eSinavDurumu] with (nolock) on ( [eSinav].DurumuTipiId = [eSinavDurumu].Id )  
+    left outer join [Lkp].[SrcSinavUygulamaPuanTipi]  as [uSinavDurumu] with (nolock) on ( [uSinav].PuanTipiId = [uSinavDurumu].Id )  
+
    -- LookUp Tables
     left outer join Lkp.SrcSertifikaTipi as [MevcutSertifika] with (nolock) on ( talep.MevcutSertifikaTipiId = [MevcutSertifika].Id ) 
     left outer join Lkp.SrcSertifikaTipi as [IstenenSertifika] with (nolock) on ( talep.IstenenSertifikaTipiId = [IstenenSertifika].Id ) 
@@ -121,6 +143,7 @@ AS BEGIN
     left outer join Lkp.SrcSubeTipi as FNo9 with (nolock) on ( SrcAdayTakip.SubeTipiId = FNo9.Id )
     left outer join Lkp.SrcAdayTakipeSinavUcretTipi as FNo116 with (nolock) on ( SrcAdayTakip.eSinavUcretTipiId = FNo116.Id )
     left outer join Lkp.SrcSinavUygulamaPuanTipi as [uPuanTipi] with (nolock) on ( uSinav.PuanTipiId = [uPuanTipi].Id ) 
+
     -- Add Join Table
     --left outer join dbo.OnmOdemePlani as odemeESinav with (nolock) on ( [SrcAdayTakip].TalepId = odemeESinav.TalepId and [SrcAdayTakip].eSinavNo = odemeESinav.TaksitNo and odemeESinav.UcretTipiId = 23111 ) -- e-sınav ücreti
     --left outer join dbo.OnmOdemePlani as odemeUSinav with (nolock) on ( [SrcAdayTakip].TalepId = odemeUSinav.TalepId and [SrcAdayTakip].uSinavNo = odemeUSinav.TaksitNo and odemeUSinav.UcretTipiId = 23112 ) -- uyg sınav ücreti
@@ -133,7 +156,7 @@ AS BEGIN
      (
           Select TalepId From dbo.SrcAdayTakip as SrcAdayTakip
           Where 0 = 0
-          and ( SrcAdayTakip.Asama1TipiId = 300 or SrcAdayTakip.Asama1TipiId = 600 )
+          and ( SrcAdayTakip.Asama1TipiId <= 300 or SrcAdayTakip.Asama1TipiId = 600 )
           and SrcAdayTakip.KayitTipiId < 4  
           and SrcAdayTakip.SubeTipiId  > 0 
           and SrcAdayTakip.FirmId = @FirmId 
@@ -157,8 +180,8 @@ AS BEGIN
      ) as x
 ) -- and SrcAdayTakip.TalepId in (   
 
-order by [SrcAdayTakip].eSinavNoGirdigi, [aday].TamAdiSoyadi
-
+--order by [SrcAdayTakip].eSinavNoGirdigi, [aday].TamAdiSoyadi
+order by [aday].TamAdiSoyadi
 
 END; -- procedure
 

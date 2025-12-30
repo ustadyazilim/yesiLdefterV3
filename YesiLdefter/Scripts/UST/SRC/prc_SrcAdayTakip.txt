@@ -786,6 +786,15 @@ BEGIN
            when isnull(oncekiESnv.DurumuTipiId,0) = 1 then 0 -- e-sınav başarılı ise
            end ) as yeniGirecegiSinavNo 
 
+    , ( case 
+           when dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') = 1 then 1 -- Dönem kursiyeri
+           when dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') > 1 and oncekiESnv.DurumuTipiId = 2 then 2 -- Başarısız  ise Teorik sınavdan kalmış
+           when dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') > 1 and oncekiESnv.DurumuTipiId = 3 then 3 -- Girmedi    ise Sınava girmedi
+           when dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') > 1 and oncekiESnv.DurumuTipiId = 7 then 4 -- Girmeyecek ise Sınava girmeyecek
+           when dbo.fnc_getEUSinavNo(t.TalepId, ''YeniUSinavNo'') > 1 and oncekiUSnv.PuanTipiId   = 1 then 5 -- Girmeyecek ise Uygulamada başarısız
+           end ) as yeniSinavGirisNedeniTipiId
+
+
   , ( case when t.eSinavDurumTipiId = 1 then 1 -- e-Sınav için hazır değil
            when t.eSinavDurumTipiId = 6 then 6 -- muaf 
            --when isnull(t.TeorikDersTipiId,0) < 17 and t.eSinavDurumTipiId <> 6 then 1 --  17 : Teork dersler tamamlanmadıysa > 1 -- e-Sınav için hazır değil
@@ -804,11 +813,18 @@ BEGIN
            when isnull(oncekiUSnv.PuanTipiId,0) <> 0 and isnull(oncekiUSnv.PuanTipiId,0) <> 100 and t.eSinavDurumTipiId = 5 then 2 -- A listesine dön
 
            -- birinci sınav ücreti sertifika ücreti içinde alndığı için @eSinavBorclandirYapma = 1 
+           when dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') = 1 and isnull(t.IseSinavaGirebilir,0) = 0 and t.eSinavPlanTarihi is null then 2 -- A listesine
+           when dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') = 1 and isnull(t.IseSinavaGirebilir,0) = 1 and t.eSinavPlanTarihi is null then 4 -- C listesine
+           when dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') = 1 and isnull(t.IseSinavaGirebilir,0) = 1 and t.eSinavPlanTarihi is not null then 5 -- D listesine
+           when dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') = 1 and t.eSinavPlanTarihi is not null then 5 -- D listesine
+
+           /*
            when @eSinavBorclandirYapma = 1 and dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') = 1 and ucret.BorcUcretlerToplami > 0 and isnull(t.IseSinavaGirebilir,0) = 0 and t.eSinavPlanTarihi is null then 2 -- A listesine
            when @eSinavBorclandirYapma = 1 and dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') = 1 and ucret.BorcUcretlerToplami > 0 and isnull(t.IseSinavaGirebilir,0) = 1 and t.eSinavPlanTarihi is null then 4 -- C listesine
            when @eSinavBorclandirYapma = 1 and dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') = 1 and ucret.BorcUcretlerToplami > 0 and isnull(t.IseSinavaGirebilir,0) = 1 and t.eSinavPlanTarihi is not null then 5 -- D listesine
            when @eSinavBorclandirYapma = 1 and dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') = 1 and ucret.BorcUcretlerToplami = 0 and t.eSinavPlanTarihi is null then 4 -- C listesine
            when @eSinavBorclandirYapma = 1 and dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') = 1 and ucret.BorcUcretlerToplami = 0 and t.eSinavPlanTarihi is not null then 5 -- D listesine
+           */
 
            -- data transfrenide gelen
            when dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') > 1 and t.eSinavPlanTarihi is not null then 5 -- D listesine 
@@ -906,6 +922,7 @@ BEGIN
     , eSinavBasariTarihi = x.yenieSinavBasariTarihi
 
     , GirecegiSinavTipiId = x.yeniGirecegiSinavTipiId
+    , SinavGirisNedeniTipiId = x.yeniSinavGirisNedeniTipiId
 
     , uSinavPlanTarihi = x.yeniuSinavPlanTarihi
     
@@ -934,8 +951,8 @@ BEGIN
   or  uSinavPlanTarihi is null
   or  x.yeniuSinavPlanTarihi is null
 
-  or  GirecegiSinavTipiId <> x.yeniGirecegiSinavTipiId
-  or  GirecegiSinavTipiId is null
+  or  isnull(SinavGirisNedeniTipiId,0) <> x.yeniSinavGirisNedeniTipiId
+  or  isnull(GirecegiSinavTipiId,0) <> x.yeniGirecegiSinavTipiId
 
   or ( x.yenieSinavBasariTarihi is null and eSinavBasariTarihi is not null )
   )
@@ -1043,7 +1060,7 @@ BEGIN
 
     Where @FirmId = t.FirmId
 	--and @TalepId = t.TalepId
-    and   t.KayitTipiId <= 4
+    and   t.KayitTipiId <= 4 
   ) -- With
   --Select * from UygulamaliSinavlar
   Update t
@@ -1125,7 +1142,7 @@ BEGIN
     Select t.TalepId as TalepId
     , ( case
          when t.KayitTipiId = 5 and t.eSinavSonrasiTipiId <> 3 then 3  -- hatalı kayıtı düzelt  
-         when t.KayitTipiId = 6 and t.uSinavSonrasiTipiId <> 3 then 3  -- hatalı kayıtı düzelt        
+         when t.KayitTipiId = 6 and t.uSinavSonrasiTipiId <> 3 then 3  -- hatalı kayıtı düzelt  
 
 	     when t.eSinavSonrasiTipiId = 2 and (t.TalepTipiId = 4 or t.TalepTipiId = 5) then 4 -- Ody veya Udy Sertifika aldı
 	     when t.uSinavSonrasiTipiId = 2 and t.TalepTipiId = 1 then 4 -- Src1234 Sertifika aldı 
@@ -1146,7 +1163,6 @@ BEGIN
 	     when t.eSinavSonrasiTipiId = 3 then 5 -- e-sınav hakkı bitti
 		 
 		 when ( t.uSinavDurumTipiId > 1 
-		 or     t.UygulamaliDersTipiId > 0 
 		 or     t.eSinavSonrasiTipiId > 1
 		 or     t.BelgelerYuklendi = 1 ) then 3 -- Kesin kayıt
 		 when ( t.BelgelerGeldi = 1 
@@ -1217,10 +1233,6 @@ BEGIN
         when t.KayitTipiId >= 5 and t.KayitTipiId <= 7 then 820
         when t.KayitTipiId = 4 then 810
         when t.uSinavDurumTipiId > 1 then 600
-        --when t.TalepTipiId = 1 and t.BasarisizDersTipiId > 0 then 540
-        --when ( t.TalepTipiId = 2 or t.TalepTipiId = 3) and t.Arti4DersTipiId > 0 then 530
-        --when t.TalepTipiId < 4 and t.TelafiDersTipiId > 0 then 520
-        --when t.TalepTipiId = 1 and t.UygulamaliDersTipiId > 0 then 510
         when t.eSinavSonucTipiId > 0 and eSinavSonrasiTipiId > 0 then 300
         when isnull(t.eSinavSonucTipiId,0) = 0 and isnull(eSinavSonrasiTipiId,0) = 0 and t.TeorikDersTipiId = 17 then 300
         when t.TeorikDersTipiId > 14 and t.TeorikDersTipiId < 17 then 200
@@ -1232,10 +1244,6 @@ BEGIN
         when t.KayitTipiId >= 5 and t.KayitTipiId <= 7 then 0
         when t.KayitTipiId = 4 then 0
         when t.uSinavSonrasiTipiId > 0 then 700
-        --when t.TalepTipiId = 1 and t.BasarisizDersTipiId > 0 then 0
-        --when ( t.TalepTipiId = 2 or t.TalepTipiId = 3) and t.Arti4DersTipiId > 0 then 0
-        --when t.TalepTipiId < 4 and t.TelafiDersTipiId > 0 then 0
-        --when t.TalepTipiId = 1 and t.UygulamaliDersTipiId > 0 then 0
         when t.eSinavSonrasiTipiId > 0 then 400
         when t.TeorikDersTipiId > 14 then 0
         when t.KayitTipiId < 4 then 0 -- Sertifika almamış ise 
@@ -1244,10 +1252,6 @@ BEGIN
     -- Aşama Detayları
     , ( case
         when t.uSinavDurumTipiId > 1 then 600 + t.uSinavDurumTipiId
-        --when t.TalepTipiId = 1 and t.BasarisizDersTipiId > 0 then 540 + t.BasarisizDersTipiId
-        --when ( t.TalepTipiId = 2 or t.TalepTipiId = 3) and t.Arti4DersTipiId > 0 then 530 + t.Arti4DersTipiId
-        --when t.TalepTipiId < 4 and t.TelafiDersTipiId > 0 then 520 + t.TelafiDersTipiId
-        --when t.TalepTipiId = 1 and t.UygulamaliDersTipiId > 0 then 510 + t.UygulamaliDersTipiId
         when t.eSinavSonucTipiId > 0 and eSinavSonrasiTipiId > 0 then 300 + t.eSinavDurumTipiId
         when t.TeorikDersTipiId > 14 then 200 + t.TeorikDersTipiId
      -- Belgeler
@@ -1259,10 +1263,6 @@ BEGIN
       ) as yeniAsama1DetayTipiId
     , ( case 
         when t.uSinavSonrasiTipiId > 0 then 700 + t.uSinavSonrasiTipiId
-        --when t.TalepTipiId = 1 and t.BasarisizDersTipiId > 0 then 0
-        --when ( t.TalepTipiId = 2 or t.TalepTipiId = 3) and t.Arti4DersTipiId > 0 then 0
-        --when t.TalepTipiId < 4 and t.TelafiDersTipiId > 0 then 0
-        --when t.TalepTipiId = 1 and t.UygulamaliDersTipiId > 0 then 0
         when t.eSinavSonrasiTipiId > 0 then 400 + t.eSinavSonrasiTipiId
         when t.TeorikDersTipiId > 14 then 0
         when t.KayitTipiId < 4 then 0 -- Sertifika almamış ise 
