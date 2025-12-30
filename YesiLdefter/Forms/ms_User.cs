@@ -229,7 +229,8 @@ namespace YesiLdefter
                     "API URL: " + apiBaseUrl, "API Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            checkedInputApi();
+            //checkedInputApi();
+            checkedInput();
         }
 
         void cmb_EMail_EditValueChanged(object sender, EventArgs e)
@@ -247,7 +248,8 @@ namespace YesiLdefter
                         "API Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
-                checkedInputApi();
+                //checkedInputApi();
+                checkedInput();
             }
         }
 
@@ -928,13 +930,13 @@ namespace YesiLdefter
 
                 DataRow row = dsUserFirmList.Tables[0].Rows[dNUserFirmList.Position];
 
-                if (apiClient != null && row.Table.Columns.Contains("FirmGUID"))
-                {
-                    // API-based flow
-                    readUstadFirmAboutFromApi(row);
-                    return;
-                }
-                // else: SQL-based flow
+                //if (apiClient != null && row.Table.Columns.Contains("FirmGUID"))
+                //{
+                //    // API-based flow
+                //    readUstadFirmAboutFromApi(row);
+                //    return;
+                //}
+                ////else: SQL - based flow
                 userFirms.readUstadFirmAbout(this, row);
             }
         }

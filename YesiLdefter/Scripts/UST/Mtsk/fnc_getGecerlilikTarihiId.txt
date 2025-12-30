@@ -15,7 +15,7 @@ Id      KonuTipi
 21102   Uygulama saatleri
 21103   Sınav ücreti
 21104   Teodrik ders ücreti ve Uygulama ders ücreti için aynı olacak
-21105   Uygulama ders ücreti  <<< kullanma
+21105   Piskoteknik ücreti
   */
 
   Select top 1 @responseId = gtarih.Id 

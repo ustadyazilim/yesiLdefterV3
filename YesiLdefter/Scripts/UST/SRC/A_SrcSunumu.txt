@@ -1,0 +1,219 @@
+﻿TABİM SRC Kurs Yönetimi Otomasyonu 2026
+Geleceğin Yönetim Sistemi
+
+1. SİSTEM MİMARİSİ VE ERİŞİM
+
+Tamamen online platform.
+İnternet erişimi olan her yerden 7/24 erişim
+
+Windows tabanlı bilgisayarladan, 
+mobil telefonlardan (Android, IPhone),
+2026 yılı içinden web tarayıcılarında,
+sınırsız kullanıcı ile çalışma imkanı.
+
+2. VERİ GÜVENLİĞİ VE YÖNETİMİ
+
+Bireysel kimlik doğrulama ile her kullanıcı için ayrı hesap ve şifre ile güvenli giriş sağlanır
+Merkezi Veri Saklama işlemi ise tüm veriler şifrelenmiş sunucularda tutulur, yerel cihazlarda depolanmaz
+Ve her firmanın veri tabanı birbirinden bağımsızdır. 
+Hatta merkez ve şubeler arasındaki veri tabanı dahi birbirnden bağımsızdır.
+Rol tabanlı yetkiyle kullanıcı yetkisine bağlı iş tanımlarına göre sınırlandırılır
+Yedekleme ve felaket kurtarma süreci ise düzenli yedeklemeler ile veri kaybı riski minimize edilmektedir.
+
+
+3. TALEP SİSTEMİ
+
+Adaya ait tüm bilgiler tek ekranda, 
+Adayın kimlik bilgisi ile n adet sertifika başvuruları 
+ve bu başvuruların tüm detayları mevcut.
+Başvurduğu sertifika, belgeleri, ödeme planları, ödedikleri, ödemedikleri, sınav notları, faturaları, bildirimleri vb. 
+
+
+4. DÖNEM AÇILIŞ HAZIRLIKLARI
+
+Ön kayıtlar,
+Belge takip sistemi, (Gelenler, tarananlar, Mebbise yüklenenler)
+Ön kayıt adayların belirli bir döneme alınması veya belirsiz süre dahilinde bekleyenler listesi,
+Dönem listleri üzerinde ücretlerin takibi mevcuttur
+
+
+5. TEORİK DERS PLANLAMA
+
+Ön hazırlık aşaması :
+Sınırsız sayısıda sertifika türlerine göre ders planlama şablonları oluşturabilme imkanı,
+Derslere personel atama tablosunu doldurarak plamanın koşullarını belirliyorsunuz.
+
+Planlama aşaması : 
+Açılacak dönemin başlangıç tarihinden sonra hangi günlerde derslerin verileceği ve verilmeyeceğin kararını veriyorsunuz,
+Eğer ders veren personellerin durumlarında değişiklik varsa planlama sırasında gerekli değişiklikleri yapabiliyorsunuz,
+Planlamaya başlatmak için onay vermeniz yeterli, onaylayın ve teorik ders planı hazır.
+Hazırlanan planda isterseniz sürükle-bırak metodu ile son rütujlarınızı yaparak bitirebilirsiniz.
+Artık geriye sadece Mebbis'e yüklemek ve istediğiniz raporları almak kalıyor.
+
+
+6. SINAV HAZIRLIKLARI
+
+Sınav listelerini 4 aşamaya ayırdık. ( A, B, C ve D şeklinde )
+
+Öncelikle kimler sınava girecek ? bu sorunun cevabı gerekiyor.
+Bu sorunun cevabı ise yazılım tarafından tespit edilen kursiyerler sizi A listesinde bekliyor.
+Kimler bunlar
+1. Teorik dersleri bitmiş olan dönem kursiyerleri
+2. Daha önceki sınav için harcını yatırdığı halde sınava giremeyen kursiyerler
+3. Daha önceki sınava girmeyeceğini size bildiren, sınav harcını yatırmayan ve haliyle bir sınav hakkı yanmış olan kursiyerler
+4. Daha önceki sınava girmiş fakat teorik sınavından kalmış olan kursiyerler
+5. Daha önceki sınavda uygulama aşamasında başarısız olmuş kursilerler
+
+Siz burada şuna karar veriyorsunuz.
+
+Sınavdan kalmış kursiyerleri borçlandırarak B listesine gitmelerini sağlayarak sınav harçlarının takibini başlatıyorsunuz.
+Borçlandırma yapmadıklarımızıda kullanıcı "Sınav girebilir" onayıyla C listesine gönderiyorsunuz.
+Bu arada sınav haçlarını yatıran kursiyerler otomatik olarak C listesine geçer.
+Sınav harcını yatırmadığı halde sınava girmesini istediğiniz kursiyerleride kullanıcı "Sınava girebilir" onayıyla C listesine gönderebilir.
+C listesini kullanıcı son kez gözden geçirir ve nihayetinde sınav tarihli olan D listesine göndererek sınav listesini hazırlamış olur.
+
+
+7. SINAV SONRASI
+
+Sınav sonuçlarını daha önce hazırlamış olduğunuz listelere işliyorsunuz, 
+geçenler için sertifaka süreci, 
+kalanlar için süreç tekrar başlıyor.
+
+
+GELELİM İŞİMİZİN DUYGUSAL YÖNÜNE
+
+
+1. KURSİYER BORÇLANDIRMA AŞAMASI
+
+Adayın talepte bulunduğu sertifika ücretine isterseniz birinci sınav ücretlerini dahil edip tek kalemde veya sertifika ücreti artı sınav ücretleri şeklinde detaylandıra bilirisiniz.
+
+Bir anlaşma rakamı belirleyerek onu yine ister tek seferde veya istediğiniz kadar takside bölebilirsiniz.
+Adayın bu ödemeleride ne şekilde ödeyeceğinide seçebilirsiniz. ( Nakit, kredi kartı, banka havalesi vb. )
+
+Daha sonrada sınav borçlandırmaları veya x bir sebepten dolayı borlandırabilirsiniz.
+
+2. TAHSİLAT AŞAMASI
+
+Siz bir tahsilat işlemi gerçekleştirdiğinizde sistem otomatik olarak ücret türlerine göre grupluyor. ( Sertifika türlerine, sınav türlerine göre )
+
+Hangi tahsilat aracı kullanıldıysa en ince detayına göre ayrıştırılabiliyor. 
+Hangi banka, hangi banka hesabı, hangi pos cihazı veya sanal pos hesabı, hangi nakit para türü kullanılıyorsa tüm detayları mevcut.
+
+Adayın borçlarını başka bir cari hesaba bağlayarak borç-alacak ilişkisini yürütebilirsiniz.
+Örnek : Sürekli iş yaptığınız başka işletmenin size gönderdiği elamanları veya çocuğu gibi adayların hesaplarını bu cari hesaplar üzerinden yürütebilirsiniz.
+
+
+
+3. FİNANS HESAPLARI
+
+İstediğiniz kadar Tl nakit ve dövizli nakit hesapları açabiliyorsiniz.
+
+Türkiye'deki tüm bankalar sistemde mevcut.
+Siz hangi bankalarla çalışıyorsanız onları şeçiyorsunuz.
+Bu şeçtiğiniz bankaların önce şubelerini daha sonra bu şubelerdeki banka hesaplarını tanımlıyorsunuz.
+Yine bu banka hesaplarına bağlı olan banka ve kredi kartlarını, pos cihazlarını, sanal pos hesaplarını tanımlıyorsunuz.
+Tüm bu hesapların kredi limitlerini, hesap geçiş sürelerini kaydediyorsunuz.
+Banka işlemlerindeki tüm finans giderleride sistemde tanımlı ve çalışır durumdadır.
+
+Ayrıca bankalardan çektiğiniz kredileri işleyip, yönetebiliyorsunuz.
+
+Ön muhasebe sistemini kullanmaya başladığınızda tüm bu finans hesapları çalışmaya başlıyor.
+
+
+
+4. GİDERLERİN YÖNETİLMESİ
+
+Burada karşımıza sistemde tanımlanmış ve gruplandırılmış gider hesapları çıkıyor.
+
+İşletmenize uygun olan gider hesap türlerini seçiyorsunuz.
+
+Bu seçtiğiniz gider hesapların bazıları sizin sahip olduğunuz varlıklarla veya aboneliklerler otomatik ilişkilendiriliyor.
+
+Siz giderlerinizi işledikce sistem size gruplu maliyet hesaplarını hazırlıyor. 
+İşletme giderlerinizin ağırlıklı dağılımlarını görebiliyorsunuz. 
+Siz de bu sonuçlar doğrultusunda gerekli önlemleri veya kısıtlamaları gerçekleştirebiliyorsunuz.
+
+
+
+5. CARİ HESAPLARIN YÖNETİLMESİ
+
+Ürün veya hizmet satın aldığınız kişi veya firmalarla aranızdaki tüm süreçleri işleyerek hesap mütebakatlarınız sağlayabilirsiniz.
+Sadece borç para alış-verişini işleyebildiğiniz cari hesapları kayıt altına alabilir ve yine hesap mütebakatlarınız sağlayabilirsiniz.
+
+
+
+ENTEGRASYONLAR
+
+e-fatura için Uyumsoft entegrasyonu mevcut
+
+SMS için Turkcell entegrasyonu
+
+ve en çok beklenen WhatsApp için Meta entegrasyonu 
+
+hazırlanmıştır.
+
+
+
+YENİ BİR DÖNEM BAŞLIYOR
+
+Buraya kadar anlattıklarımız sadece bir başlangıçtı.
+
+Şimdi asıl heyecan verici kısma geliyoruz. 
+Size sunduğumuz statik bir yazılım değil; sizinle birlikte büyüyen, öğrenen ve dönüşen canlı bir ekosistem olma yolunda ilerleyecek bir sistemdir.
+
+
+YOLCULUĞUMUZ YENİ BAŞLIYOR
+
+Bugün size gösterdiklerimiz, sadece temellerini attığımız sağlam bir altyapı. Asıl macera bundan sonra başlıyor.
+Sürekli olarak sistem kendini yenileyecek şekilde kurgulanmıştır. 
+
+Bizi sadece izlemeyin, bize katılın.
+Birlikte şekillendireceğimiz bu dijital dönüşüm yolculuğunda, sizin ihtiyaçlarınız, önerileriniz ve hayalleriniz bizim için en değerli yol haritası.
+
+
+
+
+
+
+
+
+/* ================================================================================= */
+   :: Yakın gelecekteki planlar
+/* ================================================================================= */
+
+TABİM bünyesinde
+-------------------------------------------------------------------------------------
+Herşey yeni başlıyor.
+A-Z ye herşey yenileniyor.
+-------------------------------------------------------------------------------------
+Yazılım bölümü
+Müşteri destek bölümü
+Satış ve pazarlama bölümü
+Muhasebe süreçleri
+-------------------------------------------------------------------------------------
+
+
+Ürünlere 2026 yılı içerisinde gelecek yenilikler
+-------------------------------------------------------------------------------------
+Aday kayıtları için :
+Dijital kimlik okuma geliyor.
+Referans kişiler için aday kayıt sistemi.
+Referans kişilerin hesap extreleri gelecek.
+
+Bankalar : 
+Yakın zaman içerisinde bazı bankalarla entegrasyon sağlanacak.
+Kredili mevduat hesaplarının kontolü gelecek.
+
+Mali müşavir ilişkilerini yönetecek bir sistem hazırlanacak.
+İşletme ile müşavirlik bürosu arasındaki belge takip ve yönetimi ele alınacak.
+Bu konun içinde tüm vergi, SGK ve müşavirlik bedelleri kontrol altına alınacak.
+
+Genel :
+Takvim sistemi :
+İşletmenin ihtiyaç duyduğu her alan için takvim sistemi kurularak tüm hatırlatmalar ve planlamalar gerçekleştirilecek.
+
+AI desteği :
+Belge işleme sistemi.
+Müşteri ile işletme arasındaki tüm yazılı ve sözlü iletişimlere YZ destekli çözümler eklenecek (Hem TABİM için hemde kurslar için CRM hazırlacak)
+
+

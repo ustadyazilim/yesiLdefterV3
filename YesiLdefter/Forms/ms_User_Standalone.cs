@@ -71,7 +71,7 @@ namespace YesiLdefter
 
             // Form properties
             this.Text = "Giriş Yap";
-            this.Size = new Size(500, 600);
+            this.Size = new Size(450, 475);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.AutoScroll = false;

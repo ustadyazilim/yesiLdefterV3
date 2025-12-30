@@ -348,10 +348,36 @@ namespace Tkn_Menu
                 // 
                 // tileControl1
                 //
+
+                // Replace the original single BorderStyle assignment with this block to control visual thickness.
+                // Uses a Flat border and a Paint handler to draw a custom thicker border.
+                menuControl.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Flat;
+                //***************
+                /*
+                menuControl.Padding = new Padding(2); // keep a small inner padding so border doesn't overlap content
+                // draw a custom border with desired thickness and color
+                menuControl.Paint += (sender, e) =>
+                {
+                    var ctrl = (Control)sender;
+                    // thickness in pixels
+                    const float thickness = 2f;
+                    using (var pen = new Pen(Color.FromArgb(200, Color.Black), thickness))
+                    {
+                        // draw rectangle inside control bounds
+                        var rect = new RectangleF(0.5f, 0.5f, ctrl.ClientSize.Width - 1f, ctrl.ClientSize.Height - 1f);
+                        e.Graphics.DrawRectangle(pen, Rectangle.Round(rect));
+                    }
+                };
+                */
+                //*******************
+                menuControl.AllowSelectedItemBorder = true;
+                menuControl.ItemBorderVisibility = DevExpress.XtraEditors.TileItemBorderVisibility.Always;
+                
                 menuControl.AllowSelectedItem = true;
                 menuControl.AllowSelectedItemBorder = true;
                 menuControl.AllowItemHover = true;
                 //menuControl.al
+                /*
                 menuControl.AppearanceItem.Selected.BackColor = v.AppearanceFocusedColor;
                 menuControl.AppearanceItem.Selected.Options.UseBackColor = true;
                 menuControl.AppearanceItem.Selected.BorderColor = v.AppearanceTextColor;
@@ -368,10 +394,11 @@ namespace Tkn_Menu
                 menuControl.AppearanceItem.Pressed.Options.UseBackColor = true;
                 menuControl.AppearanceItem.Pressed.ForeColor = v.AppearanceFocusedTextColor;
                 menuControl.AppearanceItem.Pressed.Options.UseForeColor = true;
+                */
 
+                menuControl.BackColor = System.Drawing.Color.White;
 
-                //menuControl.
-                menuControl.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Default;
+                menuControl.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;// Default;
                 menuControl.Name = "MENU_" + MasterCode;
                 menuControl.ShowGroupText = true;
                 menuControl.ShowText = true;
@@ -1369,10 +1396,15 @@ namespace Tkn_Menu
             int backColor = 0;
             int itemType = 0;
 
+            int witdh = 0;
+            int height = 0;
+            float font_size = 0;
+
             string lineNo = string.Empty;
             string refid = string.Empty;
             string itemName = string.Empty;
             string itemCaption = string.Empty;
+            string itemAbout = string.Empty;
             string shortcut_keys = string.Empty;
             string Prop_Navigator = string.Empty;
             string glName = string.Empty;
@@ -1413,6 +1445,7 @@ namespace Tkn_Menu
                 itemType = t.myInt32(ds_Items.Tables[0].Rows[i]["ITEM_TYPE"].ToString());
                 itemName = t.Set(ds_Items.Tables[0].Rows[i]["ITEM_NAME"].ToString(), "", "");
                 itemCaption = t.Set(ds_Items.Tables[0].Rows[i]["CAPTION"].ToString(), "", "");
+                itemAbout = t.Set(ds_Items.Tables[0].Rows[i]["ABOUT"].ToString(), "", "");
                 shortcut_keys = t.Set(ds_Items.Tables[0].Rows[i]["SHORTCUT_KEYS"].ToString(), "", "");
 
                 lineNo = t.Set(ds_Items.Tables[0].Rows[i]["LINE_NO"].ToString(), "", "");
@@ -1421,6 +1454,8 @@ namespace Tkn_Menu
                 clickEvents = t.myInt16(ds_Items.Tables[0].Rows[i]["CLICK_EVENTS"].ToString());
                 Prop_Navigator = t.Set(ds_Items.Tables[0].Rows[i]["PROP_NAVIGATOR"].ToString(), "", "");
 
+                witdh = t.Set(ds_Items.Tables[0].Rows[i]["CMP_WIDTH"].ToString(), "", (int)0);
+                font_size = t.Set(ds_Items.Tables[0].Rows[i]["CMP_FONT_SIZE"].ToString(), "", (float)8);
                 fontColor = t.Set(ds_Items.Tables[0].Rows[i]["CMP_FONT_COLOR"].ToString(), "", (int)0);
                 backColor = t.Set(ds_Items.Tables[0].Rows[i]["CMP_BACK_COLOR"].ToString(), "", (int)0);
                 glName = t.Set(ds_Items.Tables[0].Rows[i]["GYLPH_32"].ToString(), "", "");
@@ -1472,8 +1507,6 @@ namespace Tkn_Menu
                             break;
                         }
                     }
-
-
                 }
                 #endregion group
 
@@ -1497,7 +1530,9 @@ namespace Tkn_Menu
 
                     DevExpress.XtraEditors.TileItemElement tileItemElement = new DevExpress.XtraEditors.TileItemElement();
                     tileItemElement.Text = itemCaption;
-                    tileItemElement.TextAlignment = DevExpress.XtraEditors.TileItemContentAlignment.TopLeft;
+                    if (itemAbout != "")
+                        tileItemElement.Text += Environment.NewLine + itemAbout;
+                    tileItemElement.TextAlignment = DevExpress.XtraEditors.TileItemContentAlignment.BottomLeft;
 
                     DevExpress.XtraEditors.TileItem tItem = new DevExpress.XtraEditors.TileItem();
                     tItem.Elements.Add(tileItemElement);
@@ -1506,11 +1541,55 @@ namespace Tkn_Menu
                     tItem.Visible = tvisible;
                     tItem.Tag = Prop_Navigator;
                     tItem.Id = i;
-                    tItem.ItemSize = DevExpress.XtraEditors.TileItemSize.Default;
+                    //tItem.ItemSize = DevExpress.XtraEditors.TileItemSize.Default;
                     tItem.ItemClick += new DevExpress.XtraEditors.TileItemClickEventHandler(evm.tTileItem_ItemClick);
+                    //tItem.Appearance.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(162)));
+                    //tItem.Appearance.Options.UseFont = true;
 
-                    tItem.Appearance.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(162)));
-                    tItem.Appearance.Options.UseFont = true;
+                    // Görünüm ayarları
+
+                    
+
+                    Color backColor2 = Color.FromArgb(backColor);
+
+                    if (backColor == 0)
+                        backColor2 = Color.FromArgb(52, 152, 219); // Açık mavi
+
+                    tItem.AppearanceItem.Normal.BackColor = backColor2;
+                    tItem.AppearanceItem.Normal.BackColor2 = Lighten(backColor2, 0.1f);
+                    tItem.AppearanceItem.Normal.GradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
+                    tItem.AppearanceItem.Normal.BorderColor = Darken(backColor2, 9f);
+                    //tItem.AppearanceItem.Normal.BorderColor
+
+
+                    tItem.AppearanceItem.Hovered.BackColor = Lighten(backColor2, 0.1f);
+                    tItem.AppearanceItem.Hovered.BackColor2 = Lighten(backColor2, 0.4f);
+                    tItem.AppearanceItem.Hovered.BorderColor = Color.DodgerBlue;
+
+                    tItem.AppearanceItem.Pressed.BackColor = Darken(backColor2, 0.1f);
+                    tItem.AppearanceItem.Pressed.BackColor2 = Darken(backColor2, 0.2f);
+
+                    tItem.BorderVisibility = DevExpress.XtraEditors.TileItemBorderVisibility.Always;
+
+                    //if (itemAbout != "")
+                    //{
+                    //    DevExpress.XtraEditors.TileItemElement tileItemElement2 = new DevExpress.XtraEditors.TileItemElement();
+                    //    tileItemElement2.Text = itemAbout;
+                    //    tileItemElement2.TextAlignment = DevExpress.XtraEditors.TileItemContentAlignment.TopLeft;
+                    //    tileItemElement2.RowIndex = 2;
+                    //    tItem.Elements.Add(tileItemElement2);
+                    //}
+
+                    if (font_size > 8)
+                    {
+                        tItem.Appearance.Font = new System.Drawing.Font("Segoe UI", font_size, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(162)));
+                        tItem.Appearance.Options.UseFont = true;
+                    }
+                    if (font_size == 0) // default
+                    {
+                        tItem.Appearance.Font = new System.Drawing.Font("Segoe UI", 11, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(162)));
+                        tItem.Appearance.Options.UseFont = true;
+                    }
 
                     if (backColor != 0)
                     {
@@ -1525,21 +1604,30 @@ namespace Tkn_Menu
                     if (glName != "")
                     {
 
-                        tileItemElement.ImageOptions.ImageAlignment = TileItemContentAlignment.BottomCenter;
+                        tileItemElement.ImageOptions.ImageAlignment = TileItemContentAlignment.TopLeft;
                         //tileItemElement.ImageOptions.ImageToTextAlignment = TileControlImageToTextAlignment.Bottom;
                         tileItemElement.ImageOptions.Image = t.Find_Glyph(glName);
                         //tileItemElement.ImageOptions.I
                         //SvgImage = global::WindowsFormsApp1.Properties.Resources.bo_attention;
                     }
 
-
+                    
                     if (t.IsNotNull(shortcut_keys))
                     {
                         DevExpress.XtraEditors.TileItemElement tileItemElement2 = tileItemElement2 = new DevExpress.XtraEditors.TileItemElement();
-                        tileItemElement2.Text = "<i> ( " + shortcut_keys + " )</i>";
-                        tileItemElement2.TextAlignment = DevExpress.XtraEditors.TileItemContentAlignment.BottomRight;
+                        tileItemElement2.Text = "<b>" + shortcut_keys + "</b>";
+                        tileItemElement2.TextAlignment = DevExpress.XtraEditors.TileItemContentAlignment.TopRight;
+                        tileItemElement2.Appearance.Normal.Font = new Font("Segoe UI", 16);
+
                         tItem.Elements.Add(tileItemElement2);
                     }
+                    
+
+                    if (witdh == 1)
+                    {
+                        tItem.ItemSize = DevExpress.XtraEditors.TileItemSize.Wide;   //Large; // or Medium, Small, Default
+                    }
+
 
                     UstHesapRow = UstHesap_Get(ds_Items, i);
 
@@ -1562,11 +1650,71 @@ namespace Tkn_Menu
                             }
                         }
                     }
+                
+                    
+                
+                
                 }
                 #endregion TileItem
 
             }
         }
+
+        private Color Lighten(Color color, float factor)
+        {
+            return Color.FromArgb(
+                color.A,
+                Math.Min(255, (int)(color.R + (255 - color.R) * factor)),
+                Math.Min(255, (int)(color.G + (255 - color.G) * factor)),
+                Math.Min(255, (int)(color.B + (255 - color.B) * factor))
+            );
+        }
+
+        private Color Darken(Color color, float factor)
+        {
+            return Color.FromArgb(
+                color.A,
+                Math.Max(0, (int)(color.R * (1 - factor))),
+                Math.Max(0, (int)(color.G * (1 - factor))),
+                Math.Max(0, (int)(color.B * (1 - factor)))
+            );
+        }
+
+
+        private DevExpress.XtraEditors.TileItemTemplate CreateTileItemTemplate(string title, string subtitle, Image glyph = null)
+        {
+            // Basit bir template: başlık ve alt başlık içeren iki TileItemElement
+            var template = new DevExpress.XtraEditors.TileItemTemplate();
+
+            var titleEl = new DevExpress.XtraEditors.TileItemElement
+            {
+                Text = title ?? string.Empty,
+                TextAlignment = DevExpress.XtraEditors.TileItemContentAlignment.TopLeft,
+                RowIndex = 0
+            };
+
+            // Görsel varsa başlığa ekleyelim (sağ üstte)
+            if (glyph != null)
+            {
+                titleEl.ImageOptions.Image = glyph;
+                titleEl.ImageOptions.ImageAlignment = DevExpress.XtraEditors.TileItemContentAlignment.TopRight;
+            }
+
+            var subEl = new DevExpress.XtraEditors.TileItemElement
+            {
+                Text = subtitle ?? string.Empty,
+                TextAlignment = DevExpress.XtraEditors.TileItemContentAlignment.BottomLeft,
+                RowIndex = 1
+            };
+
+            //template.  Add(titleEl);
+            //template.Elements.Add(subEl);
+
+            return template;
+        }
+
+
+
         #endregion Create_TileControl
 
         #region Create_TileNavPane    << --- Genelde Kullanılan Menü Tipi

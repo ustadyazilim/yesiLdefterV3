@@ -32,14 +32,13 @@ begin transaction
    TercumanTalebi         Bit          null, /*  trg_MtskAdaySaglik         üzerinden işaretleniyor  */
    YabanciDilTipiId       SmallInt     null, /*  trg_MtskAdaySaglik         üzerinden işaretleniyor  */
    IsKontejan             Bit          null, /*  trg_MtskAdayUcret          üzerinden işaretleniyor  */
-   AracTipiId             SmallInt     null, /*  manuel, otomatik, engelli, 125 cc altı */
    
-   -- MtskAdayAdliSicil, ...Adres, ...Imza, ...Ogrenim, ...Saglik, ...Sozlesme MtskAdayBelgeler tablosunu tetikliyor
-   -- MtskAdayBelgeler trigger da buraya yazıyor
+   -- SrcAdayAdliSicil, ...Adres, ...Imza, ...Ogrenim, ...Saglik, ...Sozlesme SrcAdayBelgeler tablosunu tetikliyor
+   -- SrcAdayBelgeler trigger da buraya yazıyor
    -- 30
    BelgelerGeldi          Bit          null, /* prc_SrcAdayTakipSingleSet üzerinden işaretleniyor : tamamı geldiyse */
-   BelgelerTarandi        Bit          null, /* trg_MtskAdayBelgeler       üzerinden işaretleniyor : tamamı tarandıysa */
-   BelgelerYuklendi       Bit          null, /* trg_MtskAdayBelgeler       üzerinden işaretleniyor : tamamı yüklendiyse */
+   BelgelerTarandi        Bit          null, /* trg_SrcAdayBelgeler       üzerinden işaretleniyor : tamamı tarandıysa */
+   BelgelerYuklendi       Bit          null, /* trg_SrcAdayBelgeler       üzerinden işaretleniyor : tamamı yüklendiyse */
 
    -- 40 ödemeleri
    BorcDurumuTipiId         SmallInt      null,
@@ -51,6 +50,7 @@ begin transaction
    TeorikDersTipiId       SmallInt     null,--104
    
    -- 110
+   SinavGirisNedeniTipiId SmallInt     null, /* 0. Tanımsız, 1. Dönem kursiyeri, 2. Teorik sınavdan kalmış, 3. Sınava girmedi, 4. Sınava girmeyecek, 5. Uygulamada başarısız */
    GirecegiSinavTipiId    SmallInt     null, /* 0. Tanımsız, 1. Teo + Uyg, 2. Sadece Teo, 3. Sadece Uyg. */ 
    eSinavNo               SmallInt     null, /* gireceği sınav no */
    eSinavDurumTipiId      SmallInt     null,
@@ -67,62 +67,6 @@ begin transaction
    eSinavSonrasiTipiId    SmallInt     null, 
    eSinavDetayId          Int          null, /* en son hangi sınavsa onun id si. sınav1 ise sınav1 in id si, 2 ise 2 nin id si, 3, 4 ... */
    eSinavBasariTarihi     Date         null,
-
-   --190
-   UygulamaliDersKredisi  SmallInt     null,
-   Arti4DersKredisi       SmallInt     null,
-   TelafiDersKredisi      SmallInt     null,
-   BasarisizDersKredisi   SmallInt     null,
-
-   --200 uygulama ders + Sınav aşaması
-   IsUygulamaliDersPlanli Bit          null,
-   UygulamaBaslamaTarihi  Date         null,
-   UygulamaBitisTarihi    Date         null,
-   SimulatorDersToplami   SmallInt     null,
-   EgitimAlaniDersToplami SmallInt     null,
-   AkanTrafikDersToplami  SmallInt     null, /* prc_MtskUygulamaDersPlaniSaatleriGuncelle  içinde hesplanıyor */
-   UygulamaliDersToplami  SmallInt     null, /* prc_MtskUygulamaDersPlaniSaatleriGuncelle  içinde hesplanıyor */
-   UygulamaliDersTipiId   SmallInt     null,
-   IsUygulamaliDersMebbis Bit          null, /* Mebbise aktarılmadı, aktarrıldı */
-
-   --210
-   IsTelafiDersPlanli     Bit          null,
-   TelafiDersNo           SmallInt     null,
-   TelafiBaslamaTarihi    Date         null,
-   TelafiBitisTarihi      Date         null,
-   TelafiDersToplami      SmallInt     null,
-   TelafiDersTipiId       SmallInt     null,
-   IsTelafiDersMebbis     Bit          null, /* Mebbise aktarılmadı, aktarrıldı */
-
-   --220
-   IsBasarisizDersPlanli  Bit          null,
-   BasarisizDersNo        SmallInt     null,
-   BasarisizBaslamaTarihi Date         null,
-   BasarisizBitisTarihi   Date         null,
-   BasarisizDersToplami   SmallInt     null,
-   BasarisizDersTipiId    SmallInt     null,
-   IsBasarisizDersMebbis  Bit          null, /* Mebbise aktarılmadı, aktarrıldı */
-      
-   --230
-   IsArti4DersPlanli           Bit          null,
-   Arti4BaslamaTarihi          Date         null,
-   Arti4BitisTarihi            Date         null,
-   Arti4EgitimAlaniDersToplami SmallInt     null,
-   Arti4AkanTrafikDersToplami  SmallInt     null, /* prc_MtskUygulamaDersPlaniSaatleriGuncelle  içinde hesplanıyor */
-   Arti4DersToplami            SmallInt     null, /* prc_MtskUygulamaDersPlaniSaatleriGuncelle  içinde hesplanıyor */
-   Arti4DersTipiId             SmallInt     null,
-   IsArti4DersMebbis           Bit          null, /* Mebbise aktarılmadı, aktarrıldı */
-
-   -- 240 
-   PlanlanacakEgitimTipiId SmallInt     null, 
-   uSinavaHazirmiTipiId    SmallInt     null, /* 1. Onay, 2. Sınav için hazır değil : bu seçimi usta öğretici karar veriyor */
-   IsUygSinavMebbisOnayi   Bit          null, /* uSinavDurumTipi = 4, 'Uygulama sınavı için MEBBİS de onaylanacak' için gerekli */
-   IsRandevuPlanlandi      Bit          null, /* Randevu tarafında planlanınca burası True olacak */
-   IsRandevuMebbis         Bit          null, /* Randevu Mebbise aktarılınca */
-   RandevuTarihi           Date         null, /* Randevu tarafında planınca plan tarihi buraya set ediliyor */ 
-   RandevuSaatTipiId       SmallInt     null, /* Randevu tarafında planınca plan tarihi buraya set ediliyor */   
-   RandevuEgitimAraciId    Varchar(10)  null, /* uygulama sınav randevusundaki araç */  
-   RandevuPersonelId       Varchar(20)  null, /* uygulama sınavında sorumlu olan öğretmen */  
 
    -- 250 
    uSinavNo                SmallInt     null,
@@ -492,6 +436,37 @@ INSERT INTO [Lkp].[SrcAdayTakipTeorikDersTipi] (Id, TeorikDersTipi, KonuGrupId, 
 
 
 -- ------------------------------------------------------- 
+-- SinavGirisNedeniTipiId SmallInt 
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'SrcAdayTakipSinavGirisNedeniTipi')
+drop table [Lkp].[SrcAdayTakipSinavGirisNedeniTipi]
+
+create table [Lkp].[SrcAdayTakipSinavGirisNedeniTipi]
+(
+   Id                    Int Unique not null, 
+   SinavGirisNedeniTipi  nVarchar(50)   null,
+   KonuGrupId            SmallInt       null,
+   KonuId                Int            null,
+   KonuCaption           nVarchar(20)   null,
+   ChartCaption          nVarchar(30)   null,
+   FormCaption           nVarchar(15)   null,
+   
+   constraint  pk_SrcAdayTakipSinavGirisNedeniTipi primary key (Id)
+)
+
+Delete from [Lkp].[SrcAdayTakipSinavGirisNedeniTipi]
+INSERT INTO [Lkp].[SrcAdayTakipSinavGirisNedeniTipi] (Id, SinavGirisNedeniTipi, KonuGrupId, KonuId, KonuCaption, ChartCaption, FormCaption)--  , ChartCaption, FormCaption)
+ VALUES 
+  ( 0,    N'Tanımsız',               3, 2010, 'Sınav giriş nedeni', '', '' ),
+  ( 1,    N'Dönem kursiyeri',        3, 2011, 'Sınav giriş nedeni', '', '' ),
+  ( 2,    N'Teorik sınavdan kalmış', 3, 2012, 'Sınav giriş nedeni', '', '' ),
+  ( 3,    N'Sınava girmedi',         3, 2013, 'Sınav giriş nedeni', '', '' ),
+  ( 4,    N'Sınava girmeyecek',      3, 2014, 'Sınav giriş nedeni', '', '' ),
+  ( 5,    N'Uygulamada başarısız',   3, 2015, 'Sınav giriş nedeni', '', '' )
+
+
+
+-- ------------------------------------------------------- 
 -- GirecegiSinavTipiId   
 -- ------------------------------------------------------- 
 IF EXISTS (Select * From sys.objects WHERE name = 'SrcAdayTakipGirecegiSinavTipi')
@@ -634,7 +609,7 @@ INSERT INTO [Lkp].[SrcAdayTakipeSinavUcretTipi] (Id, eSinavUcretTipi, KonuGrupId
 
 -- --------------------------------------------------------------------------------
 --
--- Uygulamalı Dersler ve Uygulamalı Sınavlar
+-- Uygulamalı Sınavlar
 --
 -- --------------------------------------------------------------------------------
 
@@ -787,9 +762,6 @@ INSERT INTO [Lkp].[SrcAdayTakipSertifikaDurumTipi] (Id, SertifikaDurumTipi, Konu
   ( 4,    N'Sertifikası teslim edildi',                    6, 6114, 'Sertifika işlemleri', 'Sert. teslim edildi', '' )
 
 
-
-
-
 -- ------------------------------------------------------- 
 --
 -- Asama1TipiId
@@ -821,10 +793,6 @@ INSERT INTO [Lkp].[SrcAdayTakipAsama1Tipi] (Id, Asama1Tipi, KonuGrupId, KonuId, 
   ( 200,    N'Teorik ders aşaması',                  9, 9200, 'Aşama işlemleri',  '', '' ), 
   ( 300,    N'Teorik sınav durum aşaması',           9, 9300, 'Aşama işlemleri',  '', '' ), 
   ( 400,    N'Teorik sınav sonrası aşaması',              9, 9400, 'Aşama işlemleri',  '', '' ), 
-  --( 510,    N'Uygulamalı dersler aşaması',           9, 9510, 'Aşama işlemleri',  '', '' ), 
-  --( 520,    N'Telafi dersler aşaması',               9, 9520, 'Aşama işlemleri',  '', '' ), 
-  --( 530,    N'2. +4 hak dersleri aşaması',           9, 9530, 'Aşama işlemleri',  '', '' ), 
-  --( 540,    N'Başarısız dersler aşaması',            9, 9540, 'Aşama işlemleri',  '', '' ), 
   ( 600,    N'Uygulamalı sınav aşaması',             9, 9600, 'Aşama işlemleri',  '', '' ), 
   ( 700,    N'Uygulamalı sınav sonrası aşaması',     9, 9700, 'Aşama işlemleri',  '', '' ), 
   ( 810,    N'Sertifika alanlar',                    9, 9810, 'Aşama işlemleri',  '', '' ), 
@@ -863,10 +831,6 @@ INSERT INTO [Lkp].[SrcAdayTakipAsama2Tipi] (Id, Asama2Tipi, KonuGrupId, KonuId, 
   ( 200,    N'Teorik ders aşaması',                  9, 9200, 'Aşama işlemleri',  '', '' ), 
   ( 300,    N'Teorik sınav durum aşaması',           9, 9300, 'Aşama işlemleri',  '', '' ), 
   ( 400,    N'Teorik sınav sonrası aşaması',         9, 9400, 'Aşama işlemleri',  '', '' ), 
-  --( 510,    N'Uygulamalı dersler aşaması',           9, 9510, 'Aşama işlemleri',  '', '' ), 
-  --( 520,    N'Telafi dersler aşaması',               9, 9520, 'Aşama işlemleri',  '', '' ), 
-  --( 530,    N'2. +4 hak dersleri aşaması',           9, 9530, 'Aşama işlemleri',  '', '' ), 
-  --( 540,    N'Başarısız dersler aşaması',            9, 9540, 'Aşama işlemleri',  '', '' ), 
   ( 600,    N'Uygulamalı sınav aşaması',             9, 9600, 'Aşama işlemleri',  '', '' ), 
   ( 700,    N'Uygulamalı sınav sonrası aşaması',     9, 9700, 'Aşama işlemleri',  '', '' ), 
   ( 810,    N'Sertifika alanlar',                    9, 9810, 'Aşama işlemleri',  '', '' ), 
@@ -920,14 +884,7 @@ INSERT INTO [Lkp].[SrcAdayTakipAsama1DetayTipi] (Id, Asama1DetayTipi, KonuGrupId
 
   ( 600,    N'',                                               9, 9600, 'Aşama detayları',  '', '' ), 
   ( 601,    N'Henüz sınav aşamasında değil',                   9, 9601, 'Aşama detayları',  '', '' ), 
-  --( 602,    N'Uyg. sınavı için usta öğretici onayı isteniyor', 9, 9602, 'Aşama detayları',  '', '' ), 
-  --( 603,    N'Uyg. sınavı için hazır değil',                   9, 9603, 'Aşama detayları',  '', '' ), 
-  --( 604,    N'Uyg. sınavı için MEBBİS de onaylanacak',         9, 9604, 'Aşama detayları',  '', '' ), 
-  --( 605,    N'Uyg. sınav randevusu planlanacak',               9, 9605, 'Aşama detayları',  '', '' ), 
-  --( 606,    N'Uyg. sınav randevusu MEBBİSe aktarılacak',       9, 9606, 'Aşama detayları',  '', '' ), 
   ( 607,    N'Uyg. sınavına girecek',                          9, 9607, 'Aşama detayları',  '', '' ), 
-  --( 608,    N'Başarısız aday eğitimi alacak',                  9, 9608, 'Aşama detayları',  '', '' ), 
-  --( 609,    N'Başarılı, Sertifika aşamasına geçti',            9, 9609, 'Aşama detayları',  '', '' ), 
   ( 610,    N'Uyg. sınav hakkı doldu',                         9, 9610, 'Aşama detayları',  '', '' ) 
 
 
@@ -967,7 +924,6 @@ INSERT INTO [Lkp].[SrcAdayTakipAsama2DetayTipi] (Id, Asama2DetayTipi, KonuGrupId
   ( 701,    N'Sınava tekrar girecek',            9, 9701, 'Aşama detayları',  '', '' ), 
   ( 702,    N'Sertifika aşamasına geçti',        9, 9702, 'Aşama detayları',  '', '' ), 
   ( 703,    N'Tüm uygulamalı sınav hakkı bitti', 9, 9703, 'Aşama detayları',  '', '' ) 
-  --( 704,    N'2. +4 sınav hakkı bitti',          9, 9704, 'Aşama detayları',  '', '' ) 
 
 
 commit transaction
@@ -1043,4 +999,124 @@ END -- create trigger
 
 /*CreateTriggerEnd*/
 
+
+
+/* DROP EDİLDİ :
+
+   AracTipiId             SmallInt     null, /*  manuel, otomatik, engelli, 125 cc altı */
+
+   --190
+   UygulamaliDersKredisi  SmallInt     null,
+   Arti4DersKredisi       SmallInt     null,
+   TelafiDersKredisi      SmallInt     null,
+   BasarisizDersKredisi   SmallInt     null,
+
+   --200 uygulama ders + Sınav aşaması
+   IsUygulamaliDersPlanli Bit          null,
+   UygulamaBaslamaTarihi  Date         null,
+   UygulamaBitisTarihi    Date         null,
+   SimulatorDersToplami   SmallInt     null,
+   EgitimAlaniDersToplami SmallInt     null,
+   AkanTrafikDersToplami  SmallInt     null, /* prc_MtskUygulamaDersPlaniSaatleriGuncelle  içinde hesplanıyor */
+   UygulamaliDersToplami  SmallInt     null, /* prc_MtskUygulamaDersPlaniSaatleriGuncelle  içinde hesplanıyor */
+   UygulamaliDersTipiId   SmallInt     null,
+   IsUygulamaliDersMebbis Bit          null, /* Mebbise aktarılmadı, aktarrıldı */
+
+   --210
+   IsTelafiDersPlanli     Bit          null,
+   TelafiDersNo           SmallInt     null,
+   TelafiBaslamaTarihi    Date         null,
+   TelafiBitisTarihi      Date         null,
+   TelafiDersToplami      SmallInt     null,
+   TelafiDersTipiId       SmallInt     null,
+   IsTelafiDersMebbis     Bit          null, /* Mebbise aktarılmadı, aktarrıldı */
+
+   --220
+   IsBasarisizDersPlanli  Bit          null,
+   BasarisizDersNo        SmallInt     null,
+   BasarisizBaslamaTarihi Date         null,
+   BasarisizBitisTarihi   Date         null,
+   BasarisizDersToplami   SmallInt     null,
+   BasarisizDersTipiId    SmallInt     null,
+   IsBasarisizDersMebbis  Bit          null, /* Mebbise aktarılmadı, aktarrıldı */
+      
+   --230
+   IsArti4DersPlanli           Bit          null,
+   Arti4BaslamaTarihi          Date         null,
+   Arti4BitisTarihi            Date         null,
+   Arti4EgitimAlaniDersToplami SmallInt     null,
+   Arti4AkanTrafikDersToplami  SmallInt     null, /* prc_MtskUygulamaDersPlaniSaatleriGuncelle  içinde hesplanıyor */
+   Arti4DersToplami            SmallInt     null, /* prc_MtskUygulamaDersPlaniSaatleriGuncelle  içinde hesplanıyor */
+   Arti4DersTipiId             SmallInt     null,
+   IsArti4DersMebbis           Bit          null, /* Mebbise aktarılmadı, aktarrıldı */
+
+   -- 240 
+   PlanlanacakEgitimTipiId SmallInt     null, 
+   uSinavaHazirmiTipiId    SmallInt     null, /* 1. Onay, 2. Sınav için hazır değil : bu seçimi usta öğretici karar veriyor */
+   IsUygSinavMebbisOnayi   Bit          null, /* uSinavDurumTipi = 4, 'Uygulama sınavı için MEBBİS de onaylanacak' için gerekli */
+   IsRandevuPlanlandi      Bit          null, /* Randevu tarafında planlanınca burası True olacak */
+   IsRandevuMebbis         Bit          null, /* Randevu Mebbise aktarılınca */
+   RandevuTarihi           Date         null, /* Randevu tarafında planınca plan tarihi buraya set ediliyor */ 
+   RandevuSaatTipiId       SmallInt     null, /* Randevu tarafında planınca plan tarihi buraya set ediliyor */   
+   RandevuEgitimAraciId    Varchar(10)  null, /* uygulama sınav randevusundaki araç */  
+   RandevuPersonelId       Varchar(20)  null, /* uygulama sınavında sorumlu olan öğretmen */  
+
+
+
+   alter table SrcAdayTakip drop column AracTipiId  
+   alter table SrcAdayTakip drop column UygulamaliDersKredisi  
+   alter table SrcAdayTakip drop column Arti4DersKredisi       
+   alter table SrcAdayTakip drop column TelafiDersKredisi      
+   alter table SrcAdayTakip drop column BasarisizDersKredisi   
+
+   --200 uygulama ders + Sınav aşaması
+   alter table SrcAdayTakip drop column IsUygulamaliDersPlanli 
+   alter table SrcAdayTakip drop column UygulamaBaslamaTarihi  
+   alter table SrcAdayTakip drop column UygulamaBitisTarihi    
+   alter table SrcAdayTakip drop column SimulatorDersToplami   
+   alter table SrcAdayTakip drop column EgitimAlaniDersToplami 
+   alter table SrcAdayTakip drop column AkanTrafikDersToplami  
+   alter table SrcAdayTakip drop column UygulamaliDersToplami  
+   alter table SrcAdayTakip drop column UygulamaliDersTipiId   
+   alter table SrcAdayTakip drop column IsUygulamaliDersMebbis 
+
+   --210   IsTelafiDersPlanli     
+   alter table SrcAdayTakip drop column TelafiDersNo           
+   alter table SrcAdayTakip drop column TelafiBaslamaTarihi    
+   alter table SrcAdayTakip drop column TelafiBitisTarihi      
+   alter table SrcAdayTakip drop column TelafiDersToplami      
+   alter table SrcAdayTakip drop column TelafiDersTipiId       
+   alter table SrcAdayTakip drop column IsTelafiDersMebbis     
+
+   --220
+   alter table SrcAdayTakip drop column IsBasarisizDersPlanli  
+   alter table SrcAdayTakip drop column BasarisizDersNo        
+   alter table SrcAdayTakip drop column BasarisizBaslamaTarihi 
+   alter table SrcAdayTakip drop column BasarisizBitisTarihi   
+   alter table SrcAdayTakip drop column BasarisizDersToplami   
+   alter table SrcAdayTakip drop column BasarisizDersTipiId    
+   alter table SrcAdayTakip drop column IsBasarisizDersMebbis  
+      
+   --230
+   alter table SrcAdayTakip drop column IsArti4DersPlanli           
+   alter table SrcAdayTakip drop column Arti4BaslamaTarihi          
+   alter table SrcAdayTakip drop column Arti4BitisTarihi            
+   alter table SrcAdayTakip drop column Arti4EgitimAlaniDersToplami 
+   alter table SrcAdayTakip drop column Arti4AkanTrafikDersToplami  
+   alter table SrcAdayTakip drop column Arti4DersToplami            
+   alter table SrcAdayTakip drop column Arti4DersTipiId             
+   alter table SrcAdayTakip drop column IsArti4DersMebbis           
+
+   -- 240 
+   alter table SrcAdayTakip drop column PlanlanacakEgitimTipiId 
+   alter table SrcAdayTakip drop column uSinavaHazirmiTipiId    
+   alter table SrcAdayTakip drop column IsUygSinavMebbisOnayi   
+   alter table SrcAdayTakip drop column IsRandevuPlanlandi      
+   alter table SrcAdayTakip drop column IsRandevuMebbis         
+   alter table SrcAdayTakip drop column RandevuTarihi           
+   alter table SrcAdayTakip drop column RandevuSaatTipiId       
+   alter table SrcAdayTakip drop column RandevuEgitimAraciId    
+   alter table SrcAdayTakip drop column RandevuPersonelId       
+
+DROP EDİLDİ end */
 

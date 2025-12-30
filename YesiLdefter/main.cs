@@ -390,7 +390,7 @@ namespace YesiLdefter
                 verNo = "2.0";
             else verNo = "1.0";
 
-            this.Text = "YeşiL defter  " + verNo + ",   Sürüm : " +
+            this.Text = "yeşiLdefter uygulama platformu " + verNo + ",   Sürüm : " +
                 v.tExeAbout.activeVersionNo.Substring(2, 6) + "." +
                 v.tExeAbout.activeVersionNo.Substring(9, 4) +
                 "    [ " + v.tMainFirm.FirmId.ToString() + " : " + v.tMainFirm.FirmShortName + " ] ";

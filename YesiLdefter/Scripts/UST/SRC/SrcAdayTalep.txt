@@ -48,6 +48,7 @@ begin transaction
    IstemeNedeniTipiId      SmallInt      null, /* 1. sertifika ilk defa alıyor, 2. yenileme */
    SertifikaVerTarih       date          null, /* Verilen sertifikanın veriliş tarihi */
    SonGecerlilikTarihi     date          null, /* Verilen sertifikanın son geçerlilik tarihi */
+   SertifikaNo             Varchar(10)   null, /* Sertifika No İlçe Milli Eğitim tarafından veriliyor, kullanıcılar onu mebbis den rapora bakarak öğrenip buraya işliyorlar */
    
    /* ODY ve ÜDY ler için hangi yabancı dilleri ve seviye bilgisi olduğu gerekiyor  */ 
 

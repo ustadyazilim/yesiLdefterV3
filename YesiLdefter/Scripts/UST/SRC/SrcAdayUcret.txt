@@ -300,7 +300,9 @@ INSERT INTO [Lkp].[SrcAdayUcretTalepTipi] (Id, TalepTipi, IsActive)
   ( 2,    N'SRC5 Sertifikası', 1),
   ( 3,    N'SRC6 Sertifikası', 1),
   ( 4,    N'ODY 1234 Sertifikası',  1),
-  ( 5,    N'ÜDY 1234 Sertifikası',  1)
+  ( 5,    N'ÜDY 1234 Sertifikası',  1),
+  ( 6,    N'Piskoteknik',  1)
+
 
 
 -- ------------------------------------------------------- 
