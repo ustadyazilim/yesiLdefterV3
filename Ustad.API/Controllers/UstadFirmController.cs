@@ -140,7 +140,7 @@ namespace Ustad.API.Controllers
    [UstadFirmsUsers].[Id]
  , [UstadFirmsUsers].[IsActive]
  , [UstadFirmsUsers].[FirmId]
- , [UstadFirmsUsers].[FirmGUID]
+ , COALESCE([UstadFirmsUsers].[FirmGUID], [uf].[FirmGUID]) as FirmGUID
  , [UstadFirmsUsers].[UserId]
  , [UstadFirmsUsers].[UserGUID]
  -- JoinTables standart output fields 

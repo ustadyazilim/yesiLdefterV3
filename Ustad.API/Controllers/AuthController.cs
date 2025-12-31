@@ -396,7 +396,9 @@ WHEN NOT MATCHED THEN
         /// <param name="fullName">The user full name</param>
         /// <param name="role">The user role</param>
         /// <param name="firmGuid">The firm GUID</param>
-        private List<Claim> BuildBaseClaims(int userId, string userGuid, string fullName, string role, string firmGuid, string userName, short dbTypeId)
+        /// <param name="firmId">The firm ID</param>
+        /// <param name="firmName">The firm name</param>
+       private List<Claim> BuildBaseClaims(int userId, string userGuid, string fullName, string role, string firmGuid, string userName, short dbTypeId, int firmId = 0, string firmName = "")
         {
             var baseClaims = new List<Claim>
             {
@@ -405,6 +407,8 @@ WHEN NOT MATCHED THEN
                 new Claim(ClaimTypes.Name, fullName ?? string.Empty),
                 new Claim(ClaimTypes.Role, string.IsNullOrWhiteSpace(role) ? "Agent" : role),
                 new Claim("firm", firmGuid ?? string.Empty),
+                new Claim("firmId", firmId.ToString(CultureInfo.InvariantCulture)),
+                new Claim("firmName", firmName ?? string.Empty),
                 new Claim("uname", userName ?? string.Empty),
                 new Claim("dbTypeId", dbTypeId.ToString(CultureInfo.InvariantCulture))
             };
@@ -422,13 +426,16 @@ WHEN NOT MATCHED THEN
             var fullName = principal.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
             var role = principal.FindFirst(ClaimTypes.Role)?.Value ?? "Agent";
             var firmGuid = principal.FindFirst("firm")?.Value ?? string.Empty;
+            var firmId = principal.FindFirst("firmId")?.Value ?? "0";
+            var firmName = principal.FindFirst("firmName")?.Value ?? string.Empty;
             var userName = principal.FindFirst("uname")?.Value ?? string.Empty;
             var dbTypeIdClaim = principal.FindFirst("dbTypeId")?.Value ?? "0";
 
             short.TryParse(dbTypeIdClaim, out var dbTypeId);
             int.TryParse(userId, out var userIdInt);
-
-            return BuildBaseClaims(userIdInt, userGuid, fullName, role, firmGuid, userName, dbTypeId);
+            int.TryParse(firmId, out var firmIdInt);
+            
+            return BuildBaseClaims(userIdInt, userGuid, fullName, role, firmGuid, userName, dbTypeId, firmIdInt, firmName);
         }
         /// <summary>
         /// Generates the token pair
@@ -609,7 +616,7 @@ WHEN NOT MATCHED THEN
             } // Close connection after Phase 3
             #endregion
             #region Token Generation
-            var baseClaims = BuildBaseClaims(userId, userGuid, fullName, role, firmGuid, request.UserName, dbTypeId);
+            var baseClaims = BuildBaseClaims(userId, userGuid, fullName, role, firmGuid, request.UserName, dbTypeId, 0, "");
             var tokens = GenerateTokenPair(baseClaims);
             #endregion
             #region Return Login Response
@@ -1279,6 +1286,127 @@ ELSE
                 return false;
             }
         }
+         #region Select Firm (Authenticated)
+        /// <summary>
+        /// Select firm endpoint - validates user access to firm and issues new token with firm claim
+        /// </summary>
+        /// <param name="request">Select firm request containing FirmGUID</param>
+        /// <returns>LoginResponse with new token pair including firm claim</returns>
+        /// <response code="200">Firm selected successfully, returns new token pair</response>
+        /// <response code="400">Invalid request (missing FirmGUID)</response>
+        /// <response code="401">Unauthorized - valid JWT token required or user does not have access to firm</response>
+        [HttpPost("select-firm")]
+        [Authorize]
+        [ProducesResponseType(typeof(LoginResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> SelectFirm([FromBody] SelectFirmRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.FirmGUID))
+            {
+                return BadRequest("FirmGUID is required.");
+            }
+
+            try
+            {
+                // Get current user from JWT claims
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userGuidClaim = User.FindFirst("userGUID")?.Value ?? string.Empty;
+                
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized("Invalid user token.");
+                }
+
+                // Validate user has access to the requested firm
+                string connStr = BuildConnectionString();
+                int firmId = 0;
+                string firmName = string.Empty;
+                string firmGUID = request.FirmGUID.Trim();
+
+                using (var con = new SqlConnection(connStr))
+                {
+                    await con.OpenAsync();
+                    using (var cmd = con.CreateCommand())
+                    {
+                        // Check if user has access to this firm via UstadFirmsUsers table
+                        // Match on FirmGUID from UstadFirms table (since UstadFirmsUsers.FirmGUID might be NULL)
+                        // Convert GUID to string to avoid casting issues
+                        cmd.CommandText = @"
+SELECT TOP 1
+    uf.FirmId,
+    COALESCE(f.FirmLongName, '') AS FirmLongName,
+    CAST(COALESCE(uf.FirmGUID, f.FirmGUID, CAST('00000000-0000-0000-0000-000000000000' AS UNIQUEIDENTIFIER)) AS NVARCHAR(36)) AS FirmGUID
+FROM UstadFirmsUsers uf
+LEFT JOIN UstadFirms f ON uf.FirmId = f.FirmId
+WHERE uf.UserGUID = @UserGUID
+  AND (uf.FirmGUID = @FirmGUID OR f.FirmGUID = @FirmGUID)
+  AND uf.IsActive = 1
+  AND (f.IsActive = 1 OR f.IsActive IS NULL)";
+                        cmd.Parameters.AddWithValue("@UserGUID", userGuidClaim);
+                        cmd.Parameters.AddWithValue("@FirmGUID", firmGUID);
+
+                        using var r = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow);
+                        if (!await r.ReadAsync())
+                        {
+                            return Unauthorized("User does not have access to the specified firm.");
+                        }
+
+                        firmId = r.GetInt32("FirmId");
+                        firmName = r.GetString("FirmLongName");
+                        string dbFirmGUID = r.GetString("FirmGUID");
+                        // Check if it's the empty GUID placeholder
+                        if (!string.IsNullOrEmpty(dbFirmGUID) && dbFirmGUID != "00000000-0000-0000-0000-000000000000")
+                        {
+                            firmGUID = dbFirmGUID;
+                        }
+                    }
+                }
+
+                // Get user info for token generation
+                var fullName = User.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
+                var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Agent";
+                var userName = User.FindFirst("uname")?.Value ?? string.Empty;
+                var dbTypeIdClaim = User.FindFirst("dbTypeId")?.Value ?? "0";
+                short.TryParse(dbTypeIdClaim, out var dbTypeId);
+
+                // Build claims with firm information
+                var baseClaims = BuildBaseClaims(userId, userGuidClaim, fullName, role, firmGUID, userName, dbTypeId, firmId, firmName);
+                var tokens = GenerateTokenPair(baseClaims);
+
+                return Ok(new LoginResponse
+                {
+                    Token = tokens.accessToken,
+                    RefreshToken = tokens.refreshToken,
+                    AccessTokenExpiresInSeconds = GetAccessTokenExpiresMinutes() * 60,
+                    RefreshTokenExpiresInSeconds = GetRefreshTokenExpiresMinutes() * 60,
+                    UserId = userId,
+                    OperatorId = userId,
+                    UserGUID = userGuidClaim,
+                    FullName = fullName,
+                    Role = role,
+                    FirmId = firmId,
+                    DbTypeId = dbTypeId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error selecting firm");
+                return StatusCode(500, "Error selecting firm: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Select firm request payload
+        /// </summary>
+        public class SelectFirmRequest
+        {
+            /// <summary>
+            /// Firm GUID to select
+            /// </summary>
+            public string FirmGUID { get; set; } = string.Empty;
+        }
+        #endregion
         #endregion
         #region Get Database Connection Info (Authenticated)
         /// <summary>
@@ -1297,6 +1425,15 @@ ELSE
         {
             try
             {
+                // NOTE(@Janberk): Require firm claim - user must select firm before getting DB connection info
+                var firmClaim = User.FindFirst("firm")?.Value;
+                var firmIdClaim = User.FindFirst("firmId")?.Value;
+                
+                if (string.IsNullOrWhiteSpace(firmClaim) || string.IsNullOrWhiteSpace(firmIdClaim))
+                {
+                    return Unauthorized("Firm selection required. Please call /auth/select-firm first.");
+                }
+                // Get connection info from environment variables or configuration (NO hardcoded fallbacks)
                 string host = Environment.GetEnvironmentVariable("DB_HOST") ?? _configuration["Db:Host"];
                 string port = Environment.GetEnvironmentVariable("DB_PORT") ?? _configuration["Db:Port"];
                 string user = Environment.GetEnvironmentVariable("DB_USER") ?? _configuration["Db:User"];

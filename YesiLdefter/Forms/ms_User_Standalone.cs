@@ -1,4 +1,4 @@
-/* Core Namespace */
+﻿/* Core Namespace */
 using DevExpress.XtraEditors;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -49,6 +50,18 @@ namespace YesiLdefter
         private WebView2 htmlLayout;
 
         private string regPath = v.registryPath;
+        
+        // WebView2 state
+        private bool webViewDomReady = false;
+        
+        // Remember me data
+        private string rememberedEmail = "";
+        private string rememberedPassword = "";
+        private bool rememberedRemember = false;
+        
+        // Firm selection from web
+        private System.Threading.Tasks.TaskCompletionSource<UstadApiClient.FirmInfo> firmSelectionTcs = null;
+        private IList<UstadApiClient.FirmInfo> userFirmsList = null;
 
         #endregion
 
@@ -71,13 +84,15 @@ namespace YesiLdefter
 
             // Form properties
             this.Text = "Giriş Yap";
-            this.Size = new Size(450, 475);
+            this.Size = new Size(800, 600);
+            this.MinimumSize = new Size(650, 500); 
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.AutoScroll = false;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.KeyPreview = true;
+            this.ShowInTaskbar = false; // Don't show in taskbar when shown as dialog
 
             // HTML/CSS layout (background + container) via WebView2
             htmlLayout = new WebView2();
@@ -115,190 +130,229 @@ namespace YesiLdefter
 
         private void Ms_User_Standalone_Load(object sender, EventArgs e)
         {
-            // Focus on email field
-            cmbEmail.Focus();
+            System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Load event fired");
+            try
+            {
+                // Initialize auth state
+                v.SP_UserLOGIN = false;
 
-            // Initialize auth state
-            v.SP_UserLOGIN = false;
-
-            // Initialize WebView2 and load HTML template
-            _ = InitializeWebViewAsync();
+                // Initialize WebView2 and load HTML template
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Starting WebView2 initialization...");
+                _ = InitializeWebViewAsync();
+                
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Load error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Stack: {ex.StackTrace}");
+            }
         }
 
         private void Ms_User_Standalone_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if ((v.SP_UserLOGIN == false) && (v.SP_UserIN == false))
+            // Cleanup WebView2 resources
+            if (htmlLayout != null && !htmlLayout.IsDisposed)
             {
-                v.SP_ApplicationExit = true;
-            }
-
-            // Cleanup
-            apiClient?.Dispose();
-            apiClient = null;
-        }
-
-        // Handle messages from the HTML template (buttons)
-        private void HtmlLayout_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
-        {
-            try
-            {
-                var raw = e.TryGetWebMessageAsString();
-                if (string.IsNullOrWhiteSpace(raw))
+                try
                 {
-                    return;
+                    htmlLayout.Dispose();
                 }
-
-                // Support simple string messages and JSON payloads
-                if (string.Equals(raw, "login", StringComparison.OrdinalIgnoreCase))
-                {
-                    BtnLogin_Click(sender, EventArgs.Empty);
-                    return;
-                }
-                if (string.Equals(raw, "forgot", StringComparison.OrdinalIgnoreCase))
-                {
-                    BtnForgotPassword_Click(sender, EventArgs.Empty);
-                    return;
-                }
-
-                // JSON payload expected: { action: "login"|"forgot", email, password, remember }
-                JObject obj = JObject.Parse(raw);
-                string action = (obj["action"] ?? "").ToString();
-                string email = (obj["email"] ?? "").ToString();
-                string password = (obj["password"] ?? "").ToString();
-                bool remember = false;
-                if (obj["remember"] != null && bool.TryParse(obj["remember"].ToString(), out bool rem))
-                {
-                    remember = rem;
-                }
-
-                if (!string.IsNullOrEmpty(email))
-                {
-                    cmbEmail.EditValue = email;
-                }
-                if (!string.IsNullOrEmpty(password))
-                {
-                    txtPassword.Text = password;
-                }
-                chkRemember.Checked = remember;
-
-                if (string.Equals(action, "login", StringComparison.OrdinalIgnoreCase))
-                {
-                    BtnLogin_Click(sender, EventArgs.Empty);
-                }
-                else if (string.Equals(action, "forgot", StringComparison.OrdinalIgnoreCase))
-                {
-                    BtnForgotPassword_Click(sender, EventArgs.Empty);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"HtmlLayout_WebMessageReceived parse error: {ex.Message}");
-            }
-        }
-
-
-        private void CmbEmail_EditValueChanged(object sender, EventArgs e)
-        {
-            txtPassword.Text = "";
-            lblStatus.Text = "";
-        }
-
-        private void TxtPassword_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Return)
-            {
-                BtnLogin_Click(sender, e);
-            }
-        }
-
-        private async void BtnLogin_Click(object sender, EventArgs e)
-        {
-            await AuthenticateAsync();
-        }
-
-        private async void BtnForgotPassword_Click(object sender, EventArgs e)
-        {
-            string email = cmbEmail.EditValue?.ToString()?.Trim() ?? "";
-
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                ShowStatus("Lütfen e-posta adresinizi girin.", true);
-                return;
-            }
-
-            if (apiClient == null)
-            {
-                ShowStatus("API bağlantısı kurulamadı.", true);
-                return;
-            }
-
-            try
-            {
-                ShowStatus("Şifre sıfırlama talebi gönderiliyor...", false);
-                btnForgotPassword.Enabled = false;
-                btnLogin.Enabled = false;
-
-                await apiClient.RequestPasswordResetAsync(email);
-
-                MessageBox.Show(
-                    "Şifre sıfırlama talebi gönderildi.\nLütfen e-postanızı kontrol edin.",
-                    "Şifre Sıfırlama",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-
-                ShowStatus("", false);
-            }
-            catch (Exception ex)
-            {
-                ShowStatus($"Hata: {ex.Message}", true);
-            }
-            finally
-            {
-                btnForgotPassword.Enabled = true;
-                btnLogin.Enabled = true;
+                catch { }
             }
         }
 
         #endregion
 
-        #region Authentication Logic
+        #region API Client Initialization
 
-        private async Task AuthenticateAsync()
+        private void InitializeApiClient()
         {
-            string email = cmbEmail.EditValue?.ToString()?.Trim() ?? "";
-            string password = txtPassword.Text?.Trim() ?? "";
-
-            // Validation
-            if (string.IsNullOrWhiteSpace(email))
+            try
             {
-                ShowStatus("Lütfen e-posta adresinizi girin.", true);
-                cmbEmail.Focus();
-                return;
+                string apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
+                apiClient = new UstadApiClient(apiBaseUrl);
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] API client initialized with base URL: {apiBaseUrl}");
             }
-
-            if (string.IsNullOrWhiteSpace(password))
+            catch (Exception ex)
             {
-                ShowStatus("Lütfen şifrenizi girin.", true);
-                txtPassword.Focus();
-                return;
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] API client initialization error: {ex.Message}");
+                // Continue without API client - user will see error when trying to login
             }
+        }
 
+        #endregion
+
+        #region User Registry (Remember Me)
+
+        private void LoadUserRegistry()
+        {
+            try
+            {
+                object emailObj = reg.getRegistryValue("Email");
+                string email = emailObj?.ToString() ?? "";
+                object passwordObj = reg.getRegistryValue("Password");
+                string password = passwordObj?.ToString() ?? "";
+                object rememberObj = reg.getRegistryValue("Remember");
+                bool remember = rememberObj != null && (rememberObj.ToString() == "True" || rememberObj.ToString() == "1");
+                
+                if (!string.IsNullOrEmpty(email) && remember)
+                {
+                    rememberedEmail = email;
+                    rememberedPassword = password; // Load password if remember is true
+                    rememberedRemember = remember;
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Loaded remembered email: {email}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Registry load error: {ex.Message}");
+            }
+        }
+
+        private void SaveUserRegistry(string email, string password)
+        {
+            try
+            {
+                bool remember = chkRemember?.Checked ?? false;
+                reg.SetUstadRegistry("Email", remember ? email : "");
+                reg.SetUstadRegistry("Password", remember ? password : ""); // Save password if remember is true
+                reg.SetUstadRegistry("Remember", remember ? "True" : "False");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Registry save error: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region WebView2 Initialization and HTML Template Loading
+
+        private async Task InitializeWebViewAsync()
+        {
+            try
+            {
+                await htmlLayout.EnsureCoreWebView2Async(null);
+                
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] WebView2 CoreWebView2 ready");
+
+                // Set up message handler for communication from HTML/JS to C#
+                htmlLayout.CoreWebView2.WebMessageReceived += HtmlLayout_WebMessageReceived;
+                
+                // Set up DOM content loaded handler
+                htmlLayout.CoreWebView2.DOMContentLoaded += async (s, e) =>
+                {
+                    webViewDomReady = true;
+                    System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] WebView2 DOM content loaded");
+                    
+                    // Populate form with remembered credentials if available
+                    if (!string.IsNullOrEmpty(rememberedEmail) && rememberedRemember)
+                    {
+                        await PopulateRememberedCredentialsAsync();
+                    }
+                };
+
+                // Load HTML template
+                string html = LoadLoginTemplate();
+                htmlLayout.CoreWebView2.NavigateToString(html);
+                
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] HTML template loaded into WebView2");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] WebView2 initialization error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Stack: {ex.StackTrace}");
+                ShowStatus($"WebView2 başlatma hatası: {ex.Message}", true);
+            }
+        }
+
+        #endregion
+
+        #region WebView2 Message Handler (HTML/JS → C#)
+
+        private void HtmlLayout_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                string message = e.TryGetWebMessageAsString();
+                if (string.IsNullOrEmpty(message))
+                    return;
+
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] WebMessage received: {message}");
+
+                var payload = JObject.Parse(message);
+                string action = payload["action"]?.ToString();
+
+                switch (action)
+                {
+                    case "login":
+                        string email = payload["email"]?.ToString();
+                        string password = payload["password"]?.ToString();
+                        bool remember = payload["remember"]?.ToObject<bool>() ?? false;
+                        _ = HandleLoginAsync(email, password, remember);
+                        break;
+
+                    case "rememberChanged":
+                        bool rem = payload["remember"]?.ToObject<bool>() ?? false;
+                        if (chkRemember != null)
+                        {
+                            chkRemember.Checked = rem;
+                        }
+                        break;
+
+                    case "firm-select":
+                        string firmGUID = payload["firmGUID"]?.ToString();
+                        HandleFirmSelectionFromWeb(firmGUID, false);
+                        break;
+
+                    case "firm-confirm":
+                        string confirmFirmGUID = payload["firmGUID"]?.ToString();
+                        HandleFirmSelectionFromWeb(confirmFirmGUID, true);
+                        break;
+
+                    case "firm-cancel":
+                        ShowStatus("Firma seçimi iptal edildi.", true);
+                        _ = ShowLoginViewAsync();
+                        break;
+
+                    default:
+                        System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Unknown action: {action}");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] WebMessage handler error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Stack: {ex.StackTrace}");
+            }
+        }
+
+        #endregion
+
+        #region Login Flow
+
+        private async Task HandleLoginAsync(string email, string password, bool remember)
+        {
             if (apiClient == null)
             {
-                ShowStatus("API bağlantısı kurulamadı. Lütfen sistem yöneticinize başvurun.", true);
+                ShowStatus("API bağlantısı kurulamadı. Lütfen tekrar deneyin.", true);
                 return;
             }
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            {
+                ShowStatus("E-posta ve şifre gereklidir.", true);
+                return;
+            }
+
+            SetControlsEnabled(false);
+            ShowStatus("Giriş yapılıyor...", false);
 
             try
             {
-                // Disable controls during auth
-                SetControlsEnabled(false);
-                ShowStatus("Giriş yapılıyor...", false);
-
-                // Attempt login
                 var loginResponse = await ExecuteWithRetryAsync(
                     () => apiClient.LoginAsync(email, password),
-                    maxRetries: 3,
+                    maxRetries: 2,
                     operationName: "Giriş"
                 );
 
@@ -325,7 +379,7 @@ namespace YesiLdefter
                     Application.DoEvents();
 
                     // Get user firms
-                    var userFirmsList = await ExecuteWithRetryAsync(
+                    userFirmsList = await ExecuteWithRetryAsync(
                         () => apiClient.GetUserFirmsAsync(loginResponse.UserGUID),
                         maxRetries: 2,
                         operationName: "Firma bilgileri"
@@ -352,32 +406,29 @@ namespace YesiLdefter
                                 Application.DoEvents();
                                 await SelectFirmAsync(selected);
                             }
-                            else
-                            {
-                                ShowStatus("Firma seçimi iptal edildi.", true);
-                                v.SP_UserLOGIN = false;
-                                SetControlsEnabled(true);
-                            }
                         }
                     }
                     else
                     {
-                        ShowStatus("Kullanıcıya atanmış firma bulunamadı.", true);
-                        v.SP_UserLOGIN = false;
+                        ShowStatus("Bu kullanıcı için firma bulunamadı.", true);
                         SetControlsEnabled(true);
+                        _ = ShowLoginViewAsync();
                     }
                 }
                 else
                 {
                     ShowStatus("Giriş başarısız. Lütfen bilgilerinizi kontrol edin.", true);
-                    v.SP_UserLOGIN = false;
                     SetControlsEnabled(true);
+                    _ = ShowLoginViewAsync();
                 }
             }
             catch (Exception ex)
             {
-                HandleAuthException(ex, email);
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Login error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Stack: {ex.StackTrace}");
+                ShowStatus($"Giriş hatası: {ex.Message}", true);
                 SetControlsEnabled(true);
+                _ = ShowLoginViewAsync();
             }
         }
 
@@ -385,219 +436,84 @@ namespace YesiLdefter
         {
             try
             {
-                ShowStatus("Firma bilgileri alınıyor...", false);
+                ShowStatus("Firma seçiliyor...", false);
+                SetControlsEnabled(false);
 
-                var firmDetails = await ExecuteWithRetryAsync(
-                    () => apiClient.GetFirmDetailsAsync(firm.FirmGUID),
+                var selectFirmResponse = await ExecuteWithRetryAsync(
+                    () => apiClient.SelectFirmAsync(firm.FirmGUID),
                     maxRetries: 2,
-                    operationName: "Firma bilgileri"
+                    operationName: "Firma seçimi"
                 );
 
-                if (firmDetails?.Firm != null)
+                if (selectFirmResponse != null && !string.IsNullOrEmpty(selectFirmResponse.Token))
                 {
-                    // Populate firm info (DB connections are opened later by tStarter after login closes)
-                    v.tMainFirm.FirmId = firm.FirmId;
-                    v.tMainFirm.FirmLongName = firm.FirmLongName ?? firmDetails.Firm.FirmLongName ?? "";
+                    // Update token
+                    v.tUser.JwtToken = selectFirmResponse.Token;
+                    apiClient.SetAuthToken(selectFirmResponse.Token);
+
+                    // Store firm info in v
+                    v.SP_FIRM_ID = selectFirmResponse.FirmId;
+                    v.tMainFirm.FirmId = selectFirmResponse.FirmId;
+                    v.tMainFirm.FirmGuid = firm.FirmGUID ?? "";
+                    v.tMainFirm.FirmLongName = firm.FirmLongName ?? "";
                     v.tMainFirm.FirmShortName = firm.FirmShortName ?? "";
-                    v.tMainFirm.FirmGuid = firm.FirmGUID ?? firmDetails.Firm.FirmGUID ?? "";
-                    v.tMainFirm.IlKodu = firm.CityTypeId?.ToString() ?? "";
-                    v.tMainFirm.IlceKodu = firm.DistrictTypeId?.ToString() ?? "";
-                    v.tMainFirm.MenuCode = firm.MenuCode ?? "";
-                    v.tMainFirm.SectorTypeId = firm.SectorTypeId ?? 0;
-                    v.tMainFirm.DatabaseType = "1"; // MSSQL
                     v.tMainFirm.DatabaseName = firm.DatabaseName ?? "";
                     v.tMainFirm.ServerNameIP = firm.ServerNameIP ?? "";
                     v.tMainFirm.DbLoginName = firm.DbLoginName ?? "";
                     v.tMainFirm.DbPassword = firm.DbPass ?? "";
-                    v.tMainFirm.DbTypeId = firm.DbTypeId ?? 0;
-                    v.tMainFirm.FirmMebbisCode = firm.MebbisCode ?? "";
-                    v.tMainFirm.FirmMebbisPass = firm.MebbisPass ?? "";
+                    v.tMainFirm.DbTypeId = firm.DbTypeId ?? (short)0;
+                    v.tMainFirm.SectorTypeId = firm.SectorTypeId ?? (short)0;
+                    v.SP_Firm_SectorTypeId = firm.SectorTypeId ?? (short)0;
 
-                    // Save to registry
-                    reg.SetUstadRegistry("userFirm" + v.tUser.UserId.ToString(), firm.FirmId.ToString());
-                    reg.SetUstadRegistry("userLastFirm", firm.FirmId.ToString());
-                    v.tUserRegister.UserLastFirmId = firm.FirmId;
+                    // Initialize database connection using firm info
+                    t.setSelectFirm(v.tMainFirm);
+                    
+                    // Save firm selection to registry
+                    reg.SetUstadRegistry("userFirm" + v.tUser.UserId.ToString(), v.tMainFirm.FirmId.ToString());
+                    reg.SetUstadRegistry("userLastFirm", v.tMainFirm.FirmId.ToString());
+                    v.tUserRegister.UserLastFirmId = v.tMainFirm.FirmId;
 
-                    // Mark login successful
+                    // Mark login as successful
                     v.SP_UserLOGIN = true;
 
-                    t.setSelectFirm(v.tMainFirm); 
-
-                    ShowStatus("Giriş başarılı! Yükleniyor...", false);
-                    Application.DoEvents();
-
-                    // Small delay to show success message
-                    await Task.Delay(500);
-
-                    // Close form and continue to main app
+                    // Close this form and return DialogResult.OK
+                    this.DialogResult = DialogResult.OK;
                     this.Close();
                 }
                 else
                 {
-                    ShowStatus("Firma bilgileri alınamadı.", true);
-                    v.SP_UserLOGIN = false;
+                    ShowStatus("Firma seçimi başarısız.", true);
                     SetControlsEnabled(true);
+                    _ = ShowLoginViewAsync();
                 }
             }
             catch (Exception ex)
             {
-                ShowStatus($"Firma seçimi sırasında hata: {ex.Message}", true);
-                v.SP_UserLOGIN = false;
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] SelectFirm error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Stack: {ex.StackTrace}");
+                ShowStatus($"Firma seçimi hatası: {ex.Message}", true);
                 SetControlsEnabled(true);
+                _ = ShowLoginViewAsync();
             }
-        }
-
-        private void HandleAuthException(Exception ex, string email)
-        {
-            string errorMsg = ex.Message;
-            bool isAuthError = false;
-
-            if (ex.Data.Contains("StatusCode"))
-            {
-                int? statusCode = (int?)ex.Data["StatusCode"];
-                isAuthError = statusCode == 401;
-            }
-
-            if (isAuthError || errorMsg.Contains("401") || errorMsg.Contains("Unauthorized") ||
-                errorMsg.Contains("Şifre hatalı") || errorMsg.Contains("Kullanıcı bulunamadı"))
-            {
-                ShowStatus("E-posta veya şifre hatalı. Lütfen tekrar deneyin.", true);
-            }
-            else if (errorMsg.Contains("connection") || errorMsg.Contains("timeout") ||
-                     errorMsg.Contains("network") || errorMsg.Contains("API connection error"))
-            {
-                ShowStatus("API bağlantısı kurulamadı. Lütfen internet bağlantınızı kontrol edin.", true);
-            }
-            else
-            {
-                ShowStatus($"Hata: {errorMsg}", true);
-            }
-
-            v.SP_UserLOGIN = false;
         }
 
         #endregion
 
-        #region Helper Methods
-
-        private void InitializeApiClient()
-        {
-            try
-            {
-                string apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
-                apiClient = new UstadApiClient(apiBaseUrl);
-            }
-            catch (Exception ex)
-            {
-                ShowStatus($"API istemcisi başlatılamadı: {ex.Message}", true);
-            }
-        }
-
-        private void LoadUserRegistry()
-        {
-            try
-            {
-                userFirms.GetUserRegistry(regPath);
-
-                // Load email list from registry
-                v.tUserRegister.UserLastLoginEMail = reg.getRegistryValue("userLastLoginEMail")?.ToString() ?? "";
-                v.tUserRegister.UserRemember = reg.getRegistryValue("userRemember")?.ToString() == "True";
-
-                // Load email history
-                string emailList = reg.getRegistryValue("userEmailList")?.ToString() ?? "";
-                if (!string.IsNullOrEmpty(emailList))
-                {
-                    string[] emails = emailList.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
-                    cmbEmail.Properties.Items.AddRange(emails);
-                }
-
-                // Set last email
-                if (!string.IsNullOrEmpty(v.tUserRegister.UserLastLoginEMail))
-                {
-                    cmbEmail.EditValue = v.tUserRegister.UserLastLoginEMail;
-                }
-
-                // Set remember checkbox
-                chkRemember.Checked = v.tUserRegister.UserRemember;
-
-                // Load last password if remember is checked
-                if (v.tUserRegister.UserRemember)
-                {
-                    string lastKey = reg.getRegistryValue("userLastKey")?.ToString() ?? "";
-                    if (!string.IsNullOrEmpty(lastKey))
-                    {
-                        txtPassword.Text = lastKey;
-                    }
-                }
-
-                // Load last firm ID
-                string lastFirmId = reg.getRegistryValue("userLastFirm")?.ToString() ?? "";
-                if (!string.IsNullOrEmpty(lastFirmId) && int.TryParse(lastFirmId, out int firmId))
-                {
-                    v.tUserRegister.UserLastFirmId = firmId;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error loading user registry: {ex.Message}");
-            }
-        }
-
-        private void SaveUserRegistry(string email, string password)
-        {
-            try
-            {
-                // Save last email
-                reg.SetUstadRegistry("userLastLoginEMail", email);
-                v.tUserRegister.UserLastLoginEMail = email;
-
-                // Save remember preference
-                reg.SetUstadRegistry("userRemember", chkRemember.Checked.ToString());
-                v.tUserRegister.UserRemember = chkRemember.Checked;
-
-                // Save password if remember is checked
-                if (chkRemember.Checked)
-                {
-                    reg.SetUstadRegistry("userLastKey", password);
-                    v.tUserRegister.UserLastKey = password;
-                }
-                else
-                {
-                    reg.SetUstadRegistry("userLastKey", "");
-                    v.tUserRegister.UserLastKey = "";
-                }
-
-                // Update email list
-                if (!cmbEmail.Properties.Items.Contains(email))
-                {
-                    cmbEmail.Properties.Items.Add(email);
-
-                    // Save updated email list
-                    // Build a string from items
-                    var items = new List<string>();
-                    foreach (var it in cmbEmail.Properties.Items)
-                        items.Add(it?.ToString() ?? "");
-                    string emailList = string.Join("|", items);
-                    reg.SetUstadRegistry("userEmailList", emailList);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error saving user registry: {ex.Message}");
-            }
-        }
-
-        private void ShowStatus(string message, bool isError)
-        {
-            lblStatus.Text = message;
-            lblStatus.Appearance.ForeColor = isError ? Color.Red : Color.Green;
-            Application.DoEvents();
-            UpdateWebStatusInView(message, isError);
-        }
+        #region Firm Selection Dialog
 
         private UstadApiClient.FirmInfo ShowFirmSelectionDialog(IList<UstadApiClient.FirmInfo> firms)
         {
-            using (var dlg = new ms_UserFirmSelect(firms))
+            string apiBaseUrl = "";
+            try
+            {
+                apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
+            }
+            catch { }
+            
+            // Get userGUID from v.tUser (should be set after login)
+            string userGUID = v.tUser?.UserGUID ?? string.Empty;
+            
+            using (var dlg = new ms_UserFirmSelect(firms, userGUID, apiBaseUrl))
             {
                 var result = dlg.ShowDialog(this);
                 if (result == DialogResult.OK && dlg.SelectedFirm != null)
@@ -608,170 +524,127 @@ namespace YesiLdefter
             return null;
         }
 
-        private void SetControlsEnabled(bool enabled)
-        {
-            cmbEmail.Enabled = enabled;
-            txtPassword.Enabled = enabled;
-            chkRemember.Enabled = enabled;
-            btnLogin.Enabled = enabled;
-            btnForgotPassword.Enabled = enabled;
-            Application.DoEvents();
-        }
-
-        private async void UpdateWebStatusInView(string message, bool isError)
+        private async void HandleFirmSelectionFromWeb(string firmGUID, bool confirmSelection)
         {
             try
             {
-                if (htmlLayout?.CoreWebView2 == null)
+                if (string.IsNullOrWhiteSpace(firmGUID))
                 {
+                    ShowStatus("Geçersiz firma GUID.", true);
                     return;
                 }
-                string encodedMsg = JavaScriptStringEncode(message, true);
-                string js = $"window.__ustadSetStatus && window.__ustadSetStatus({encodedMsg}, {(isError ? "true" : "false")});";
-                await htmlLayout.CoreWebView2.ExecuteScriptAsync(js);
+
+                if (userFirmsList == null || userFirmsList.Count == 0)
+                {
+                    ShowStatus("Firma listesi yüklenmedi. Lütfen tekrar giriş yapın.", true);
+                    return;
+                }
+
+                // Find firm by GUID
+                var firm = userFirmsList.FirstOrDefault(f => 
+                    string.Equals(f.FirmGUID, firmGUID, StringComparison.OrdinalIgnoreCase));
+
+                if (firm == null)
+                {
+                    ShowStatus("Seçilen firma bulunamadı.", true);
+                    return;
+                }
+
+                if (confirmSelection)
+                {
+                    // User confirmed - proceed with firm selection
+                    await SelectFirmAsync(firm);
+                    firmSelectionTcs?.TrySetResult(firm); // Resolve the TCS
+                }
+                else
+                {
+                    // User just selected (not confirmed yet) - just update UI state
+                    // The web UI will handle the visual selection
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Firm selected (not confirmed): {firm.FirmLongName}");
+                    // Optionally, push a message back to the webview to highlight the firm
+                    await htmlLayout.CoreWebView2.ExecuteScriptAsync($"window.__ustadHighlightFirm && window.__ustadHighlightFirm('{firm.FirmGUID}');");
+                    firmSelectionTcs?.TrySetResult(null); // Keep waiting or reset if needed
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"UpdateWebStatusInView failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] HandleFirmSelectionFromWeb error: {ex.Message}");
+                ShowStatus($"Firma seçimi sırasında hata: {ex.Message}", true);
+                SetControlsEnabled(true);
+                firmSelectionTcs?.TrySetException(ex);
             }
         }
 
-        // Minimal JS string encoder (avoids System.Web dependency)
-        private static string JavaScriptStringEncode(string value, bool addDoubleQuotes)
+        #endregion
+
+        #region UI State Management
+
+        private void SetControlsEnabled(bool enabled)
         {
-            if (value == null)
-                return addDoubleQuotes ? "\"\"" : string.Empty;
+            if (btnLogin != null) btnLogin.Enabled = enabled;
+            if (cmbEmail != null) cmbEmail.Enabled = enabled;
+            if (txtPassword != null) txtPassword.Enabled = enabled;
+            if (chkRemember != null) chkRemember.Enabled = enabled;
+        }
 
-            var sb = new StringBuilder();
-            if (addDoubleQuotes) sb.Append('\"');
-
-            foreach (char c in value)
+        private void ShowStatus(string message, bool isError)
+        {
+            if (lblStatus != null)
             {
-                switch (c)
-                {
-                    case '\"': sb.Append("\\\""); break;
-                    case '\\': sb.Append("\\\\"); break;
-                    case '\b': sb.Append("\\b"); break;
-                    case '\f': sb.Append("\\f"); break;
-                    case '\n': sb.Append("\\n"); break;
-                    case '\r': sb.Append("\\r"); break;
-                    case '\t': sb.Append("\\t"); break;
-                    default:
-                        if (c < 32 || c > 127)
-                            sb.Append("\\u" + ((int)c).ToString("x4"));
-                        else
-                            sb.Append(c);
-                        break;
-                }
+                lblStatus.Text = message;
+                lblStatus.ForeColor = isError ? Color.Red : Color.Black;
             }
 
-            if (addDoubleQuotes) sb.Append('\"');
-            return sb.ToString();
+            // Also send status to WebView2
+            if (htmlLayout != null && htmlLayout.CoreWebView2 != null && webViewDomReady)
+            {
+                _ = htmlLayout.CoreWebView2.ExecuteScriptAsync($"window.__ustadUpdateStatus && window.__ustadUpdateStatus({Newtonsoft.Json.JsonConvert.SerializeObject(new { message = message, isError = isError })});");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Status: {message}");
         }
 
-        // Common retry helper (copied from ms_User)
-        private async Task<T> ExecuteWithRetryAsync<T>(
-            Func<Task<T>> operation,
-            int maxRetries = 3,
-            int delayMs = 1000,
-            string operationName = "İşlem")
+        private async Task ShowLoginViewAsync()
         {
-            Exception lastException = null;
+            if (htmlLayout != null && htmlLayout.CoreWebView2 != null)
+            {
+                await htmlLayout.CoreWebView2.ExecuteScriptAsync("window.__ustadShowLogin && window.__ustadShowLogin();");
+            }
+        }
 
-            for (int attempt = 1; attempt <= maxRetries; attempt++)
+        private async Task PopulateRememberedCredentialsAsync()
+        {
+            if (htmlLayout != null && htmlLayout.CoreWebView2 != null && webViewDomReady)
             {
                 try
                 {
-                    return await operation();
+                    string script = $@"
+                        if (window.__ustadSetFormState) {{
+                            window.__ustadSetFormState(
+                                {Newtonsoft.Json.JsonConvert.SerializeObject(rememberedEmail)},
+                                {Newtonsoft.Json.JsonConvert.SerializeObject(rememberedPassword)},
+                                {Newtonsoft.Json.JsonConvert.SerializeObject(rememberedRemember)},
+                                null
+                            );
+                        }}
+                    ";
+                    await htmlLayout.CoreWebView2.ExecuteScriptAsync(script);
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Populated form with remembered credentials: {rememberedEmail}");
                 }
                 catch (Exception ex)
                 {
-                    lastException = ex;
-
-                    // Don't retry on authentication/validation errors (common API 4xx responses)
-                    if (ex.Data.Contains("StatusCode"))
-                    {
-                        int? statusCode = (int?)ex.Data["StatusCode"];
-                        if (statusCode == 400 || statusCode == 401 || statusCode == 403 || statusCode == 404)
-                        {
-                            throw;
-                        }
-                    }
-
-                    // Don't retry on validation errors
-                    if (ex.Message.Contains("Eksik Bilgi") ||
-                        ex.Message.Contains("geçersiz") ||
-                        ex.Message.Contains("invalid"))
-                    {
-                        throw;
-                    }
-
-                    // If this is the last attempt, throw
-                    if (attempt == maxRetries)
-                    {
-                        break;
-                    }
-
-                    // Wait before retrying (exponential backoff)
-                    int waitTime = delayMs * attempt;
-                    System.Diagnostics.Debug.WriteLine(
-                        $"{operationName} başarısız (deneme {attempt}/{maxRetries}). {waitTime}ms sonra tekrar denenecek...");
-
-                    await Task.Delay(waitTime);
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Error populating remembered credentials: {ex.Message}");
                 }
-            }
-
-            throw new Exception(
-                $"{operationName} {maxRetries} deneme sonrasında başarısız oldu: {lastException?.Message}",
-                lastException);
-        }
-
-        private async Task InitializeWebViewAsync()
-        {
-            try
-            {
-                // Ensure CoreWebView2 initialized
-                var env = await CoreWebView2Environment.CreateAsync();
-                await htmlLayout.EnsureCoreWebView2Async(env);
-
-                // Wire message handler
-                htmlLayout.CoreWebView2.WebMessageReceived += HtmlLayout_WebMessageReceived;
-
-                // Load template
-                string html = LoadHtmlTemplateWithTokens();
-                if (string.IsNullOrWhiteSpace(html))
-                {
-                    System.Diagnostics.Debug.WriteLine("HTML template was empty after loading. Check embedded resource or Templates\\LoginTemplate.html on disk.");
-                    MessageBox.Show(
-                        "WebView2 template not found or empty.\n" +
-                        "Check that the embedded resource 'YesiLdefter.Forms.Templates.LoginTemplate.html' exists (Build Action = Embedded Resource)\n" +
-                        "or place a copy at <appFolder>\\Templates\\LoginTemplate.html.",
-                        "Template not found",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning);
-
-                    // Minimal fallback so UI is not completely empty
-                    html = "<!doctype html><html><body style='background:#0f172a;color:#e5e7eb;font-family:Segoe UI;padding:20px;'>" +
-                           "<h2>Template not loaded</h2><p>Check embedded resource or Templates\\LoginTemplate.html</p></body></html>";
-                }
-
-                htmlLayout.NavigateToString(html);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"WebView2 init failed: {ex.Message}\n{ex.StackTrace}");
-                MessageBox.Show(
-                    "WebView2 initialization failed: " + ex.Message + "\n\n" +
-                    "Ensure the WebView2 Runtime is installed on this machine and the Microsoft.Web.WebView2 NuGet package is compatible.",
-                    "WebView2 init error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
             }
         }
 
-        // Load HTML/CSS template from embedded resource and inject tokens mirroring UstadDesignTokens.scss
-        private string LoadHtmlTemplateWithTokens()
+        #endregion
+
+        #region HTML Template Loading
+
+        private string LoadLoginTemplate()
         {
+            // Try embedded resource first
             var asm = Assembly.GetExecutingAssembly();
             const string resourceName = "YesiLdefter.Forms.Templates.LoginTemplate.html";
             string matchedResource = null;
@@ -779,39 +652,42 @@ namespace YesiLdefter
             try
             {
                 var available = asm.GetManifestResourceNames();
-                System.Diagnostics.Debug.WriteLine("Available embedded resources: " + string.Join(", ", available));
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Available embedded resources: " + string.Join(", ", available));
 
-                // Try exact name first, then try to find by suffix (helps when default namespace changed)
                 matchedResource = Array.Find(available, r => string.Equals(r, resourceName, StringComparison.OrdinalIgnoreCase))
                                   ?? Array.Find(available, r => r.EndsWith(".Templates.LoginTemplate.html", StringComparison.OrdinalIgnoreCase));
 
                 if (string.IsNullOrEmpty(matchedResource))
                 {
-                    System.Diagnostics.Debug.WriteLine($"Html template resource not found: {resourceName}");
-                    // Try disk fallback: <app>\Templates\LoginTemplate.html
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Html template resource not found: {resourceName}");
+                    // Fallback to file system
                     string fallback = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "LoginTemplate.html");
                     if (File.Exists(fallback))
                     {
-                        System.Diagnostics.Debug.WriteLine($"Loading template from disk fallback: {fallback}");
-                        string templateDisk = File.ReadAllText(fallback, Encoding.UTF8);
-                        return ResolveTokens(templateDisk);
+                        System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Loading template from disk fallback: {fallback}");
+                        return File.ReadAllText(fallback, Encoding.UTF8);
                     }
-
-                    return string.Empty;
+                    return "<!doctype html><html><body style='background:#f0f2f5;color:#333;font-family:Segoe UI;padding:20px;'><h2>Template not loaded</h2><p>Login template not found. Please contact support.</p></body></html>";
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error enumerating resources: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Error enumerating resources: {ex.Message}");
             }
 
-            // Load embedded resource (use matchedResource if found, else try the constant name)
             using (var stream = asm.GetManifestResourceStream(matchedResource ?? resourceName))
             {
                 if (stream == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"GetManifestResourceStream returned null for {(matchedResource ?? resourceName)}");
-                    return string.Empty;
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] GetManifestResourceStream returned null for {(matchedResource ?? resourceName)}");
+                    // Fallback to file system
+                    string fallback = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "LoginTemplate.html");
+                    if (File.Exists(fallback))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Loading template from disk fallback: {fallback}");
+                        return File.ReadAllText(fallback, Encoding.UTF8);
+                    }
+                    return "<!doctype html><html><body style='background:#f0f2f5;color:#333;font-family:Segoe UI;padding:20px;'><h2>Template not loaded</h2><p>Login template not found. Please contact support.</p></body></html>";
                 }
                 using (var reader = new StreamReader(stream, Encoding.UTF8))
                 {
@@ -823,37 +699,189 @@ namespace YesiLdefter
 
         private string ResolveTokens(string template)
         {
+                 string assetBase = "";
+            string logoBase64 = "";
+            try
+            {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string assetPath = Path.Combine(baseDir, "Templates", "public");
+                // Ensure directory exists
+                if (!Directory.Exists(assetPath))
+                {
+                    Directory.CreateDirectory(assetPath);
+                }
+                // Use file:// protocol for local files
+                assetBase = new Uri(assetPath + Path.DirectorySeparatorChar).AbsoluteUri;
+
+                // Try multiple paths for logo (including Forms/Templates/public where source files are)
+                string[] logoPaths = new string[]
+                {
+                    Path.Combine(baseDir, "Forms", "Templates", "public", "yesildefter_horizontal.png"),
+                    Path.Combine(baseDir, "Templates", "public", "yesildefter_horizontal.png"),
+                    Path.Combine(baseDir, "yesildefter_horizontal.png"),
+                    Path.Combine(baseDir, "Forms", "Templates", "public", "yesildefter_horizontal_color.png"),
+                    Path.Combine(baseDir, "Templates", "public", "yesildefter_horizontal_color.png"),
+                    Path.Combine(baseDir, "yesildefter_horizontal_color.png")
+                };
+
+                foreach (string logoPath in logoPaths)
+                {
+                    if (File.Exists(logoPath))
+                    {
+                        byte[] logoBytes = File.ReadAllBytes(logoPath);
+                        logoBase64 = "data:image/png;base64," + Convert.ToBase64String(logoBytes);
+                        System.Diagnostics.Debug.WriteLine($"[Logo] Logo loaded from: {logoPath}");
+                        break;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"✗ Logo not found at: {logoPath}");
+                    }
+                }
+
+                // If still no logo, try embedded resource
+                if (string.IsNullOrEmpty(logoBase64))
+                {
+                    logoBase64 = LoadLogoFromEmbeddedResource();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error resolving asset-base: {ex.Message}");
+                assetBase = "";
+                // Try embedded resource as fallback
+                if (string.IsNullOrEmpty(logoBase64))
+                {
+                    logoBase64 = LoadLogoFromEmbeddedResource();
+                }
+            }
+
+            // Get API base URL from configuration
+            string apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
             return template
-                .Replace("{{color-bg}}", UiTokens.ColorBg)
-                .Replace("{{color-gradient-start}}", UiTokens.ColorGradientStart)
-                .Replace("{{color-gradient-end}}", UiTokens.ColorGradientEnd)
-                .Replace("{{color-card}}", UiTokens.ColorCard)
-                .Replace("{{color-accent}}", UiTokens.ColorAccent)
-                .Replace("{{color-accent2}}", UiTokens.ColorAccent2)
-                .Replace("{{color-text}}", UiTokens.ColorText)
-                .Replace("{{color-muted}}", UiTokens.ColorMuted)
-                .Replace("{{radius}}", UiTokens.Radius)
-                .Replace("{{shadow}}", UiTokens.Shadow)
-                .Replace("{{font}}", UiTokens.Font);
+                .Replace("{{color-bg}}", "#f0f2f5")
+                .Replace("{{color-gradient-start}}", "#f8fafc")
+                .Replace("{{color-gradient-end}}", "#e5e7eb")
+                .Replace("{{color-card}}", "#ffffff")
+                .Replace("{{color-accent}}", "#295c00")
+                .Replace("{{color-accent2}}", "#5a7323")
+                .Replace("{{color-text}}", "#1f2937")
+                .Replace("{{color-muted}}", "#6b7280")
+                .Replace("{{radius}}", "8px")
+                .Replace("{{shadow}}", "0 2px 8px rgba(0,0,0,0.1)")
+                .Replace("{{font}}", "Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif")
+                .Replace("{{asset-base}}", assetBase)
+                .Replace("{{logo-base64}}", logoBase64)
+                .Replace("{{api-base-url}}", apiBaseUrl);
         }
 
-        private static class UiTokens
+        private string LoadLogoFromEmbeddedResource()
         {
-            // Mirroring key values from UstadDesignTokens.scss
-            public const string ColorBg = "#0f172a";
-            public const string ColorGradientStart = "#e0eadf";
-            public const string ColorGradientEnd = "#eff2ef";
-            public const string ColorCard = "rgba(255,255,255,0.06)";
-            public const string ColorAccent = "#295c00";
-            public const string ColorAccent2 = "#8bc34a";
-            public const string ColorText = "#e5e7eb";
-            public const string ColorMuted = "#94a3b8";
-            public const string Radius = "16px";
-            public const string Shadow = "0 20px 50px rgba(0,0,0,0.35)";
-            public const string Font = "'Inter Tight', 'Segoe UI', sans-serif";
+            try
+            {
+                var asm = Assembly.GetExecutingAssembly();
+                var resources = asm.GetManifestResourceNames();
+                System.Diagnostics.Debug.WriteLine("[Logo] Available embedded resources: " + string.Join(", ", resources));
+
+                // Try to find logo in embedded resources
+                var logoResource = Array.Find(resources, r => r.Contains("yesildefter") && r.Contains("horizontal") && r.EndsWith(".png"));
+                if (logoResource == null)
+                {
+                    // Try alternative: look for any .png in g.resources
+                    logoResource = Array.Find(resources, r => r.Contains("g.resources"));
+                }
+
+                if (logoResource != null)
+                {
+                    using (var stream = asm.GetManifestResourceStream(logoResource))
+                    {
+                        if (stream != null)
+                        {
+                            // For .resx/.resources files, we need ResourceManager
+                            var resourceManager = new System.Resources.ResourceManager("YesiLdefter.Properties.Resources", asm);
+                            try
+                            {
+                                var logoObj = resourceManager.GetObject("yesildefter_horizontal");
+                                if (logoObj is System.Drawing.Bitmap bitmap)
+                                {
+                                    using (var ms = new MemoryStream())
+                                    {
+                                        bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                                        byte[] logoBytes = ms.ToArray();
+                                        string base64 = "data:image/png;base64," + Convert.ToBase64String(logoBytes);
+                                        System.Diagnostics.Debug.WriteLine($"✓ Logo loaded from embedded resource: {logoResource}");
+                                        return base64;
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[Logo] Error loading from ResourceManager: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine("[Logo] ⚠ Logo file not found in any expected location.");
+                return "";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Logo] Error loading logo from embedded resource: {ex.Message}");
+                return "";
+            }
         }
 
         #endregion
 
+        #region Helper Methods
+
+        private async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> operation, int maxRetries = 3, string operationName = "Operation")
+        {
+            Exception lastException = null;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    return await operation();
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] {operationName} attempt {attempt}/{maxRetries} failed: {ex.Message}");
+                    if (attempt < maxRetries)
+                    {
+                        await Task.Delay(1000 * attempt); // Exponential backoff
+                    }
+                }
+            }
+            throw lastException ?? new Exception($"{operationName} failed after {maxRetries} attempts");
+        }
+
+        #endregion
+
+        #region Event Handlers (Legacy UI - Not Used in WebView2 Mode)
+
+        private void CmbEmail_EditValueChanged(object sender, EventArgs e)
+        {
+            // Handled by WebView2 HTML/JS
+        }
+
+        private void TxtPassword_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Handled by WebView2 HTML/JS
+        }
+
+        private void BtnLogin_Click(object sender, EventArgs e)
+        {
+            // Handled by WebView2 HTML/JS
+        }
+
+        private void BtnForgotPassword_Click(object sender, EventArgs e)
+        {
+            // Handled by WebView2 HTML/JS
+        }
+
+        #endregion
     }
 }
