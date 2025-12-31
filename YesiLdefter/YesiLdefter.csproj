@@ -303,6 +303,12 @@
     <Compile Include="Forms\ms_DestekServiceTool.Designer.cs">
       <DependentUpon>ms_DestekServiceTool.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\ms_Donemler.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ms_Donemler.Designer.cs">
+      <DependentUpon>ms_Donemler.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\ms_EFatura.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -450,6 +456,9 @@
     <Compile Include="Forms\ms_UserFirmSelect.cs">
       <SubType>Form</SubType>
     </Compile>
+    <EmbeddedResource Include="Forms\ms_Donemler.resx">
+      <DependentUpon>ms_Donemler.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\ms_UserFirmSelect.resx">
       <DependentUpon>ms_UserFirmSelect.cs</DependentUpon>
     </EmbeddedResource>
