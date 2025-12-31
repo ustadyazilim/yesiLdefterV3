@@ -1,0 +1,234 @@
+﻿/*CreateProcedure*/
+
+CREATE PROCEDURE [dbo].[prc_OnmCariHesapHareketleri] (@FirmId int, @CariId int, @BaslangicTarihi date = NULL, @BitisTarihi date = NULL)  
+AS BEGIN 
+
+   SET NOCOUNT ON;
+
+   --declare @FirmId int
+   --Set @FirmId = 35
+   --declare @CariId int
+   --Set @CariId = 14
+   --declare @BaslangicTarihi date
+   --declare @BitisTarihi date
+
+   select * from (
+
+   -- OnmBelgeMaliyet
+   Select 
+       [BMaliyet].[Id]
+    --,[BMaliyet].[FirmId]
+      ,[BMaliyet].[IsActive]
+    --,[BMaliyet].[BelgeTipiId]
+    --,[BMaliyet].[KaynakTipiId]
+    --,[BMaliyet].[IslemTipiId]
+      ,[BMaliyet].[BelgeTarihi]
+      ,[BMaliyet].[BelgeSeri]
+      ,[BMaliyet].[BelgeNo]
+    --,[BMaliyet].[BelgeDonemTipiId]
+      ,[BMaliyet].[CariId]
+    --,[BMaliyet].[CariUnvan]
+      ,[BMaliyet].[BelgeTutari]
+      ,( case 
+         when [Maliyet].BAHesapTipiId > 200 and [Maliyet].BAHesapTipiId < 300 then [BMaliyet].[BelgeTutari]
+         else 0 end) as BorcTutari
+      ,( case 
+         when [Maliyet].BAHesapTipiId > 200 and [Maliyet].BAHesapTipiId < 300 then 0
+         else [BMaliyet].[BelgeTutari] end) as AlacakTutari
+    --,[BMaliyet].[IndirimTutari]
+    --,[BMaliyet].[GenelToplam]
+    --,[BMaliyet].[MinOdemeTutari]
+    --,[BMaliyet].[VadeGun]
+    --,[BMaliyet].[GecerlilikTarihi]
+    --,[BMaliyet].[MaliyetId]
+    --,[BMaliyet].[VarlikId]
+    --,[BMaliyet].[AboneId]
+    --,[BMaliyet].[ProjeId]
+    --,[BMaliyet].[MaliyetKdvOrani]
+    --,[BMaliyet].[VergiVeFonlar]
+    --,[BMaliyet].[MasrafMiktari]
+      ,[BMaliyet].[OdenenTutar] as Lkp_OdenenTutar
+      ,[BMaliyet].[KalanTutar]  as Lkp_KalanTutar
+      ,[BMaliyet].[ParaTipiId1]
+      ,[BMaliyet].[Aciklama]
+    --,[BMaliyet].[KayitTarihi]
+    --,[BMaliyet].[BelgeDekontId]
+    --,[BMaliyet].[SayacEndeksi]
+    --,[BMaliyet].[TuketimTipiId]
+
+    -- Join Tables standart fields 
+      ,[Maliyet].HesapAdi as Lkp_MaliyetAdi
+    --,[Maliyet].BAHesapTipiId as Lkp_BAHesapTipiId
+    --,[Maliyet].KdvOrani as Lkp_MaliyetKdvOrani
+      ,[Varlik].HesapKisaAdi as Lkp_VarlikAdi
+    --,[Abone].HesapAdi as Lkp_AboneAdi
+    --,[Abone].Numarasi as Lkp_AboneNumarasi
+      ,[HCari].TamAdiSoyadi as Lkp_CariAdi
+    -- LookUp Fields
+      ,[BTipi].BelgeTipi as Lkp_Tipi
+      ,'Masraf belgesi' as Lkp_IslemAdi
+      ,[BMaliyet].[SonOdemeTarihi]
+      ,convert(smallint,0) as SourceTypeId
+      ,convert(smallint,0) as SourceId
+      ,'OnmBelgeMaliyet' as Lkp_TabloTipi 
+      ,1 as Lkp_TabloTipiId 
+   from dbo.OnmBelgeMaliyet as [BMaliyet] with (nolock) 
+   -- Join Tables 
+       left outer join OnmHesapFinans as [Maliyet] with (nolock) on ( [BMaliyet].MaliyetId = [Maliyet].Id  ) 
+       left outer join OnmHesapFinans as [Varlik] with (nolock) on ( [BMaliyet].VarlikId = [Varlik].Id  ) 
+       left outer join OnmHesapFinans as [Abone] with (nolock) on ( [BMaliyet].AboneId = [Abone].Id  ) 
+       left outer join OnmHesapCari as [HCari] with (nolock) on ( [BMaliyet].CariId = [HCari].Id  ) 
+   -- LookUp Tables
+       left outer join Lkp.OnmBelgeMaliyetBelgeTipi as [BTipi] with (nolock) on ( [BMaliyet].BelgeTipiId = [BTipi].Id  ) 
+   where BMaliyet.FirmId = @FirmId
+   /*
+   and Convert(Date, [BMaliyet].BelgeTarihi, 103)  >=  Convert(Date, '29.10.2025', 103)     -- :D.SD.13022: -->=
+   and Convert(Date, [BMaliyet].BelgeTarihi, 103)  <=  Convert(Date, '29.10.2025', 103)     -- :D.SD.13022: --<=
+   */
+   --and Maliyet.UstGrupTipiId <> 86 -- FDGelir hesapları 
+
+   and BMaliyet.IsActive = 1  
+   and BMaliyet.CariId = @CariId
+   --and BMaliyet.IsPaid = 0
+
+   union all
+
+   -- OnmBelgeDekont
+   Select 
+       [BDekont].[Id]
+   -- ,[BDekont].[FirmId]
+      ,[BDekont].[IsActive]
+   -- ,[BDekont].[TipiId]
+   -- ,[BDekont].[IslemTipiId]
+      ,convert(date,[BDekont].[BelgeTarihi],103) as BelgeTarihi
+      ,[BDekont].[BelgeSeri]
+      ,[BDekont].[BelgeNo]
+   -- ,[BDekont].[BHesapTipiId]
+   -- ,[BDekont].[BorcluId]
+   -- ,[BDekont].[AHesapTipiId]
+   -- ,[BDekont].[AlacakliId]
+   -- ,[BDekont].[MaliyetId]
+   -- ,[BDekont].[VarlikId]
+   -- ,[BDekont].[AboneId]
+   -- ,[BDekont].[TalepId]
+      ,[BDekont].[CariId]
+   -- ,[BDekont].[CariUnvan]
+      ,[BDekont].[BelgeTutari]
+,( case 
+   when BDekont.TipiId = 1 then BDekont.BorcTutari   -- Açılış fişi 
+   when BDekont.AHesapTipiId = 320 then 0  
+   when BDekont.BHesapTipiId = 320 then BDekont.BelgeTutari
+   when BDekont.CariId = @CariId and BDekont.TipiId = 2 then -5
+   when BDekont.CariId = @CariId and BDekont.TipiId = 3 then BDekont.BelgeTutari --6
+   when BDekont.BHesapTipiId = 1026 then BDekont.BelgeTutari -- cari.pos ise
+   else -1 end) as BorcTutari 
+,( case 
+   when BDekont.TipiId = 1 then BDekont.AlacakTutari -- Açılış fişi
+   when BDekont.AHesapTipiId = 320 then BDekont.BelgeTutari
+   when BDekont.BHesapTipiId = 320 then 0
+   when BDekont.CariId = @CariId and BDekont.TipiId = 2 then -7
+   when BDekont.CariId = @CariId and BDekont.TipiId = 3 then 0 --8
+   when BDekont.BHesapTipiId = 1026 then 0 -- cari.pos ise
+   else -2 end) as AlacakTutari 
+   -- ,[BDekont].[BorcTutari]
+   -- ,[BDekont].[AlacakTutari]
+   -- ,[BDekont].[IptalTutari]
+      ,0 as [Lkp_OdenenTutar]
+      ,0 as [Lkp_KalanTutar]
+      ,[BDekont].[ParaTipiId1]
+      ,[BDekont].[Aciklama]
+   -- ,[BDekont].[FinansTipiId]
+   , ( case 
+       when BHesapTipiId = 100 then BHFinans.HesapKisaAdi -- Lkp_BHFinansAdi
+       when BHesapTipiId = 1022 then BHFinans.HesapKisaAdi -- Lkp_BHFinansAdi
+       when BHesapTipiId = 1023 then BHFinans.HesapKisaAdi -- Lkp_BHFinansAdi
+       when BHesapTipiId = 1024 then BHFinans.HesapKisaAdi -- Lkp_BHFinansAdi
+       when BHesapTipiId = 1025 then BHFinans.HesapKisaAdi -- Lkp_BHFinansAdi
+       when BHesapTipiId = 1026 then BHFinans.HesapKisaAdi -- Lkp_BHFinansAdi
+       when BHesapTipiId = 320 then BHCari320.TamAdiSoyadi -- Lkp_BHFinansAdi
+       when SourceTypeId = 0 then BHFinans.HesapKisaAdi -- Lkp_BHFinansAdi
+       when SourceTypeId = 1 then BHFinans.HesapKisaAdi -- Lkp_BHFinansAdi
+       end ) as Lkp_MaliyetAdi -- Lkp_BHFinansAdi  
+
+   --  Join Tables standart fields 
+      ,[HVarlik].HesapKisaAdi as Lkp_VarlikAdi
+   -- ,[HAbone].HesapKisaAdi as Lkp_AboneAdi
+   -- ,[HAbone].Numarasi as Lkp_AboneNumarasi
+   -- ,[BMaliyet].MinOdemeTutari as Lkp_MinOdemeTutari
+   /*
+   , ( case 
+       when AHesapTipiId = 100 then AHFinans.HesapKisaAdi -- Lkp_AHFinansAdi
+       when AHesapTipiId = 1022 then AHFinans.HesapKisaAdi -- Lkp_AHFinansAdi
+       when AHesapTipiId = 1023 then AHFinans.HesapKisaAdi -- Lkp_AHFinansAdi
+       when AHesapTipiId = 1024 then AHFinans.HesapKisaAdi -- Lkp_AHFinansAdi
+       when AHesapTipiId = 1025 then AHFinans.HesapKisaAdi -- Lkp_AHFinansAdi
+       when AHesapTipiId = 1026 then AHFinans.HesapKisaAdi -- Lkp_AHFinansAdi
+       when AHesapTipiId = 320 then AHCari320.TamAdiSoyadi -- Lkp_AHFinansAdi
+       end ) as Lkp_AHFinansAdi  
+   */
+   , ( case 
+       when SourceTypeId = 0 then HCari.TamAdiSoyadi -- Lkp_CariAdi
+       when SourceTypeId = 1 then HCari.TamAdiSoyadi -- Lkp_CariAdi
+       when SourceTypeId = 201 then MtskAday.TamAdiSoyadi -- Lkp_CariAdi
+       when SourceTypeId = 203 then SrcAday.TamAdiSoyadi -- Lkp_CariAdi
+       end ) as Lkp_CariAdi  
+   /* , ( case 
+       when SourceTypeId = 0 then HCari.TcVkNo -- Lkp_TcVkNo
+       when SourceTypeId = 1 then HCari.TcVkNo -- Lkp_TcVkNo
+       when SourceTypeId = 201 then MtskAday.TcNo -- Lkp_TcVkNo
+       when SourceTypeId = 203 then SrcAday.TcNo -- Lkp_TcVkNo
+       end ) as Lkp_TcVkNo  */
+       -- LookUp Fields
+   , FNo6.Tipi as Lkp_Tipi
+   , FNo7.IslemAdi as Lkp_IslemAdi
+   -- , FNo21.BHesapTipi as Lkp_BHesapTipi
+   -- , FNo23.AHesapTipi as Lkp_AHesapTipi
+   , null as SonOdemeTarihi
+   , [BDekont].SourceTypeId
+   , [BDekont].SourceId
+   , 'OnmBelgeDekont' as Lkp_TabloTipi 
+   , 2 as Lkp_TabloTipiId 
+   from dbo.OnmBelgeDekont as [BDekont] with (nolock) 
+   -- Join Tables 
+       left outer join OnmHesapFinans as [BHFinans] with (nolock) on ( [BDekont].BorcluId = [BHFinans].Id  ) 
+       left outer join OnmHesapFinans as [AHFinans] with (nolock) on ( [BDekont].AlacakliId = [AHFinans].Id  ) 
+       left outer join OnmHesapFinans as [HVarlik] with (nolock) on ( [BDekont].VarlikId = [HVarlik].Id  ) 
+       left outer join OnmHesapFinans as [HAbone] with (nolock) on ( [BDekont].AboneId = [HAbone].Id  ) 
+       left outer join OnmHesapCari as [HCari] with (nolock) on ( [BDekont].CariId = [HCari].Id  ) 
+       left outer join OnmHesapCari as [BHCari320] with (nolock) on ( [BDekont].BorcluId = [BHCari320].Id  ) 
+       left outer join OnmHesapCari as [AHCari320] with (nolock) on ( [BDekont].AlacakliId = [AHCari320].Id  ) 
+     --left outer join OnmBelgeMaliyet as [BMaliyet] with (nolock) on ( [BDekont].SourceId = [BMaliyet].Id  and BDekont.SourceTypeId = 1  ) 
+       left outer join OnmBankaKredisiS as [BKredisiS] with (nolock) on ( [BDekont].SourceId = [BKredisiS].Id  and BDekont.SourceTypeId = 3  ) 
+       left outer join MtskAday as [MtskAday] with (nolock) on ( [BDekont].CariId = [MtskAday].Id  ) 
+       left outer join SrcAday as [SrcAday] with (nolock) on ( [BDekont].CariId = [SrcAday].Id  ) 
+     -- LookUp Tables
+       left outer join Lkp.OnmBelgeDekontTipi as FNo6 with (nolock) on ( BDekont.TipiId = FNo6.Id ) 
+       left outer join Lkp.OnmBelgeDekontIslemTipi as FNo7 with (nolock) on ( BDekont.IslemTipiId = FNo7.IslemKodu ) 
+     --left outer join Lkp.OnmBelgeDekontBHesapTipi as FNo21 with (nolock) on ( BDekont.BHesapTipiId = FNo21.Id ) 
+     --left outer join Lkp.OnmBelgeDekontAHesapTipi as FNo23 with (nolock) on ( BDekont.AHesapTipiId = FNo23.Id ) 
+
+   where BDekont.FirmId = @FirmId
+   and ( [BDekont].SourceTypeId = 1 -- OnmBelgeMaliyet ise
+   or    [BDekont].SourceTypeId = 0 -- OnmBelgeDekont  kendisi, açılış fişi
+   or    [BDekont].SourceTypeId = 201 -- 
+   or    [BDekont].SourceTypeId = 202
+   or    [BDekont].SourceTypeId = 203
+   )
+   --and Convert(Date, [BDekont].BelgeTarihi, 103)  >=  Convert(Date, '29.10.2025', 103)     -- :D.SD.46524: -->=
+   --and Convert(Date, [BDekont].BelgeTarihi, 103)  <=  Convert(Date, '29.10.2025', 103)     -- :D.SD.46524: --<=
+
+   and ([BDekont].BorcluId   = isnull((Select Id From dbo.OnmHesapFinans Where AltGrupTipiId = 1026 and FirmId = @FirmId and ParentId = @CariId),-1) -- Cari.pos
+    or  [BDekont].AlacakliId = isnull((Select Id From dbo.OnmHesapFinans Where AltGrupTipiId = 1026 and FirmId = @FirmId and ParentId = @CariId),-1) -- Cari.pos
+    or ([BDekont].BHesapTipiId = 320 and [BDekont].BorcluId   = @CariId)
+    or ([BDekont].AHesapTipiId = 320 and [BDekont].AlacakliId = @CariId)
+    or  [BDekont].CariId = @CariId 
+    )
+   and BDekont.IsActive = 1 
+
+   ) as x
+   order by x.BelgeTarihi, Lkp_TabloTipiId
+
+
+END -- procedure
+
+/*CreateProcedureEnd*/

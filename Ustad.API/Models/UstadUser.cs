@@ -9,14 +9,14 @@ namespace Ustad.API.Models
     public class UstadUser
     {
         public int UserId { get; set; }
-        public string UserFullName { get; set; }
-        public string UserFirstName { get; set; }
-        public string UserLastName { get; set; }
-        public string UserTcNo { get; set; }
-        public string UserMobileNo { get; set; }
-        public string UserEMail { get; set; }
-        public string UserFirmGUID { get; set; }
-        public string UserKey { get; set; }
-        public string UserGUID { get; set; }
+        public string UserFullName { get; set; } = string.Empty;
+        public string UserFirstName { get; set; } = string.Empty;
+        public string UserLastName { get; set; } = string.Empty;
+        public string UserTcNo { get; set; } = string.Empty;
+        public string UserMobileNo { get; set; } = string.Empty;
+        public string UserEMail { get; set; } = string.Empty;
+        public string UserFirmGUID { get; set; } = string.Empty;
+        public string UserKey { get; set; } = string.Empty;
+        public string UserGUID { get; set; } = string.Empty;
     }
 }

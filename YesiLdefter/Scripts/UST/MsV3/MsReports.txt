@@ -263,6 +263,7 @@ INSERT INTO [dbo].[MsReports]
            ( 1        , 0         , 'RPR'       , ''         , 'Rapor işlemleri'                 , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SRC'     , null       ),
 
            ( 1        , 0         , 'DNM.TALP'  , 'DNM'      , 'Talep raporları'                 , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SRC'     , null       ),
+           ( 1        , 0         , 'DNM.SNVH'  , 'DNM'      , 'Sınav hazırlık raporları'        , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SRC'     , null       ),
 
            --( 1        , 0         , 'DNM.TALP'      , 'DNM'      , 'Talep raporları'             , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SRC'     , null       ),
            ( 1        , 0         , 'DNM.TALP.TLP'  , 'DNM.TALP' , 'Talep '                      , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SRC'     , null       ),

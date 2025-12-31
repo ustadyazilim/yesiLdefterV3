@@ -5,28 +5,28 @@ begin transaction
  create table SrcSablonTeorikS
  (
    Id                      Int IDENTITY(1,1) not null, 
+   FirmId                  Int           not null, /* default : 0 */	
    IsActive                Bit           not null, /* default : 1 = active, 0 = not active */  
-   SablonTeorikBId         Int           null,
-   SablonKodu              nVarChar(30)  null,     /* şabloları    */
 
-   -- 20
-   DerslikAdiTipiId        SmallInt      null, -- default  /* Derslik-1, -2 ... -10 */
-   SrcDerslerId            Int           null, /* detayı Lkp.SrcDersler tablosunda */
-   DersSaati               SmallInt      null, 
-   PersonelId              Varchar(20)   null, 
+   DonemTipiId          Int           null,
+   GrupTipiId           SmallInt      null,
+   SubeTipiId           SmallInt      null,
    
-   -- 30
-   IsGunu1                 SmallInt      null,
-   BaslangicSaati1         SmallInt      null,
-   KacSaat1                SmallInt      null,
-   -- 40
-   IsGunu2                 SmallInt      null,
-   BaslangicSaati2         SmallInt      null,
-   KacSaat2                SmallInt      null,
-   -- 50
-   IsGunu2                 SmallInt      null,
-   BaslangicSaati2         SmallInt      null,
-   KacSaat2                SmallInt      null,
+   DersGrubu            Varchar(1)    null, /* A, B, C veya D : Mebbisden doğrudan ders programı okunduğunda gerekiyor */  
+   DersTipiId           Int           null, /* Detayı : Lkp.SrcDersler tablosunda */
+   DerslikAdiTipiId     SmallInt      null, /* Derslik-1, -2 ... -10 */
+   DersTarihi           Date          null,
+   DersSaatiTipiId      SmallInt      null,
+   PersonelId           Varchar(20)   null,
+   EgitimTipiId         SmallInt      null, /* 1. Normal, 2. Telafi, 9. Şablon kayıt  */
+
+   BaslamaSaati         Datetime      null, /* Calender and Scheduling için gerekli */
+   BitisSaati           Datetime      null, /* Calender and Scheduling için gerekli */
+
+   TDersIsUploaded      Bit           null,
+   SablonTeorikBId      Int           null, 
+   DersSiraNo           SmallInt      null,
+   SablonKodu           nVarChar(30)  null,     /* şabloları    */
 
    constraint		pk_SrcSablonTeorikS primary key (Id)
  )
@@ -37,89 +37,116 @@ commit transaction
 
 /*CreateTableEnd*/
 
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_SrcSablonTeorikS] on [dbo].[SrcSablonTeorikS] 
+AFTER INSERT, UPDATE
+AS BEGIN
+
+    DECLARE myCursor cursor local for select Id from Inserted
+    DECLARE @curId bigint
+
+    OPEN myCursor
+    FETCH NEXT FROM myCursor INTO @curId
+
+    declare @eFirmId int = 0
+    declare @eDonemTipiId int = 0
+    declare @eGrupTipiId smallInt = 0
+    declare @eSubeTipiId smallInt = 0
+    declare @eDersTarihi date = null
+    declare @eDersSaatiTipiId smallInt = -1
+    declare @eSaat varchar(20) = null
+    declare @TDersIsUploaded bit = 0
+    declare @SablonTeorikBId int = 0
+	declare @eBaslamaSaati datetime
+	declare @eBitisSaati datetime
+    declare @eBaslamaSaatiChechked varchar(20)
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+    	
+      Select
+	   @eFirmId = ins.FirmId
+      ,@eDonemTipiId = ins.DonemTipiId
+      ,@eGrupTipiId = ins.GrupTipiId
+      ,@eSubeTipiId = ins.SubeTipiId
+      ,@eDersTarihi = ins.DersTarihi
+      ,@eDersSaatiTipiId = ins.DersSaatiTipiId
+      ,@TDersIsUploaded = isnull(ins.TDersIsUploaded,0)
+      ,@SablonTeorikBId = isnull(ins.SablonTeorikBId,0)
+      ,@eBaslamaSaati = ins.BaslamaSaati
+      ,@eBitisSaati = ins.BitisSaati	  
+      ,@eBaslamaSaatiChechked = Convert(varchar(20), ins.BaslamaSaati, 108) -- saati al
+      ,@eSaat = isnull(saat.DersSaatiTipi,'00:00 - 00:00')
+      From inserted ins
+	    left outer join Lkp.SrcSablonTeorikSDersSaatiTipi saat on (ins.DersSaatiTipiId = saat.Id)
+      Where ins.Id = @curId
+      
+
+      if (@SablonTeorikBId = -9) -- yani default başlangıç kaydıysa
+      begin
+          update dbo.SrcSablonTeorikS set 
+			    DersTarihi = convert(date, '01.01.1900', 103)
+              , DersSaatiTipiId = -7
+              , BaslamaSaati = convert(smalldatetime, '01.01.1900 00:00', 103)
+              , BitisSaati   = convert(smalldatetime, '01.01.1900 00:50', 103)
+          Where Id = @curId
+          return
+      end
+
+      -- tabloda grünen : 2025-12-05 08:00:11.000
+      -- @eBaslamaSaatiChechked atanan : 08:00:11
+      if (CHARINDEX(':00:11', @eBaslamaSaatiChechked) > 0)
+      begin
+          Set @eDersTarihi = Convert(date, @eBaslamaSaati, 103)
+          Set @eSaat = SUBSTRING(@eBaslamaSaatiChechked,1,5);
+
+          Select @eDersSaatiTipiId = Id, @eSaat = DersSaatiTipi  
+          From Lkp.SrcSablonTeorikSDersSaatiTipi
+          Where DersSaatiTipi like @eSaat+'%'
+
+          update dbo.SrcSablonTeorikS set 
+			    DersTarihi = @eDersTarihi
+              , DersSaatiTipiId = @eDersSaatiTipiId
+              , BaslamaSaati = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,1,5))
+              , BitisSaati   = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,9,5))
+              --, PersonelId = @eSaat
+          Where Id = @curId
+
+      end else 
+      begin        
+          -- BaslangicSaat ve BitisSaat 
+          update dbo.SrcSablonTeorikS set 
+              BaslamaSaati = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,1,5))
+            , BitisSaati   = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,9,5))
+            --, PersonelId = 'update2'
+          Where Id = @curId
+      end
+      
+      FETCH NEXT FROM myCursor INTO @curId
+    END
+
+    CLOSE myCursor
+    DEALLOCATE myCursor   
+
+END -- create trigger
+
+/*CreateTriggerEnd*/
+
+
+
+
+
+
 /*CreateLkpTable*/
 
 begin transaction
 
 -- ------------------------------------------------------- 
--- SaatTipiId
+-- DersTipiId  /* Detayı : Lkp.SrcDersler tablosunda */
 -- ------------------------------------------------------- 
-IF EXISTS (Select * From sys.objects WHERE name = 'SrcSablonTeorikSSaatTipi')
-drop table [Lkp].[SrcSablonTeorikSSaatTipi]
-
-create table Lkp.SrcSablonTeorikSSaatTipi
-(
-   Id          Int Unique Not Null,
-   SaatTipi    nVarchar(10)   null,
-   GrupTipiId  SmallInt       null,
-   
-   constraint  pk_SrcSablonTeorikSSaatTipi primary key (Id)
-)
-
-INSERT INTO Lkp.SrcSablonTeorikSSaatTipi (Id, SaatTipi, GrupTipiId)
- VALUES 
-  ( 0, N'', 0),
-
-  ( 2, N'2 saat', 1),
-  ( 4, N'4 saat', 1),
-  ( 6, N'6 saat', 1),
-
-  ( 107, N'07', 1),
-  ( 108, N'08', 1),
-  ( 109, N'09', 1),
-  ( 110, N'10', 1),
-  ( 111, N'11', 1),
-  ( 112, N'12', 1),
-  ( 113, N'13', 1),
-  ( 114, N'14', 1),
-  ( 115, N'15', 1),
-  ( 116, N'16', 1),
-  ( 117, N'17', 1),
-  ( 118, N'18', 1),
-  ( 119, N'19', 1),
-  ( 120, N'20', 1),
-  ( 121, N'21', 1),
-  ( 122, N'22', 1),
-
-  ( 207, N'07-08', 2),
-  ( 209, N'09-10', 2),
-  ( 211, N'11-12', 2),
-  ( 213, N'13-14', 2),
-  ( 215, N'15-16', 2),
-  ( 217, N'17-18', 2),
-  ( 219, N'19-20', 2),
-  ( 221, N'21-22', 2),
-
-  ( 308, N'08-09', 3),
-  ( 310, N'10-11', 3),
-  ( 312, N'12-13', 3),
-  ( 314, N'14-15', 3),
-  ( 316, N'16-17', 3),
-  ( 318, N'18-19', 3),
-  ( 320, N'20-21', 3)
-
-
--- ------------------------------------------------------- 
--- DerslikTipiId
--- ------------------------------------------------------- 
-IF EXISTS (Select * From sys.objects WHERE name = 'SrcSablonTeorikSDerslikTipi')
-drop table [Lkp].[SrcSablonTeorikSDerslikTipi]
-
-create table Lkp.SrcSablonTeorikSDerslikTipi
-(
-   Id          Int Unique Not Null,
-   DerslikTipi nVarchar(50)   null
-   
-   constraint  pk_SrcSablonTeorikSDerslikTipi primary key (Id)
-)
-
-INSERT INTO Lkp.SrcSablonTeorikSDerslikTipi (Id, DerslikTipi)
- VALUES 
-  ( 0, N'Tanımsız'),
-  ( 1, N'Trafik ve Çevre Dersi'),
-  ( 2, N'İlkyardım Dersi'),
-  ( 3, N'Araç Tekniği Dersi'),
-  ( 5, N'Trafik Adabı Dersi')
   
 -- ------------------------------------------------------- 
 -- DerslikAdiTipiId
@@ -137,17 +164,17 @@ create table Lkp.SrcSablonTeorikSDerslikAdiTipi
 
 INSERT INTO Lkp.SrcSablonTeorikSDerslikAdiTipi (Id, DerslikAdiTipi)
  VALUES 
-  ( 0, N''),
-  ( 1, N'DERSLİK-1'),
-  ( 2, N'DERSLİK-2'),
-  ( 3, N'DERSLİK-3'),
-  ( 4, N'DERSLİK-4'),
-  ( 5, N'DERSLİK-5'),
-  ( 6, N'DERSLİK-6'),
-  ( 7, N'DERSLİK-7'),
-  ( 8, N'DERSLİK-8'),
-  ( 9, N'DERSLİK-9'),
-  (10, N'DERSLİK-10')
+  ( 0, N'Tanımsız'),
+  ( 1, N'Derslik-1'),
+  ( 2, N'Derslik-2'),
+  ( 3, N'Derslik-3'),
+  ( 4, N'Derslik-4'),
+  ( 5, N'Derslik-5'),
+  ( 6, N'Derslik-6'),
+  ( 7, N'Derslik-7'),
+  ( 8, N'Derslik-8'),
+  ( 9, N'Derslik-9'),
+  (10, N'Derslik-10')
  
 
 -- ------------------------------------------------------- 
@@ -164,9 +191,16 @@ create table Lkp.SrcSablonTeorikSDersSaatiTipi
    constraint  pk_SrcSablonTeorikSDersSaatiTipi primary key (Id)
 )
 
-INSERT INTO Lkp.SrcSablonTeorikSDersSaatiTipi (Id, DersSaatiTipi)
+ DELETE FROM Lkp.SrcSablonTeorikSDersSaatiTipi
+ INSERT INTO Lkp.SrcSablonTeorikSDersSaatiTipi (Id, DersSaatiTipi)
  VALUES 
-  (-1, N''),
+  (-7, N'00:00 - 00:50'),
+  (-6, N'01:00 - 01:50'),
+  (-5, N'02:00 - 02:50'),
+  (-4, N'03:00 - 03:50'),
+  (-3, N'04:00 - 04:50'),
+  (-2, N'05:00 - 05:50'),
+  (-1, N'06:00 - 06:50'),
   ( 0, N'07:00 - 07:50'),
   ( 1, N'08:00 - 08:50'),
   ( 2, N'09:00 - 09:50'),
@@ -185,26 +219,57 @@ INSERT INTO Lkp.SrcSablonTeorikSDersSaatiTipi (Id, DersSaatiTipi)
   (15, N'22:00 - 22:50')
 
 
--- ------------------------------------------------------- 
--- EgitimTipiId
--- ------------------------------------------------------- 
-IF EXISTS (Select * From sys.objects WHERE name = 'SrcSablonTeorikSEgitimTipi')
-drop table [Lkp].[SrcSablonTeorikSEgitimTipi]
-
-create table Lkp.SrcSablonTeorikSEgitimTipi
-(
-   Id           Int Unique Not Null,
-   EgitimTipi   nVarchar(20)   null
-
-   constraint  pk_SrcSablonTeorikSEgitimTipi primary key (Id)
-)
-
-INSERT INTO Lkp.SrcSablonTeorikSEgitimTipi (Id, EgitimTipi)
- VALUES 
-  ( 0, N''),
-  ( 1, N'Normal Eğitim'),
-  ( 2, N'Telafi Eğitim')
-
 commit transaction
 
 /*CreateLkpTableEnd*/
+
+
+/*CreateData*/
+
+  if ( Select count(Id) as Adet From dbo.SrcSablonTeorikS 
+       Where convert(date, DersTarihi, 103) = convert(date,'01.01.1900',103) 
+       and   SablonTeorikBId = -9
+  ) = 0
+  begin
+      INSERT INTO [dbo].[SrcSablonTeorikS]
+           ([FirmId]
+           ,[IsActive]
+           ,[DonemTipiId]
+           ,[GrupTipiId]
+           ,[SubeTipiId]
+           ,[DersGrubu]
+           ,[DersTipiId]
+           ,[DerslikAdiTipiId]
+           ,[DersTarihi]
+           ,[DersSaatiTipiId]
+           ,[PersonelId]
+           ,[EgitimTipiId]
+           ,[BaslamaSaati]
+           ,[BitisSaati]
+           ,[TDersIsUploaded]
+           ,[SablonTeorikBId]
+           ,[DersSiraNo]
+           ,[SablonKodu])
+      VALUES
+           (0 -- FirmId
+           ,1 -- IsActive
+           ,190001 -- DonemTipiId
+           ,1    -- GrupTipiId
+           ,1    -- SubeTipiId
+           ,''   -- DersGrubu
+           ,0    -- DersTipiId
+           ,0    -- DerslikAdiTipiId
+           ,convert(date,'01.01.1900',103) -- DersTarihi
+           ,0    -- DersSaatiTipiId
+           ,''   -- PersonelId
+           ,0    -- EgitimTipiId
+           ,convert(date,'01.01.1900',103) -- BaslamaSaati, datetime
+           ,convert(date,'01.01.1900',103) -- BitisSaati, datetime
+           ,1    -- TDersIsUploaded
+           ,-9   -- SablonTeorikBId
+           ,0    -- DersSiraNo
+           ,'DEFAULT'   -- SablonKodu
+           )
+  end -- if
+
+/*CreateDataEnd*/

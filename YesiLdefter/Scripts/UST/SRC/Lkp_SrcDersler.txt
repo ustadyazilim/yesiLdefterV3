@@ -1,0 +1,205 @@
+﻿
+/*CreateTable*/
+
+begin transaction
+
+ create table Lkp.SrcDersler
+ (
+   Id                     Int Unique Not Null, 
+   FirmId                 Int        not null,
+   IsActive               Bit        not null,   /* default : 1 = active, 0 = not active */  
+   TalepTipiId            SmallInt       null,   /* 1: Src1234, 2:Src5, 3:Src6, 4:Ody1234, 5:Udy1234  */ 
+   Grubu                  Varchar(1)     null,   /* A, B, C veya D */  
+   SiraNo                 SmallInt       null,
+   DersAdi                nVarchar(100)  null,
+
+   DersSaati1             Smallint       null,   -- src 1, ody 1, üdy 1
+   DersSaati2             Smallint       null,   -- src 2, ody 2, üdy 2
+   DersSaati3             Smallint       null,   -- src 3, ody 3, üdy 3
+   DersSaati4             Smallint       null,   -- src 4, ody 4, üdy 4
+
+   GrupSaati12            Smallint       null,   -- src 12, ody 12, üdy 12   
+   GrupSaati34            Smallint       null,   -- src 34, ody 34, üdy 34
+   GrupSaati24            Smallint       null,   -- src 24, ody 24, üdy 24
+   GrupSaati1234          Smallint       null,   -- src 1234, ody 121234, üdy 121234
+
+   MebbisKodu             Varchar(10)    null,
+
+    constraint pk_SrcDersler primary key (Id)
+ )
+
+ create index X_SrcDersler01 on Lkp.SrcDersler (TalepTipiId, SiraNo)
+ 
+ grant select, insert, update, delete on Lkp.SrcDersler to public
+
+commit transaction
+
+/*CreateTableEnd*/
+
+
+/*CreateLkpTable*/
+
+begin transaction
+
+-- ------------------------------------------------------- 
+-- TalepTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'SrcDerslerTalepTipi')
+drop table [Lkp].[SrcDerslerTalepTipi]
+
+create table [Lkp].[SrcDerslerTalepTipi]
+(
+   Id           Int Unique Not Null,
+   TalepTipi    nVarchar(50),
+
+   constraint  pk_SrcDerslerTalepTipi primary key (Id)
+)
+
+delete from [Lkp].[SrcDerslerTalepTipi]
+INSERT INTO [Lkp].[SrcDerslerTalepTipi] (Id, TalepTipi)
+ VALUES 
+  (0,   N'Tanımsız'),
+  (1,   N'Src 1234'),
+  (2,   N'Src 5'),
+  (3,   N'Src 6'),
+  (4,   N'Ody 1234'),
+  (5,   N'Üdy 1234')
+
+commit transaction
+
+/*CreateLkpTableEnd*/
+
+
+/*CreateData*/
+
+declare @FirmId int = 0
+
+Delete from [Lkp].[SrcDersler]
+
+INSERT INTO [Lkp].[SrcDersler]
+           ([Id]
+           ,[FirmId]
+           ,[IsActive]
+           ,[TalepTipiId]
+           ,[Grubu]
+           ,[SiraNo]
+           
+           ,[DersSaati1]
+           ,[DersSaati2]
+           ,[DersSaati3]
+           ,[DersSaati4]
+
+           ,[GrupSaati12]
+           ,[GrupSaati34]
+           ,[GrupSaati24]
+           ,[GrupSaati1234]
+
+           ,[DersAdi])
+     VALUES                            --  s1, s2, s3, s4,   s12, s34, s24, s1234
+-- A grubu
+           (1010, @FirmId, 1, 1, 'A', 0,    1,  1,  1,  1,    1,   1,   1,   1,  'İş Sağlığı ve Güvenliği (İSG), Çevre Güvenliği, Kalite Gereklilikleri ve Müşteri Memnuniyeti')
+         , (1020, @FirmId, 1, 1, 'A', 0,    1,  1,  1,  1,    1,   1,   1,   1,  'İş Organizasyonu')
+         , (1030, @FirmId, 1, 1, 'A', 0,    1,  1,  1,  1,    1,   1,   1,   1,  'Aracın Yolculuk Öncesi Hazırlığı')
+
+         , (1040, @FirmId, 1, 1, 'A', 0,    1,  1,  0,  0,    1,   0,   1,   1,  'Yolcu Taşıma Kuralları')
+         , (1050, @FirmId, 1, 1, 'A', 0,    0,  0,  1,  1,    0,   1,   1,   1,  'Eşya ve Kargo Taşıma Kuralları')
+
+         , (1060, @FirmId, 1, 1, 'A', 0,    4,  4,  4,  4,    4,   4,   4,   4,  'Güvenli Sürüş Teknikleri')
+         , (1070, @FirmId, 1, 1, 'A', 0,    3,  3,  3,  3,    3,   3,   3,   3,  'Trafik Kuralları ve Cezaları')
+         , (1080, @FirmId, 1, 1, 'A', 0,    2,  2,  2,  2,    2,   2,   2,   2,  'Trafik Adabı')
+         , (1090, @FirmId, 1, 1, 'A', 0,    1,  1,  1,  1,    1,   1,   1,   1,  'İletişim Teknolojileri ve Harita Okuma')
+         , (1100, @FirmId, 1, 1, 'A', 0,    3,  3,  3,  3,    3,   3,   3,   3,  'Araç Bilgisi ve Ekonomik Araç Kullanma')
+         , (1110, @FirmId, 1, 1, 'A', 0,    2,  2,  2,  2,    2,   2,   2,   2,  'Mesleki Gelişim')
+-- B grubu
+         , (1210, @FirmId, 1, 1, 'B', 0,    9,  7,  0,  0,    9,   0,   7,   9,  'Yolcu Taşımacılığı ile İlgili Mevzuat') --src 1,2 
+         , (1220, @FirmId, 1, 1, 'B', 0,    3,  0,  0,  0,    3,   0,   0,   3,  'Gümrük, Kaçakcılık ve Uluslar Arası Yolcu Taşıma Mevzuatı') -- src1
+
+         , (1230, @FirmId, 1, 1, 'B', 0,    0,  0,  9,  7,    0,   9,   7,   9,  'Eşya ve Kargo Taşımacılığı ile İlgili Mevzuat') -- src 3,4
+         , (1240, @FirmId, 1, 1, 'B', 0,    0,  0,  4,  0,    0,   4,   0,   4,  'Gümrük, Tır ve Kaçakcılık Mevzuatı') -- src3
+
+         , (1250, @FirmId, 1, 1, 'B', 0,    0,  2,  0,  2,    2,   2,   2,   2,  'Kaçakcılık Mevzuatı') -- src2 
+
+         , (1260, @FirmId, 1, 1, 'B', 0,    3,  2,  3,  2,    3,   3,   2,   3,  'Yasal Sorumluluklar ve Sigorta') -- src 1,2,3,4
+
+-- C grubu
+         , (1310, @FirmId, 1, 1, 'C', 0,    3,  3,  3,  3,    3,   3,   3,   3,  'Trafik ve Davranış Psikolojisi')
+-- D grubu
+         , (1410, @FirmId, 1, 1, 'D', 0,    3,  3,  3,  3,    3,   3,   3,   3,  'İlk Yardım')
+
+
+-- ODY dersleri = 4000
+         , (4010, @FirmId, 1, 4, 'A', 1,    2,  2,  2,  2,    2,  2,  0,  2,  'Trafik Adabı')
+         , (4020, @FirmId, 1, 4, 'A', 2,    1,  1,  1,  1,    1,  1,  0,  1,  'Meslek Ahlakı')
+         , (4030, @FirmId, 1, 4, 'A', 3,    4,  4,  0,  0,    4,  0,  0,  4,  'Yolcu Taşımacılığı')
+         , (4040, @FirmId, 1, 4, 'A', 4,    7,  7,  7,  7,    7,  7,  0,  7,  'Trafik Güvenliği')
+
+         -- MEVZUAT ve HUKUK
+         , (4110, @FirmId, 1, 4, 'B', 1,    8,  0,  8,  0,    8,  8,  0,  8,  'Ulaştırma Mevzuatı')
+         , (4112, @FirmId, 1, 4, 'B', 1,    0,  5,  0,  5,    0,  0,  0,  0,  'Ulusal Ulaştırma Mevzuatı')
+
+         , (4120, @FirmId, 1, 4, 'B', 2,    8,  8,  8,  8,    8,  8,  0,  8,  'Ulusal Mevzuatın Taşımacılıkla ilgili Bölümleri')
+
+         , (4130, @FirmId, 1, 4, 'B', 3,    5,  5,  9,  5,    9,  9,  0,  9,  'Yasal Sorumluluklar ve Sigorta')
+
+         , (4140, @FirmId, 1, 4, 'B', 4,    5,  0,  5,  0,    5,  5,  0,  5,  'Sözleşmeler')
+         , (4142, @FirmId, 1, 4, 'B', 4,    0,  3,  0,  3,    0,  0,  0,  0,  'Ulusal Sözleşmeler')
+
+         , (4150, @FirmId, 1, 4, 'B', 5,    2,  0,  0,  2,    6,  0,  0,  0,  'Gümrük ve Kaçakçılık Mevzuatı')
+         , (4152, @FirmId, 1, 4, 'B', 5,    0,  2,  0,  0,    0,  0,  0,  0,  'Kaçakçılık Mevzuatı')
+         , (4154, @FirmId, 1, 4, 'B', 5,    0,  0,  5,  0,    0,  0,  0,  0,  'Gümrük ve Tır Mevzuatı')
+         , (4156, @FirmId, 1, 4, 'B', 5,    0,  0,  0,  0,    0,  6,  0,  6,  'Gümrük, Tır ve Kaçakcılık Mevzuatı')
+
+         , (4160, @FirmId, 1, 4, 'B', 6,    4,  0,  0,  0,    4,  0,  0,  4,  'Dolaşım Düzenlemeleri ve Sınır Geçiş Uygulamaları')
+         , (4170, @FirmId, 1, 4, 'B', 7,    0,  0,  3,  0,    0,  3,  0,  3,  'Dış Ticaret Mevzuatı ve Teslim Şekilleri')
+         , (4180, @FirmId, 1, 4, 'B', 8,    2,  0,  2,  0,    2,  2,  0,  2,  'Uluslararası Konvansiyonlar')
+
+         -- MALİ ve İDARİ YÖNETİM
+         , (4210, @FirmId, 1, 4, 'C', 1,    8,  8,  9,  8,    8,  9,  0,  9,  'Mali Yönetim')
+         , (4220, @FirmId, 1, 4, 'C', 2,   14, 14, 14, 14,   14, 14,  0, 14,  'İdari Yönetim')
+         , (4230, @FirmId, 1, 4, 'C', 3,    7,  7,  9,  9,    9,  9,  0,  9,  'Pazar/Piyasa Şartları')
+
+         -- GÜVENLİK
+         , (4310, @FirmId, 1, 4, 'D', 1,    5,  5,  5,  5,    5,  5,  0,  5,  'İlk Yardım')
+         , (4320, @FirmId, 1, 4, 'D', 2,    0,  0,  2,  2,    0,  2,  0,  2,  'AETR,ADR ve Yükleme')
+
+-- UDY dersleri = 5000
+         , (5010, @FirmId, 1, 5, 'A', 1,    2,  2,  2,  2,    2,  2,  0,  2,  'Trafik Adabı')
+         , (5020, @FirmId, 1, 5, 'A', 2,    1,  1,  1,  1,    1,  1,  0,  1,  'Meslek Ahlakı')
+         , (5030, @FirmId, 1, 5, 'A', 3,    8,  8,  0,  0,    8,  0,  0,  8,  'Yolcu Taşımacılığı')
+         , (5040, @FirmId, 1, 5, 'A', 4,    7,  7,  7,  7,    7,  7,  0,  7,  'Trafik Güvenliği')
+
+         -- MEVZUAT ve HUKUK
+         , (5110, @FirmId, 1, 5, 'B', 1,    8,  0,  8,  0,    8,  8,  0,  8,  'Ulaştırma Mevzuatı')
+         , (5112, @FirmId, 1, 5, 'B', 1,    0,  5,  0,  5,    0,  0,  0,  0,  'Ulusal Ulaştırma Mevzuatı')
+
+         , (5120, @FirmId, 1, 5, 'B', 2,    8,  8,  8,  8,    8,  8,  0,  8,  'Ulusal Mevzuatın Taşımacılıkla ilgili Bölümleri')
+
+         , (5130, @FirmId, 1, 5, 'B', 3,    5,  5,  9,  5,    5,  9,  0,  9,  'Yasal Sorumluluklar ve Sigorta')
+
+         , (5140, @FirmId, 1, 5, 'B', 4,    5,  0,  5,  0,    5,  5,  0,  5,  'Sözleşmeler')
+         , (5142, @FirmId, 1, 5, 'B', 4,    0,  3,  0,  3,    0,  0,  0,  0,  'Ulusal Sözleşmeler')
+
+         , (5150, @FirmId, 1, 5, 'B', 5,    2,  2,  0,  3,    6,  0,  0,  0,  'Gümrük ve Kaçakçılık Mevzuatı')
+         , (5152, @FirmId, 1, 5, 'B', 5,    0,  0,  0,  0,    0,  0,  0,  0,  'Kaçakçılık Mevzuatı')
+         , (5154, @FirmId, 1, 5, 'B', 5,    0,  0,  0,  0,    0,  0,  0,  0,  'Gümrük ve Tır Mevzuatı')
+         , (5156, @FirmId, 1, 5, 'B', 5,    0,  0,  6,  0,    0,  6,  0,  6,  'Gümrük, Tır ve Kaçakcılık Mevzuatı')
+
+         , (5160, @FirmId, 1, 5, 'B', 6,    4,  0,  0,  0,    4,  0,  0,  4,  'Dolaşım Düzenlemeleri ve Sınır Geçiş Uygulamaları')
+         , (5170, @FirmId, 1, 5, 'B', 7,    0,  0,  3,  0,    0,  3,  0,  3,  'Dış Ticaret Mevzuatı ve Teslim Şekilleri')
+         , (5180, @FirmId, 1, 5, 'B', 8,    2,  0,  2,  0,    2,  2,  0,  2,  'Uluslararası Konvansiyonlar')
+
+         -- MALİ ve İDARİ YÖNETİM
+         , (5210, @FirmId, 1, 5, 'C', 1,    8,  8, 11,  9,    8, 11,  0, 11,  'Mali Yönetim')
+         , (5220, @FirmId, 1, 5, 'C', 2,   20, 20, 20, 20,   20, 20,  0, 20,  'İdari Yönetim')
+         , (5230, @FirmId, 1, 5, 'C', 3,   10, 10, 13, 13,   10, 13,  0, 13,  'Pazar/Piyasa Şartları')
+
+         -- GÜVENLİK
+         , (5310, @FirmId, 1, 5, 'D', 1,    5,  5,  5,  5,    5,  5,  0,  5,  'İlk Yardım')
+         , (5320, @FirmId, 1, 5, 'D', 2,    0,  0,  4,  4,    0,  4,  0,  4,  'AETR,ADR ve Yükleme')
+
+
+
+/*CreateDataEnd*/
+
+
+-- ([Id],[FirmId],[IsActive],[TipiId],[Grubu],[SiraNo]  ,[DersSaati1],[DersSaati2],[DersSaati3],[DersSaati4]  ,[GrupSaati12],[GrupSaati34],[GrupSaati24],[GrupSaati1234]

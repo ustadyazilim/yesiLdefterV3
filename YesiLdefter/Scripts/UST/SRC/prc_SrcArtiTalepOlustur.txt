@@ -92,7 +92,7 @@ AS BEGIN
            ,[SertifikaVerTarih]
            ,[SonGecerlilikTarihi]
            ,[IsMuafiyetiVar]
-           ,[MuafiyetAciklmasi]
+           ,[MuafiyetAciklamasi]
            ,[DonemTipiId]
            ,[GrupTipiId]
            ,[SubeTipiId]
@@ -152,7 +152,7 @@ AS BEGIN
            , null -- SertifikaVerTarih
            , null -- SonGecerlilikTarihi
            , 0 -- IsMuafiyetiVar
-           , null -- MuafiyetAciklmasi
+           , null -- MuafiyetAciklamasi
            , 0 -- DonemTipiId
            , 0 -- GrupTipiId
            , 0 -- SubeTipiId

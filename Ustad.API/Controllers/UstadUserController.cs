@@ -5,12 +5,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Ustad.API.Models;
 using Ustad.API.Classes;
 using Ustad.API.ToolBox;
 using Ustad.API.Variables;
+
 
 namespace Ustad.API.Controllers
 {
@@ -50,7 +51,7 @@ namespace Ustad.API.Controllers
             _queryAbout.tParams.Add(_param2);
             */
             JsonResult result = t.RunQueryJson(_queryAbout);
-            
+
             return result;
         }
 
@@ -74,7 +75,7 @@ namespace Ustad.API.Controllers
             ";
 
             _queryAbout.Clear();
-            _queryAbout.SqlDataSource = _configuration.GetConnectionString(v.dbProject);
+            _queryAbout.SqlDataSource = _configuration.GetConnectionString(v.dbCrm); 
             _queryAbout.QuerySql = query;
             JsonResult result = t.RunQueryJson(_queryAbout);
             return result;

@@ -150,7 +150,6 @@ AS BEGIN
            ,[UcretDurumuTipiId]
            ,[YatanToplamUcret]
            ,[UcretSayisi]
-           ,[RandevuId]
            ,[VeriKaynakTipiId]
            ,[VeriKaynakId])
           VALUES
@@ -173,7 +172,6 @@ AS BEGIN
            ,null -- UcretDurumuTipiId
            ,null -- YatanToplamUcret
            ,null -- UcretSayisi
-           ,null -- RandevuId
            ,null -- VeriKaynakTipiId
            ,null -- VeriKaynakId
            )

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using Ustad.API.Variables;
 using Ustad.API.Classes;
 using QuickType;
@@ -22,9 +22,9 @@ namespace Ustad.API.ToolBox
 
         public tTools()
         {
-                //
+            //
         }
-        
+
         public JsonResult RunQueryJson(tQueryAbout queryAbout)
         {
 
@@ -101,10 +101,10 @@ namespace Ustad.API.ToolBox
                 if (table.Rows != null)
                     if (table.Columns != null)
                         sql = PreparingSql(table.Rows[0][0].ToString());
-            
+
             return sql;
         }
-        
+
 
         private string PreparingSql(string Sql)
         {
@@ -115,7 +115,7 @@ namespace Ustad.API.ToolBox
             Str_Replace(ref Sql, ":FIRM_ID", "21");// v.SP_FIRM_ID.ToString());
 
             Str_Replace(ref Sql, ":BUGUN_YIL", v.BUGUN_YIL.ToString());
-            
+
             /*
             Str_Replace(ref Sql, ":VT_COMP_ID", v.tComp.SP_COMP_ID.ToString());
             Str_Replace(ref Sql, ":VT_PERIOD_ID", v.vt_PERIOD_ID.ToString());

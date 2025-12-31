@@ -12,6 +12,7 @@
     <RootNamespace>YesiLdefter</RootNamespace>
     <AssemblyName>YesiLdefter</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <LangVersion>8.0</LangVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <IsWebBootstrapper>false</IsWebBootstrapper>
@@ -160,6 +161,12 @@
     <Reference Include="Microsoft.JScript" />
     <Reference Include="Microsoft.Net.Http.Headers, Version=2.2.8.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Net.Http.Headers.2.2.8\lib\netstandard2.0\Microsoft.Net.Http.Headers.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Web.WebView2.Core, Version=1.0.3650.58, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Web.WebView2.1.0.3650.58\lib\net462\Microsoft.Web.WebView2.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Web.WebView2.WinForms, Version=1.0.3650.58, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Web.WebView2.1.0.3650.58\lib\net462\Microsoft.Web.WebView2.WinForms.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Win32.Registry, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Win32.Registry.5.0.0\lib\net461\Microsoft.Win32.Registry.dll</HintPath>
@@ -423,11 +430,20 @@
     <Compile Include="Forms\ms_User.Designer.cs">
       <DependentUpon>ms_User.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\ms_User_Standalone.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ms_UserFirmSelect.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Forms\ms_UserFirmList.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Forms\ms_UserFirmList.Designer.cs">
       <DependentUpon>ms_UserFirmList.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ms_WebViewSplash.cs">
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="Forms\ms_Webbrowser.cs">
       <SubType>Form</SubType>
@@ -453,17 +469,17 @@
     <Compile Include="Forms\SEK\SekCevHukumlu.Designer.cs">
       <DependentUpon>SekCevHukumlu.cs</DependentUpon>
     </Compile>
-    <Compile Include="main.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="main.Designer.cs">
-      <DependentUpon>main.cs</DependentUpon>
-    </Compile>
     <Compile Include="Forms\ms_Iskonto.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Forms\ms_Iskonto.Designer.cs">
       <DependentUpon>ms_Iskonto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="main.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="main.Designer.cs">
+      <DependentUpon>main.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -477,6 +493,8 @@
     <Compile Include="Tkn\tImageHelper.cs" />
     <Compile Include="Tkn\tImageService.cs" />
     <Compile Include="Tkn\EventsMenu.cs" />
+    <Compile Include="Tkn\UstadApiClient.cs" />
+    <Compile Include="Tkn\tApiConfig.cs" />
     <Compile Include="Tkn\tCefSharp.cs" />
     <Compile Include="Tkn\tCookieReader.cs" />
     <Compile Include="Tkn\tCreateDatabase.cs" />
@@ -486,6 +504,7 @@
     <Compile Include="Tkn\tDataCopy.cs" />
     <Compile Include="Tkn\tDefaultValue.cs" />
     <Compile Include="Tkn\tDevColumn.cs" />
+    <Compile Include="Tkn\tDevExpressTheme.cs" />
     <Compile Include="Tkn\tDevView.cs" />
     <Compile Include="Tkn\tEMail.cs" />
     <Compile Include="Tkn\tEvents.cs" />
@@ -518,6 +537,9 @@
     <Compile Include="Tkn\tXMLRead.cs" />
     <Compile Include="tMainForm.cs" />
     <Compile Include="Uyumsoft\tEFaturaUyum.cs" />
+    <EmbeddedResource Include="main.resx">
+      <DependentUpon>main.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\BrowserForm.resx">
       <DependentUpon>BrowserForm.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -567,16 +589,15 @@
     <EmbeddedResource Include="Forms\SEK\SekCevHukumlu.resx">
       <DependentUpon>SekCevHukumlu.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="main.resx">
-      <DependentUpon>main.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\licenses.licx" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <!-- NOTE(@Janberk): WebView2 HTML templates as embedded resources -->
+    <EmbeddedResource Include="Forms\Templates\LoginTemplate.html" />
+    <EmbeddedResource Include="Forms\Templates\FirmSelectTemplate.html" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
@@ -1051,7 +1072,7 @@
     <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\OnmMaasEkGelirler.txt" />
     <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\OnmMaasEkKesintiler.txt" />
     <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\OnmMaasHesaplari.txt" />
-    <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\prc_CariHesapHareketleri.txt" />
+    <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\prc_OnmCariHesapHareketleri.txt" />
     <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\prc_CrsTakvimiListele.txt" />
     <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\prc_OnmBelgeDekontDevirHesapla.txt" />
     <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\prc_OnmBelgeDekontOzetler.txt" />
@@ -1180,17 +1201,19 @@
     <Content Include="Scripts\UST\SRC\prc_SrcArtiTalepOlustur.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcDonemKontrolu.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcSinavSatiriOlustur.txt" />
+    <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersPlaniOlustur.txt" />
+    <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersSablonuOlustur.txt" />
     <Content Include="Scripts\UST\SRC\SrcAdayKimlik.txt" />
     <Content Include="Scripts\UST\SRC\SrcAdayEhliyet.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcAdayTablesInsert.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcAdayTablesInsertKontrolu.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcAdayTakip.txt" />
+    <Content Include="Scripts\UST\SRC\SrcDersinPersoneli.txt" />
     <Content Include="Scripts\UST\SRC\SrcSinavETeorik.txt" />
     <Content Include="Scripts\UST\SRC\SrcSinavTarihi.txt" />
     <Content Include="Scripts\UST\SRC\SrcSinavUygulama.txt" />
     <Content Include="Scripts\UST\SRC\SrcSablonTeorikB.txt" />
     <Content Include="Scripts\UST\SRC\SrcSablonTeorikS.txt" />
-    <Content Include="Scripts\UST\SRC\SrcSablonTeorikF.txt" />
     <Content Include="Scripts\UST\SRC\prc_SiraliTarihListesi.txt" />
     <Content Include="Scripts\UST\SRC\GecerlilikTarihi.txt" />
     <Content Include="Scripts\UST\SRC\Lkp_SrcGrupTipi.txt" />
@@ -1204,7 +1227,7 @@
     <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersPlaniGruplari.txt" />
     <Content Include="Scripts\UST\SRC\SrcKIhlalTeorikD.txt" />
     <Content Include="Scripts\UST\SRC\SrcTeorikDers.txt" />
-    <Content Include="Scripts\UST\SRC\SrcDersler.txt" />
+    <Content Include="Scripts\UST\SRC\Lkp_SrcDersler.txt" />
     <Content Include="Scripts\UST\SRC\SrcUcretSinav.txt" />
     <Content Include="Scripts\UST\SRC\SrcUcretTeorik.txt" />
     <Content Include="Scripts\UST\SRC\SrcAdayAdres.txt" />
@@ -1244,7 +1267,7 @@
     <Content Include="Scripts\UST\UstadCRM\EduUserTokens.txt" />
     <Content Include="Scripts\UST\UstadCRM\LkpDistrictType.txt" />
     <Content Include="Scripts\UST\UstadCRM\LkpCityType.txt" />
-    <Content Include="Scripts\UST\UstadCRM\MtskVeriAktarimi.txt" />
+    <Content Include="Scripts\UST\UstadCRM\MtskDataTransfer.txt" />
     <Content Include="Scripts\UST\UstadCRM\prc_FirmUsers.txt" />
     <Content Include="Scripts\UST\UstadCRM\prc_UstadUserFirmsListGet.txt" />
     <Content Include="Scripts\UST\UstadCRM\UstadComputers.txt" />

@@ -27,11 +27,10 @@ begin transaction
    UcretDurumuTipiId     SmallInt      null, /* mebbisten okunuyor : Sınav Ücreti Yatırılmamış ,  */
    YatanToplamUcret      Numeric(22,5) null,
    UcretSayisi           SmallInt      null,
-   RandevuId             Int           null,
-   
+      
    VeriKaynakTipiId        SmallInt       null, /* 1. Kullanıcı Manuel, 2. Mebbis Dönem Aday Onaylama, 3. Mebbis Uygulama Sınav Listesi, 4. Mebbis Aday Durum Bilgileri, 11. Tabim veritabanı  */
    VeriKaynakId            Int            null, /* Veri transferi edildiği tablodaki Id . Sorun olduğunda bilginin nereden geldiğine referans olsun */
-
+   SourceId                Int            null, /* Veri tarnsferi sırasındaki tablodaki kişinin Id si */
 
    constraint		pk_SrcSinavUygulama primary key (Id)
  )
@@ -78,6 +77,7 @@ AS BEGIN
 	declare @ySinavSonucYorumu nvarchar(250) = ''
 	declare @DosyaYakti bit = 0
 	declare @TalepTipiId smallInt = 0
+    declare @ySourceId int
 
     -- Veri Transferi başladımı
     declare @DbUpdatesIsActive Bit = 0
@@ -102,12 +102,22 @@ AS BEGIN
 	    , @yDurumuTipiId = isnull(ins.DurumuTipiId,0)
 		, @ySinavDurumu = isnull(ins.SinavDurumu,'')
         , @ySinavSonucYorumu = isnull(ins.SinavSonucYorumu,'')
-		from inserted ins
+	    , @ySourceId = isnull(ins.SourceId,0)
+        from inserted ins
     	where ins.Id = @curId
 
 		-- Sınavın hangi dönemde yapıldığı tespit ediliyor
         set @SinavDonemTipiId = [dbo].[fnc_getDonemTipiId] ('BUGUN', @ySinavTarihi)
 		
+		if (@yTalepId = 0 and @yAdayId = 0 and @ySourceId > 0)
+		begin
+            -- Talepleri kontrol et
+            Select top 1 @yAdayId = AdayId, @yTalepId = Id
+            From dbo.SrcAdayTalep
+            Where VeriKaynakId = @ySourceId
+            order by DonemTipiId desc, Id desc
+		end
+
 		if (@yTalepId = 0) and @yAdayId = 0 and (@yTcNo <> '')
 		begin
 		  -- Talepleri kontrol et
@@ -255,6 +265,7 @@ AS BEGIN
 	
     CLOSE curSinavUyg
     DEALLOCATE curSinavUyg   
+
 
 END
 

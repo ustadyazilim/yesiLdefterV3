@@ -29,9 +29,9 @@ begin transaction
                                            /* ? bu Id sayesinde hangi tahsilat makbuzu yüzünden (eksik tahsilat) oluştuğu bulunuyor, yani sebep olan OnmBelgeDekont.Id  */
    BelgeStokBId        Int           null, /* Fatura için : BelgeStokB.Id  : BelgeStokB başlık tablosu */
    -- 40
-   SourceTypeId        SmallInt      null, /* 0. manuel giriş, 1. Tabim Transfer */      
-   SourceId            Int           null, /* Tabim CariAlt.Ulas */
-   VeriKaynakId        Int           null, /* Veri transferi edildiği tablodaki KURSIYER.Ulas. Sorun olduğunda bilginin nereden geldiğine referans olsun */
+   SourceTypeId        SmallInt      null, /* 0. manuel giriş, 11. Transfer */      
+   SourceId            Int           null, /* TransferDatabase.Kursiyer.Id  ( OnmOdemePlani.SourceId = OnmBelgeDekont.SourceId olmalı ) */
+   VeriKaynakId        Int           null, /* TransferDatabase.Muhasebe.Id  ( OnmOdemePlani.VeriKaynakId = OnmBelgeDekont.VeriKaynakId olmalı ) */
    MultiSourceId       varchar(100)  null,
    VadeDonemTipiId     Int           null, /* borcun oluştuğu YılAy */
    
@@ -208,6 +208,7 @@ INSERT INTO [Lkp].[OnmOdemePlaniSourceType] (Id, SourceType)
   ( 0,     N''),
   ( 1,     N'OnmOdemePlani - Kendisi'),
   ( 2,     N'OnmBelgeDekont'),
+  ( 11,    N'Veri Transferi'),
   -- Mtsk
   ( 2100,  N'Mtsk Modülü - Kullanıcı girişi'),
   ( 2101,  N'Mtsk Modülü - Otomatik, kullanıcı onaylı'),
@@ -241,6 +242,7 @@ AS BEGIN
     declare @UcretTipiId smallInt
 	declare @VeriKaynakId int
 	declare @SourceTypeId smallint
+	declare @SourceId int
     declare @VadeTarihi date
 
     -- Veri Transferi başladımı
@@ -254,13 +256,16 @@ AS BEGIN
            ,@TalepId = isnull(ins.TalepId,0)
            ,@AdayId = isnull(ins.CariId,0)
            ,@UcretTipiId = isnull(ins.UcretTipiId,0)
-		   ,@VeriKaynakId = ins.VeriKaynakId
-           ,@SourceTypeId = ins.SourceTypeId
+		   ,@VeriKaynakId = isnull(ins.VeriKaynakId,0)
+           ,@SourceTypeId = isnull(ins.SourceTypeId,0)
+           ,@SourceId   = isnull(ins.SourceId,0)
            ,@VadeTarihi = ins.VadeTarihi
         From inserted ins
         Where ins.Id = @curId
      	
-        if (@VeriKaynakId > 0 and (@TalepId = 0 or @AdayId = 0) and @SourceTypeId > 2000)
+        if (@SourceTypeId = 11 and 
+            @SourceId > 0 and 
+            (@TalepId = 0 or @AdayId = 0))-- and @UcretTipiId > 2000)
         begin
             -- Mtsk ise
             if (@UcretTipiId > 21100 and @UcretTipiId < 21200)
@@ -270,7 +275,7 @@ AS BEGIN
                    ,CariId  = t.AdayId 
                 From dbo.OnmOdemePlani as a,
                      dbo.MtskAdayTalep as t
-                Where a.VeriKaynakId = t.VeriKaynakId				 
+                Where a.SourceId = t.VeriKaynakId				 
                 and   a.Id = @curId
 
                 Select @TalepId = Id, @AdayId = AdayId 
@@ -285,7 +290,7 @@ AS BEGIN
                    ,CariId  = t.AdayId 
                 From dbo.OnmOdemePlani as a,
                      dbo.SrcAdayTalep as t
-                Where a.VeriKaynakId = t.VeriKaynakId				 
+                Where a.SourceId = t.VeriKaynakId				 
                 and   a.Id = @curId
 
                 Select @TalepId = Id, @AdayId = AdayId 

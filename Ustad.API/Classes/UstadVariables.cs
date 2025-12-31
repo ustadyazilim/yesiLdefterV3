@@ -32,18 +32,18 @@ namespace Ustad.API.Variables
             BUGUN_AY = dt.Month;
             BUGUN_YIL = dt.Year;
 
-        /*
-        string yil = dt.Year.ToString();
-        string ay = dt.Month.ToString();
-        string gun = dt.Day.ToString();
-        string saat = dt.Hour.ToString();
-        string dakk = dt.Minute.ToString();
+            /*
+            string yil = dt.Year.ToString();
+            string ay = dt.Month.ToString();
+            string gun = dt.Day.ToString();
+            string saat = dt.Hour.ToString();
+            string dakk = dt.Minute.ToString();
 
-        if (ay.Length == 1) ay = "0" + ay;
-        if (gun.Length == 1) gun = "0" + gun;
-        if (saat.Length == 1) saat = "0" + saat;
-        if (dakk.Length == 1) dakk = "0" + dakk;
-        */
+            if (ay.Length == 1) ay = "0" + ay;
+            if (gun.Length == 1) gun = "0" + gun;
+            if (saat.Length == 1) saat = "0" + saat;
+            if (dakk.Length == 1) dakk = "0" + dakk;
+            */
 
         }
 
@@ -52,21 +52,23 @@ namespace Ustad.API.Variables
 
     public class tParameter
     {
-        public string ParameterName { get; set; }
-        public string ParameterValue { get; set; }
+        public string ParameterName { get; set; } = string.Empty;
+        public string ParameterValue { get; set; } = string.Empty;
     }
 
     public class tQueryAbout
     {
         public tQueryAbout()
         {
+            SqlDataSource = string.Empty;
+            QuerySql = string.Empty;
             tParams = new List<tParameter>();
         }
 
         //public IConfiguration Configuration { get; set; }
         //public string ConnectionName { get; set; }
-        public string SqlDataSource { get; set; }
-        public string QuerySql { get; set; }
+        public string SqlDataSource { get; set; } = string.Empty;
+        public string QuerySql { get; set; } = string.Empty;
         public List<tParameter> tParams { get; set; }
 
         public void Clear()

@@ -40,6 +40,9 @@ namespace YesiLdefter
 
         string sourceFormCodeAndName = "";
         int readReportPosition = -2;
+        bool isReportLoaded = false;
+        bool isReportFirstLoaded = false;
+        bool isRepertSelected = false;
 
         Control cntrlReportNames = null;
         string controlNames = "controlReportNameList";
@@ -192,6 +195,8 @@ namespace YesiLdefter
             string tableName = "";
             string myProp = "";
 
+            this.isReportLoaded = true;
+
             foreach (string value in list)
             {
                 cntrl = t.Find_Control(this, value, "", controls);
@@ -210,10 +215,18 @@ namespace YesiLdefter
                         {
                             v.dsMsReports = ((DataTable)tDataTable).DataSet;
                             v.dNMsReports = dN;
+                            v.dNMsReports.PositionChanged -= new System.EventHandler(dNMsReports_PositionChanged);
                             v.dNMsReports.PositionChanged += new System.EventHandler(dNMsReports_PositionChanged);
                         }
                         else
                         {
+                            if (isReportFirstLoaded == false)
+                            {
+                                dN.PositionChanged -= dN_Data_PositionChanged;
+                                dN.PositionChanged += dN_Data_PositionChanged;
+                                isReportFirstLoaded = true;
+                            }
+
                             dataSetList.Add(value);
                         }
                     }
@@ -221,6 +234,7 @@ namespace YesiLdefter
                 } // if cntrl != null
             }//foreach
 
+            this.isReportLoaded = false;
 
             #endregion DataNavigator Listesi
         }
@@ -241,6 +255,31 @@ namespace YesiLdefter
                 t.Find_DataSet(this, ref dsFirmAbout, ref dNFirmAbout, FirmAbout_TableIPCode);
             }
             */
+        }
+
+        private void dN_Data_PositionChanged(object sender, EventArgs e)
+        {
+            if (isReportLoaded) return;
+            
+            if (this.isRepertSelected == false)
+            {
+                MessageBox.Show("Lütfen bir rapor seçiniz.");
+                return;
+            }
+
+            if (t.IsNotNull(v.dsMsReports))
+            {
+                desingerType = Convert.ToInt16(v.dsMsReports.Tables[0].Rows[v.dNMsReports.Position]["DesignerTypeId"].ToString());
+
+                if (desingerType == (Int16)v.ReportDesignerTool.DevExpress)
+                {
+                    raporDevEx.ReportDocumentViewer(this, v.dsMsReports, v.dNMsReports, sourceFormCodeAndName, ref documentViewerDevEx);
+                }
+                else
+                {
+                    raporFast.ReportDocumentViewer(this, v.dsMsReports, v.dNMsReports, dataSetList, sourceFormCodeAndName, ref documentViewerFast, ref this.isRepertSelected);
+                }
+            }
         }
 
         private void dNMsReports_PositionChanged(object sender, EventArgs e)
@@ -267,9 +306,9 @@ namespace YesiLdefter
                 else
                 {
                     preparingReportKritersAndData(this, v.dsMsReports, v.dNMsReports);
-                    preparingDataSetList();
+                    //preparingDataSetList();
                     
-                    raporFast.ReportDocumentViewer(this, v.dsMsReports, v.dNMsReports, dataSetList, sourceFormCodeAndName, ref documentViewerFast);
+                    raporFast.ReportDocumentViewer(this, v.dsMsReports, v.dNMsReports, dataSetList, sourceFormCodeAndName, ref documentViewerFast, ref this.isRepertSelected);
                 }
 
                 /// en son okuduğun rapor pos u hafızaya al 
@@ -570,7 +609,7 @@ namespace YesiLdefter
         public void btn_RaporKriterListele_Click(object sender, EventArgs e)
         {
             /// Form üzerindeki DataSet ler tespit ediliyor
-            preparingDataSetList();
+            //preparingDataSetList();
 
             if (t.IsNotNull(v.dsMsReports))
             {
@@ -582,7 +621,7 @@ namespace YesiLdefter
                 }
                 else
                 {
-                    raporFast.ReportDocumentViewer(this, v.dsMsReports, v.dNMsReports, dataSetList, sourceFormCodeAndName, ref documentViewerFast);
+                    raporFast.ReportDocumentViewer(this, v.dsMsReports, v.dNMsReports, dataSetList, sourceFormCodeAndName, ref documentViewerFast, ref this.isRepertSelected);
                 }
             }
         }

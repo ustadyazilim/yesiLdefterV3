@@ -19,7 +19,8 @@ begin transaction
    TeorikDersSayisi     SmallInt      null,
    UygulamaDersSayisi   SmallInt      null,
    KurumOnayTipiId      SmallInt      null, /* 0. Onay bekliyor, 1-Onaylandı  tablo = [Lkp].[MtskKurumOnayTipi]   */		
-      
+   VeriKaynakId         Int           null,
+   
    constraint		pk_SrcDonemi primary key (Id)
  )
   

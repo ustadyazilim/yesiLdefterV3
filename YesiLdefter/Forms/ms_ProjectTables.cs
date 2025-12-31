@@ -1343,19 +1343,35 @@ namespace YesiLdefter
 
                     //if (type == "System.DateTime")
                     //    aaa = 1;
-                    
-                    value = preparingValue(value, tableName, i);
 
+                    // data transfer sırasında bizim olmaya tablolar sırasında gerekiyor
+                    if (t.IsNotNull(tableName) && tableName.IndexOf("WENNTEC") == -1)
+                    {
+                        value = preparingValue(value, tableName, i);
+                    }
+                    else
+                    {
+                        //if (value.IndexOf("HÜSEYİN VERAL") > -1)
+                        //    value = t.Str_Check(value);
+                        // özel durumlar burada hazırlanacak
+                        if (type == "System.String")  
+                            t.Str_Replace(ref value, (char)39, (char)32); // ' > boşluk yap
+                    }
                     if (type == "System.Int16") values += " , " + value;
                     if (type == "System.Int32") values += " , " + value;
                     if (type == "System.Int64") values += " , " + value;
                     if (type == "System.DateTime") values += " , convert(Datetime, '" + value + "',103)";
                     if (type == "System.String") values += " , '" + value + "' ";
                     if (type == "System.DBNull") values += " , null";
-                    if (type == "System.Double")
+                    if (type == "System.Double" || type == "System.Decimal")
                     {
                         value = value.Replace(",", ".");
                         values += " , " + value;
+                    }
+                    if (type == "System.Boolean")
+                    {
+                        if (value == "False") values += " , 0 ";
+                        if (value == "True") values += " , 1 ";
                     }
                     if (type == "System.Byte[]")
                     {
@@ -1441,7 +1457,17 @@ namespace YesiLdefter
                 fieldName = dsSource.Tables[0].Columns[i].ColumnName;
                 //fieldName = fieldsNameList[i]; ikiside olur
 
-                value = preparingValue(value, tableName, i);
+                // data transfer sırasında bizim olmaya tablolar sırasında gerekiyor
+                if (t.IsNotNull(tableName) && tableName.IndexOf("WENNTEC") == -1)
+                { 
+                    value = preparingValue(value, tableName, i);
+                }
+                else
+                {
+                    // özel durumlar burada hazırlanacak
+                    if (type == "System.String")
+                        t.Str_Replace(ref value, (char)39, (char)32); // ' > boşluk yap
+                }
 
                 // Where koşulunda var mı?
                 x = editWhere.IndexOf(":" + fieldName + "Value");
@@ -1464,10 +1490,15 @@ namespace YesiLdefter
                         if (type == "System.DateTime") values += " , " + fieldName + " = " + " convert(Datetime, '" + value + "',103)";
                         if (type == "System.String") values += " , " + fieldName + " = " + "'" + value + "' ";
                         if (type == "System.DBNull") values += " , " + fieldName + " = " + " null ";
-                        if (type == "System.Double")
+                        if (type == "System.Double" || type == "System.Decimal")
                         {
                             value = value.Replace(",", ".");
                             values += " , " + fieldName + " = " + value;
+                        }
+                        if (type == "System.Boolean")
+                        {
+                            if (value == "False") values += " , " + fieldName + " = 0 ";
+                            if (value == "True") values += " , " + fieldName + " = 1 ";
                         }
                         //if (type == "System.Byte[]") values += " , " + fieldName + " = " + value;
                     }

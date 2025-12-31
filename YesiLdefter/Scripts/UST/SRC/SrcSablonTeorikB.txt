@@ -5,13 +5,17 @@ begin transaction
  create table SrcSablonTeorikB
  (
    Id                      Int IDENTITY(1,1) not null, 
+   FirmId                  Int           not null, /* default : 0 */
    IsActive                Bit           not null, /* default : 1 = active, 0 = not active */  
 
    SablonKodu              nVarChar(30)  null,     /* şabloları    */
    SablonAdi               nVarChar(100) null,
+   Hazirlayan              nVarChar(200) null,
 
    SertifikaTipiId         SmallInt      null, /* detayı [Lkp].[SrcSertifikaTipi] tablosunda */
    SertifikaSinifTipiId    SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */
+   DerslikAdiTipiId        SmallInt      null, /* Derslik-1, -2 ... -10 */
+   TalepTipiId             SmallInt      null, /* 1. Src1234, 2. Src5, 3. Src6, 4. Ody1234, 5. Udy1234 */
 
    constraint		pk_SrcSablonTeorikB primary key (Id)
  )
@@ -23,52 +27,178 @@ commit transaction
 /*CreateTableEnd*/
 
 
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_SrcSablonTeorikB] on [dbo].[SrcSablonTeorikB] 
+AFTER INSERT, UPDATE
+AS BEGIN
+
+    DECLARE myCursor cursor local for select Id from Inserted
+    DECLARE @curId bigint
+
+    OPEN myCursor
+    FETCH NEXT FROM myCursor INTO @curId
+
+    declare @yFirmId int
+    declare @eSablonKodu nvarchar(30) = null
+    declare @eTalepTipiId smallint
+    declare @ySablonKodu nvarchar(30) = null
+    declare @ySertifikaTipiId int 
+    declare @yTalepTipiId smallint
+    declare @newTalepTipiId smallint
+
+    declare @adet int
+    declare @yeniSablonKodu varchar(30)
+    declare @yeniFirmIdStr varchar(8)
+    declare @yeniAdetStr varchar(3)
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+    	
+      Select @eSablonKodu = isnull(dlt.SablonKodu,'')
+      , @eTalepTipiId = isnull(dlt.TalepTipiId,0)
+      From deleted dlt
+      Where dlt.Id = @curId
+      
+      Select 
+        @yFirmId = ins.FirmId
+      , @ySablonKodu = isnull(ins.SablonKodu,'')
+      , @ySertifikaTipiId = isnull(ins.SertifikaTipiId,0)
+      , @yTalepTipiId = isnull(ins.TalepTipiId,0)
+      From inserted ins
+      Where ins.Id = @curId
+/*
+15001	SRC 1-2-3-4
+15002	SRC 1-2
+15003	SRC 3-4
+15004	SRC 2-4
+15005	SRC 1
+15006	SRC 2
+15007	SRC 3
+15008	SRC 4
+15021	SRC 5
+15031	SRC 6
+15041	ODY 1-2-3-4
+15042	ODY 1-2
+15043	ODY 3-4
+15044	ODY 1
+15045	ODY 2
+15046	ODY 3
+15047	ODY 4
+15061	ÜDY 1-2-3-4
+15062	ÜDY 1-2
+15063	ÜDY 3-4
+15064	ÜDY 1
+15065	ÜDY 2
+15066	ÜDY 3
+15067	ÜDY 4
+*/
+      Select @adet = count(Id) 
+      From dbo.SrcSablonTeorikB
+      Where FirmId = @yFirmId
+      and   SertifikaTipiId = @ySertifikaTipiId
+      and   Id <= @curId
+
+      Set @yeniFirmIdStr = RIGHT(REPLICATE('0', 6) + CAST(@yFirmId AS VARCHAR(8)), 6) 
+      Set @yeniAdetStr = RIGHT(REPLICATE('0', 3) + CAST(@adet AS VARCHAR(5)), 3) 
+
+      if (@ySertifikaTipiId = 15001) Set @yeniSablonKodu = 'SRC1234'
+      if (@ySertifikaTipiId = 15002) Set @yeniSablonKodu = 'SRC12'
+      if (@ySertifikaTipiId = 15003) Set @yeniSablonKodu = 'SRC34'
+      if (@ySertifikaTipiId = 15004) Set @yeniSablonKodu = 'SRC24'
+      if (@ySertifikaTipiId = 15005) Set @yeniSablonKodu = 'SRC1'
+      if (@ySertifikaTipiId = 15006) Set @yeniSablonKodu = 'SRC2'
+      if (@ySertifikaTipiId = 15007) Set @yeniSablonKodu = 'SRC3'
+      if (@ySertifikaTipiId = 15008) Set @yeniSablonKodu = 'SRC4'
+
+      if (@ySertifikaTipiId = 15021) Set @yeniSablonKodu = 'SRC5'
+      if (@ySertifikaTipiId = 15031) Set @yeniSablonKodu = 'SRC6'
+
+      if (@ySertifikaTipiId = 15041) Set @yeniSablonKodu = 'ODY1234'
+      if (@ySertifikaTipiId = 15042) Set @yeniSablonKodu = 'ODY12'
+      if (@ySertifikaTipiId = 15043) Set @yeniSablonKodu = 'ODY34'
+      if (@ySertifikaTipiId = 15044) Set @yeniSablonKodu = 'ODY1'
+      if (@ySertifikaTipiId = 15045) Set @yeniSablonKodu = 'ODY2'
+      if (@ySertifikaTipiId = 15046) Set @yeniSablonKodu = 'ODY3'
+      if (@ySertifikaTipiId = 15047) Set @yeniSablonKodu = 'ODY4'
+
+      if (@ySertifikaTipiId = 15061) Set @yeniSablonKodu = 'UDY1234'
+      if (@ySertifikaTipiId = 15062) Set @yeniSablonKodu = 'UDY12'
+      if (@ySertifikaTipiId = 15063) Set @yeniSablonKodu = 'UDY34'
+      if (@ySertifikaTipiId = 15064) Set @yeniSablonKodu = 'UDY1'
+      if (@ySertifikaTipiId = 15065) Set @yeniSablonKodu = 'UDY2'
+      if (@ySertifikaTipiId = 15066) Set @yeniSablonKodu = 'UDY3'
+      if (@ySertifikaTipiId = 15067) Set @yeniSablonKodu = 'UDY4'
+
+      Set @yeniSablonKodu = @yeniSablonKodu + '-' + @yeniFirmIdStr + '-' + @yeniAdetStr
+
+      --if (@eSablonKodu <> @yeniSablonKodu) 
+      --begin
+          -- önce kendisi
+          update dbo.SrcSablonTeorikB set 
+              SablonKodu = @yeniSablonKodu
+          Where Id = @curId
+          -- sonra kendine bağlı olan satırlar
+          update dbo.SrcSablonTeorikS set 
+              SablonKodu = @yeniSablonKodu
+          Where SablonTeorikBId = @curId
+      --end
+
+      if (@ySertifikaTipiId >= 15000 and @ySertifikaTipiId <= 15008) Set @newTalepTipiId = 1
+      if (@ySertifikaTipiId  = 15021) Set @newTalepTipiId = 2
+      if (@ySertifikaTipiId  = 15031) Set @newTalepTipiId = 3
+      if (@ySertifikaTipiId >= 15041 and @ySertifikaTipiId <= 15047) Set @newTalepTipiId = 4
+      if (@ySertifikaTipiId >= 15061 and @ySertifikaTipiId <= 15067) Set @newTalepTipiId = 5
+
+      if (@newTalepTipiId <> @eTalepTipiId)
+      begin
+          Update dbo.SrcSablonTeorikB Set 
+              TalepTipiId = @newTalepTipiId
+          Where Id = @curId
+      end
+
+      FETCH NEXT FROM myCursor INTO @curId
+    END
+
+    CLOSE myCursor
+    DEALLOCATE myCursor   
+
+END -- create trigger
+
+/*CreateTriggerEnd*/
+
+
 /*CreateLkpTable*/
 
 begin transaction
 
 -- ------------------------------------------------------- 
--- GunTipiId
+-- DerslikAdiTipiId
 -- ------------------------------------------------------- 
-IF EXISTS (Select * From sys.objects WHERE name = 'SrcSablonTeorikBGunTipi')
-drop table [Lkp].[SrcSablonTeorikBGunTipi]
+IF EXISTS (Select * From sys.objects WHERE name = 'SrcSablonTeorikBDerslikAdiTipi')
+drop table [Lkp].[SrcSablonTeorikBDerslikAdiTipi]
 
-create table Lkp.SrcSablonTeorikBGunTipi
+create table Lkp.SrcSablonTeorikBDerslikAdiTipi
 (
-   Id          Int Unique Not Null,
-   GunTipi     nVarchar(30)   null
+   Id             Int Unique Not Null,
+   DerslikAdiTipi nVarchar(50)   null
    
-   constraint  pk_SrcSablonTeorikBGunTipi primary key (Id)
+   constraint  pk_SrcSablonTeorikBDerslikAdiTipi primary key (Id)
 )
 
-INSERT INTO Lkp.SrcSablonTeorikBGunTipi (Id, GunTipi)
+INSERT INTO Lkp.SrcSablonTeorikBDerslikAdiTipi (Id, DerslikAdiTipi)
  VALUES 
   ( 0, N'Tanımsız'),
-  ( 1, N'Manuel, 1 gün'),
-  ( 2, N'6 iş günü, 1 gün izin'),
-  ( 3, N'5 iş günü, 2 gün izin')
-
-
--- ------------------------------------------------------- 
--- SaatTipiId
--- ------------------------------------------------------- 
-IF EXISTS (Select * From sys.objects WHERE name = 'SrcSablonTeorikBSaatTipi')
-drop table [Lkp].[SrcSablonTeorikBSaatTipi]
-
-create table Lkp.SrcSablonTeorikBSaatTipi
-(
-   Id          Int Unique Not Null,
-   SaatTipi    nVarchar(20)   null
-   
-   constraint  pk_SrcSablonTeorikBSaatTipi primary key (Id)
-)
-
-INSERT INTO Lkp.SrcSablonTeorikBSaatTipi (Id, SaatTipi)
- VALUES 
-  ( 0, N'Tanımsız'),
-  ( 1, N'Tek saat'),
-  ( 2, N'7-8,.. çift saat'),
-  ( 3, N'8-9,.. çift saat')
+  ( 1, N'DERSLİK-1'),
+  ( 2, N'DERSLİK-2'),
+  ( 3, N'DERSLİK-3'),
+  ( 4, N'DERSLİK-4'),
+  ( 5, N'DERSLİK-5'),
+  ( 6, N'DERSLİK-6'),
+  ( 7, N'DERSLİK-7'),
+  ( 8, N'DERSLİK-8'),
+  ( 9, N'DERSLİK-9'),
+  (10, N'DERSLİK-10')
 
 commit transaction
 

@@ -23,11 +23,9 @@ namespace Tkn_Report
         Form tFormReports = null;
         
 
-        public void ReportDocumentViewer(Form tForm, DataSet dsMsReports, DataNavigator dNMsReports, List<string> dataSetList, string sourceFormCodeAndName, ref FastReport.Preview.PreviewControl documentViewer1)
+        public void ReportDocumentViewer(Form tForm, DataSet dsMsReports, DataNavigator dNMsReports, List<string> dataSetList, string sourceFormCodeAndName, ref FastReport.Preview.PreviewControl documentViewer1, ref bool isRepertSelected)
 
         {
-            t.WaitFormOpen(v.mainForm, "Rapor hazırlanıyor ...");
-            v.SP_OpenApplication = true;
 
             // Raporların olduğu form
             tFormReports = tForm;
@@ -44,6 +42,17 @@ namespace Tkn_Report
             string reportCaption2 = reportCaption;
             reportCode = reportCode.Replace(".", "_");
             reportCaption = "_" + reportCaption.Replace(" ", "_") + "_";
+
+            if (reportCaption.ToLower().IndexOf("seçin") > -1)
+            {
+                isRepertSelected = false;
+                return;
+            }
+            isRepertSelected = true;
+
+            t.WaitFormOpen(v.mainForm, "Rapor hazırlanıyor ...");
+            v.SP_OpenApplication = true;
+
 
             //13.07.2025 13:33:58
             //20250713_1333 

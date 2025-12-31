@@ -1,0 +1,217 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+ create table MtskSinavRandevuB
+ (
+   Id                       Int IDENTITY(1,1) not null, 
+   ParentId                 Int       not null,
+   FirmId                   Int       not null,
+   IsActive                 Bit       not null, /* default : 1 = active, 0 = not active */  
+   Tarih                    Date          null,   
+   MebbisRandevuTarihValue  Varchar(20)   null,
+   GuzergahId               Int           null, /* sınavın yapılacağı güzergah */
+   --10
+   EgitimAraciId            Varchar(10)   null,
+   PersonelNoTipiId         SmallInt      null, /* 1,2 veya 3 şeçince kullanıcı ona göre master row üzerindeki usta öğretici o kursiyere atanacak */ 
+   PersonelId1              Varchar(20)   null,
+   PersonelId2              Varchar(20)   null,
+   PersonelId3              Varchar(20)   null,
+   --20
+   KullaniciUyarilari       nVarchar(200) null,
+   IsMebbisUploaded         Bit           null,
+
+   constraint		pk_MtskSinavRandevuB primary key (Id)
+ )
+  
+ grant select, insert, update, delete on MtskSinavRandevuB to public
+
+ create index X_MtskSinavRandevuB01 on MtskSinavRandevuB (Tarih)
+ 
+commit transaction
+
+/*CreateTableEnd*/
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_MtskSinavRandevuB] on [dbo].[MtskSinavRandevuB] 
+AFTER INSERT,UPDATE
+AS 
+BEGIN
+
+    DECLARE randevuCursor cursor local for select Id from Inserted 
+    DECLARE @curId bigint
+
+    OPEN randevuCursor
+    FETCH NEXT FROM randevuCursor INTO @curId
+
+    declare @FirmId int
+    declare @Tarih Date
+    declare @MebbisRandevuTarihValue  Varchar(20)
+    declare @EgitimAraciId Varchar(10)
+    --declare @PersonelNoTipiId SmallInt
+    --declare @PersonelId0 Varchar(20)
+    --declare @PersonelId1 Varchar(20)
+    --declare @PersonelId2 Varchar(20)
+    --declare @PersonelId3 Varchar(20)
+	--declare @IsMebbisUploaded bit
+	
+	WHILE @@FETCH_STATUS = 0
+    BEGIN
+	    select
+            @FirmId = isnull(ins.FirmId,0)
+           ,@Tarih = ins.Tarih
+           --,@MebbisRandevuTarihValue = isnull(ins.MebbisRandevuTarihValue,'')
+           ,@EgitimAraciId = isnull(ins.EgitimAraciId,'')
+           --,@PersonelNoTipiId = isnull(ins.PersonelNoTipiId,0)
+           --,@PersonelId1 = isnull(ins.PersonelId1,'')
+           --,@PersonelId2 = isnull(ins.PersonelId2,'')
+           --,@PersonelId3 = isnull(ins.PersonelId3,'')
+           --,@IsMebbisUploaded = isnull(ins.IsMebbisUploaded,0)
+		From inserted ins
+        Where ins.Id = @curId
+
+        declare @adet int 
+        Select @adet = isnull(count(Id),0)
+        From dbo.MtskSinavRandevuB
+        Where Tarih = @Tarih
+        and   EgitimAraciId = @EgitimAraciId
+			
+        -- aynı gün içinde ikinci defa aynı araç için plan oluşturulamaz
+        if (@adet > 1)
+        begin
+            Update dbo.MtskSinavRandevu set 
+                EgitimAraciId = ''
+            Where Id = @curId
+        end --
+
+        FETCH NEXT FROM randevuCursor INTO @curId
+    END -- While
+
+    CLOSE randevuCursor
+    DEALLOCATE randevuCursor  
+
+END
+
+/*CreateTriggerEnd*/
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_MtskSinavRandevuBDeleteIsLock] on [dbo].[MtskSinavRandevuB]
+INSTEAD of DELETE
+AS BEGIN
+
+    declare isLockCursorDlt cursor local for select Id from deleted
+    declare @curId bigint
+
+    OPEN isLockCursorDlt
+
+    FETCH NEXT FROM isLockCursorDlt INTO @curId
+
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+	    IF EXISTS (SELECT 1 FROM deleted WHERE isnull(IsMebbisUploaded,0) = 1 and Id = @curId)
+        BEGIN
+            PRINT 'Bu kayıt silinemez!'
+            RETURN
+        END
+
+        Delete from dbo.MtskSinavRandevuB  Where Id = @curId and isnull(IsMebbisUploaded,0) = 0
+
+      FETCH NEXT FROM isLockCursorDlt INTO @curId
+    END
+
+    CLOSE isLockCursorDlt
+    DEALLOCATE isLockCursorDlt
+
+END
+
+ /*CreateTriggerEnd*/
+
+
+
+/*CreateLkpTable*/
+
+begin transaction
+
+-- ------------------------------------------------------- 
+-- PersonelNoTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'MtskSinavRandevuBPersonelNoTipi')
+drop table [Lkp].[MtskSinavRandevuBPersonelNoTipi]
+
+create table Lkp.MtskSinavRandevuBPersonelNoTipi
+(
+   Id               Int Unique Not Null,
+   PersonelNoTipi   Varchar(20)   null
+
+   constraint  pk_MtskSinavRandevuBPersonelNoTipi primary key (Id)
+)
+
+INSERT INTO Lkp.MtskSinavRandevuBPersonelNoTipi (Id, PersonelNoTipi)
+ VALUES 
+  ( 0, N''),
+  ( 1, N'1. Usta öğretici'),
+  ( 2, N'2. Usta öğretici'),
+  ( 3, N'3. Usta öğretici')
+
+commit transaction
+
+
+
+
+/*CreateLkpTableEnd*/
+
+
+
+
+
+
+/*CreateTrigger   şimdilik gerek yok */
+
+CREATE TRIGGER [dbo].[trg_MtskSinavRandevuBDelete] on [dbo].[MtskSinavRandevuB]
+AFTER DELETE
+AS BEGIN
+
+    declare randevuCursorDlt cursor local for select Id from deleted
+	declare @curId bigint
+
+	OPEN randevuCursorDlt
+    FETCH NEXT FROM randevuCursorDlt INTO @curId
+
+    declare @TalepId int
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+	    
+        Select @TalepId = dlt.TalepId
+	    From deleted dlt
+	    Where dlt.Id = @curId
+	  
+        if (@TalepId > 0)
+        begin
+            -- MtskAdayTakip 
+            Update dbo.MtskAdayTakip set
+                IsRandevuPlanlandi = 0
+               ,RandevuTarihi = null
+               ,RandevuSaatTipiId = null
+               ,RandevuEgitimAraciId = null
+               ,RandevuPersonelId = null
+               ,uSinavDurumTipiId = 5 -- Uygulama sınav randevusu planlanacak
+            Where TalepId = @TalepId
+        end	    
+
+        FETCH NEXT FROM randevuCursorDlt INTO @curId
+    END
+
+    CLOSE randevuCursorDlt
+    DEALLOCATE randevuCursorDlt
+
+END
+
+/*CreateTriggerEnd    şimdilik gerek yok */
+
+

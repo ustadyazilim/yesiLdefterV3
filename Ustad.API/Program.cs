@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -14,8 +15,6 @@ namespace Ustad.API
     {
         public static void Main(string[] args)
         {
-            myStarter();
-
             CreateHostBuilder(args).Build().Run();
         }
 
@@ -24,13 +23,10 @@ namespace Ustad.API
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
+                    // Explicitly configure to listen on all interfaces (0.0.0.0)
+                    // This allows connections from other devices on the network
+                    //webBuilder.UseUrls("http://0.0.0.0:5000");
                 });
-    
-        public static void myStarter()
-        {
-            //string a = "aaaaa";
-        }
-    
     
     }
 }

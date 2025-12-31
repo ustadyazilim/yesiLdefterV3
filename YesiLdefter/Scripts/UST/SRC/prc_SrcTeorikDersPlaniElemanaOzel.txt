@@ -14,7 +14,7 @@ AS BEGIN
 -- DerslikAdiTipiId        : Derslik
 -- PersonelId              : Usta Öğretici
 
-/* 
+ /*
  --testlerin başı 
  declare @DonemTipiId Int 
  declare @GrupTipiId Int 
@@ -24,14 +24,14 @@ AS BEGIN
  declare @ElemanGrubu varchar(30)
  
  set @ElemanGrubu = 'Dönem'
- set @DonemTipiId = 202410
+ set @DonemTipiId = 202512
 
  set @ElemanGrubu = 'Gruplar'
  set @GrupTipiId = 1
  set @SubeTipiId = 1
  -- set @ElemanGrubu = 'Derslikler'
  -- testlerin sonu
-*/
+ */
  
  if (@DonemTipiId <= 0)
  begin
@@ -66,7 +66,9 @@ AS BEGIN
  , td.[DonemTipiId]
  , td.[GrupTipiId]
  , td.[SubeTipiId]
+ , td.[DersGrubu]
  , td.[DersTipiId]
+ , td.[DersSiraNo]
  , td.[DerslikAdiTipiId]
  , td.[DersTarihi]
  , td.[DersSaatiTipiId]
@@ -76,8 +78,8 @@ AS BEGIN
  , td.[BitisSaati]
  , td.[TDersIsUploaded]
  , td.[SablonTeorikBId]
- , td.[SablonTeorikFId]
  , td.[OzelGunlerId]
+ , td.[DersHaftasiId]
 
  , [personel].TamAdiSoyadi as Lkp_PersonelTamAdiSoyadi
  , [personel].TcVkNo as Lkp_PersonelTcNo
@@ -90,31 +92,33 @@ AS BEGIN
 
  , FNo9.DerslikAdiTipi as Lkp_DerslikAdiTipi
  , FNo11.DersSaatiTipi as Lkp_DersSaatiTipi
- --, FNo13.EgitimTipi as Lkp_EgitimTipi
  , FNo5.DonemTipi + '', '' + FNo6.GrupTipi + '', '' + FNo7.SubeTipi as Lkp_DonemGrupSube
 
  , ( case 
-     when isnull(OzelGunlerId,0) = 0 then FNo8.DersTipi -- Lkp_DersTipi
-     when OzelGunlerId > 0 then ozelGunler.GunAdi -- Lkp_DerslikTipi
+     when isnull(OzelGunlerId,0) = 0 then FNo8.DersAdi 
+     when OzelGunlerId > 0 then ozelGunler.GunAdi 
      end ) as Lkp_DersTipi  
 
  , ( case 
-     when isnull(OzelGunlerId,0) = 0 then td.DersTipiId -- Lkp_LabelId
-     when OzelGunlerId > 0 then ozelGunler.OzelGunTipiId + 7 -- Lkp_LabelId
+     when DersGrubu = ''A'' then td.DersTipiId - td.DersTipiId + 1  
+     when DersGrubu = ''B'' then td.DersTipiId - td.DersTipiId + 2  
+     when DersGrubu = ''C'' then td.DersTipiId - td.DersTipiId + 3  
+     when DersGrubu = ''D'' then td.DersTipiId - td.DersTipiId + 4  
+     when isnull(OzelGunlerId,0) = 0 then td.DersTipiId 
+     when OzelGunlerId > 0 then ozelGunler.OzelGunTipiId + 7 
      end ) as Lkp_LabelId  
 
- from SrcTeorikDers as td with (nolock) 
+ from dbo.SrcTeorikDers as td with (nolock) 
    -- Join Tables 
-   left outer join SrcPersoneli as [personel] with (nolock)   on ( td.PersonelId = [personel].TcNoCalismaIzniNo  ) 
-   left outer join OnmOzelGunler as [ozelGunler] with (nolock) on ( td.OzelGunlerId = [ozelGunler].Id  ) 
+   left outer join dbo.SrcPersoneli as [personel] with (nolock)   on ( td.PersonelId = [personel].TcNoCalismaIzniNo  ) 
+   left outer join dbo.OnmOzelGunler as [ozelGunler] with (nolock) on ( td.OzelGunlerId = [ozelGunler].Id  ) 
    -- LookUp Tables
    left outer join Lkp.SrcDonemTipi as FNo5 with (nolock) on ( td.DonemTipiId = FNo5.Id ) 
-   left outer join Lkp.SrcGrupTipi as FNo6 with (nolock) on ( td.GrupTipiId = FNo6.Id ) 
-   left outer join Lkp.SrcSubeTipi as FNo7 with (nolock) on ( td.SubeTipiId = FNo7.Id ) 
-   left outer join Lkp.SrcTeorikDersDersTipi as FNo8 with (nolock) on ( td.DersTipiId = FNo8.Id ) 
+   left outer join Lkp.SrcGrupTipi  as FNo6 with (nolock) on ( td.GrupTipiId = FNo6.Id ) 
+   left outer join Lkp.SrcSubeTipi  as FNo7 with (nolock) on ( td.SubeTipiId = FNo7.Id ) 
+   left outer join Lkp.SrcDersler   as FNo8 with (nolock) on ( td.DersTipiId = FNo8.Id ) 
    left outer join Lkp.SrcTeorikDersDerslikAdiTipi as FNo9 with (nolock) on ( td.DerslikAdiTipiId = FNo9.Id ) 
    left outer join Lkp.SrcTeorikDersDersSaatiTipi as FNo11 with (nolock) on ( td.DersSaatiTipiId = FNo11.Id ) 
-   --left outer join Lkp.SrcTeorikDersEgitimTipi as FNo13 with (nolock) on ( td.EgitimTipiId = FNo13.Id ) 
 
  Where 0 = 0
  '

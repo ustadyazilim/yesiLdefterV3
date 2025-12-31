@@ -1,0 +1,177 @@
+﻿/*CreateProcedure*/
+
+CREATE PROCEDURE [dbo].[prc_SrcTeorikDersPlaniOlustur] (
+     @FirmId int 
+   , @DonemTipiId int 
+   , @GrupTipiId smallint 
+   , @SubeTipiId smallint 
+   , @SablonTeorikBId int)  
+AS BEGIN
+  SET NOCOUNT ON;
+
+  /*  
+  declare @FirmId int = 4204
+  declare @DonemTipiId int = 202512 
+  declare @GrupTipiId smallint = 2
+  declare @SubeTipiId smallint = 2
+  declare @SablonTeorikBId int = 2
+  */
+
+  declare @SablonSId int 
+  declare @DersGrubu varchar(1)
+  declare @DersTipiId int
+  declare @DersSiraNo smallint
+  declare @DerslikAdiTipiId smallint
+  declare @DersTarihi date
+  declare @DersSaatiTipiId smallint
+
+  declare @SertifikaTipiId smallint
+  declare @TalepTipiId smallInt
+  declare @TcVkNo varchar(11)
+  declare @PersonelId varchar(20)
+
+  declare @GrupBaslamaTarihi date
+  declare @IsActive bit = 0
+  declare @GunFarki int 
+  declare @takvimTarihi date
+
+  Select @GrupBaslamaTarihi = GrupBaslamaTarihi
+  From dbo.SrcGrupSubesi
+  Where FirmId = @FirmId
+  and   DonemTipiId = @DonemTipiId
+  and   GrupTipiId = @GrupTipiId
+  and   SubeTipiId = @SubeTipiId 
+
+  Select @GrupBaslamaTarihi
+  Select @GunFarki = DATEDIFF(DAY, convert(date,'01.01.1900',103), convert(date, @GrupBaslamaTarihi,103))
+
+  -- 
+  Select 
+       @SertifikaTipiId = SertifikaTipiId 
+      ,@TalepTipiId = TalepTipiId
+  From dbo.SrcSablonTeorikB
+  Where Id = @SablonTeorikBId
+
+  DECLARE cur CURSOR LOCAL FAST_FORWARD FOR
+  Select
+       Id
+      ,DersGrubu
+      ,DersTipiId
+      ,DersSiraNo
+      ,DerslikAdiTipiId
+      ,DersTarihi
+      ,DersSaatiTipiId
+  From  dbo.SrcSablonTeorikS WITH (NOLOCK)
+  Where SablonTeorikBId = @SablonTeorikBId
+  order by DersTarihi, DersSaatiTipiId
+
+  OPEN cur;
+  FETCH NEXT FROM cur INTO 
+      @SablonSId, @DersGrubu, @DersTipiId, @DersSiraNo, 
+      @DerslikAdiTipiId, @DersTarihi, @DersSaatiTipiId;
+
+  declare @IsFind bit  
+  
+  WHILE @@FETCH_STATUS = 0
+  BEGIN
+      --Select @SablonSId, @DersGrubu, @DersTipiId, @DersSiraNo, 
+      --       @DerslikAdiTipiId, @DersTarihi, @DersSaatiTipiId   
+      Set @IsFind = 1
+    
+      -- İş gümü yoksa tatil günüü tespit et
+      While (@IsFind = 1)
+      begin
+          Set @takvimTarihi = DATEADD(DAY, @GunFarki, @DersTarihi)  
+
+          Select @IsActive = IsActive 
+          From dbo.CrsTakvim
+          Where FirmId = 0 --FirmId = @FirmId
+          and   Convert(date,Tarih,103) = convert(date, @takvimTarihi, 103)
+
+          --Select @IsActive, @takvimTarihi
+
+          if (@IsActive = 1) set @IsFind = 0 -- İş günü olduğu için aramayı bırak
+          if (@IsActive = 0) set @GunFarki = @GunFarki + 1 -- tatil günü olduğu GunFarkını 1 arttır
+      end; -- While @IsFind
+
+      --Select @takvimTarihi, @DersSaatiTipiId
+
+      -- DersinPersoneli tablosundan tc yi al
+      Set @TcVkNo = ''
+      Select @TcVkNo = TcVkNo from dbo.SrcDersinPersoneli
+      Where FirmId = @FirmId
+      and   TalepTipiId = @TalepTipiId 
+      and   DersId = @DersTipiId
+      
+      -- SrcPersoneli tablosundan Calisma iznini al
+      Set @PersonelId = ''
+      Select top 1 @PersonelId = isnull(TcNoCalismaIzniNo,'')
+      From dbo.SrcPersoneli
+      Where FirmId = @FirmId
+      and   TcVkNo = @TcVkNo
+      order by convert(date, isnull(CalismaIzniBaslamaTarihi, getdate()),103) desc
+
+      --Select @PersonelId
+      
+      if ( Select count(Id) as Adet From dbo.SrcTeorikDers
+           Where  FirmId = @FirmId
+           and    DonemTipiId = @DonemTipiId
+           and    GrupTipiId = @GrupTipiId
+           and    SubeTipiId = @SubeTipiId 
+           and    DersTipiId = @DersTipiId
+           and    DersSiraNo = @DersSiraNo
+      ) = 0 and (@PersonelId <> '')
+      begin
+          INSERT INTO [dbo].[SrcTeorikDers]
+           ([FirmId]
+           ,[IsActive]
+           ,[DonemTipiId]
+           ,[GrupTipiId]
+           ,[SubeTipiId]
+           ,[DersGrubu]
+           ,[DersTipiId]
+           ,[DersSiraNo]
+           ,[DerslikAdiTipiId]
+           ,[DersTarihi]
+           ,[DersSaatiTipiId]
+           ,[PersonelId]
+           ,[EgitimTipiId]
+           ,[BaslamaSaati]
+           ,[BitisSaati]
+           ,[TDersIsUploaded]
+           ,[SablonTeorikBId]
+           ,[OzelGunlerId]
+           ,[DersHaftasiId])
+          Select
+            @FirmId
+           ,1 as IsActive
+           ,@DonemTipiId
+           ,@GrupTipiId
+           ,@SubeTipiId
+           ,@DersGrubu
+           ,@DersTipiId
+           ,@DersSiraNo
+           ,@DerslikAdiTipiId
+           ,@takvimTarihi -- DersTarihi
+           ,@DersSaatiTipiId
+           ,@PersonelId
+           ,0 as EgitimTipiId
+           ,null as BaslamaSaati
+           ,null as BitisSaati
+           ,0 as TDersIsUploaded
+           ,@SablonTeorikBId
+           ,0 as OzelGunlerId
+           ,0 as DersHaftasiId
+
+      end -- if Adet = 0
+
+      FETCH NEXT FROM cur INTO 
+      @SablonSId, @DersGrubu, @DersTipiId, @DersSiraNo, 
+      @DerslikAdiTipiId, @DersTarihi, @DersSaatiTipiId;
+
+  END -- While FETCH_STATUS
+
+END -- procedure
+
+/*CreateProcedureEnd*/
+

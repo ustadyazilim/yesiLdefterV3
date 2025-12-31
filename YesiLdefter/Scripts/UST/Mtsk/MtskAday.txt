@@ -24,6 +24,9 @@ begin transaction
    CepTelefonu           Varchar(15)      null,
    CepTelefonu2          Varchar(15)      null,
    Eposta                Varchar(98)      null, 
+   MedeniHalTipiId       SmallInt         null,
+   Meslek                nVarchar(50)     null,
+
    -- 40
    SMSGonder               Bit            null,
    EpostaGonder            Bit            null,
@@ -234,3 +237,34 @@ END -- create trigger
 
 
 
+/*CreateLkpTable*/
+
+begin transaction
+
+
+-- ------------------------------------------------------- 
+-- MedeniHalTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'MtskAdayMedeniHalTipi')
+drop table [Lkp].[MtskAdayMedeniHalTipi]
+
+create table [Lkp].[MtskAdayMedeniHalTipi]
+(
+   Id               Int Unique not null, 
+   MedeniHalTipi    nVarchar(10)   null,
+   
+   constraint  pk_MtskAdayMedeniHalTipi primary key (Id)
+)
+
+Delete from [Lkp].[MtskAdayMedeniHalTipi]
+INSERT INTO [Lkp].[MtskAdayMedeniHalTipi] (Id, MedeniHalTipi)
+ VALUES 
+  ( 0,    N'Seçiniz'),
+  ( 1,    N'Bekar'),
+  ( 2,    N'Evli'),
+  ( 3,    N'Dul')
+
+
+commit transaction
+
+/*CreateLkpTableEnd*/

@@ -64,6 +64,9 @@ namespace YesiLdefter
         Control btn_FullPostTest1 = null;  // test set butonu
         Control btn_FullPostTest2 = null;  // test set butonu
 
+        string menuScraping = "MENU_" + "UST/PMS/PMS/WEBSCRAPING";
+        string buttonErrorFalse = "buttonErrorFalse";
+
         string menuName = "MENU_" + "UST/PMS/PMS/SeleniumMebbis";
         string buttonMebbisGiris = "ButtonMebbisGiris";
         string buttonAutoSave = "ButtonOtomatikMebbisKaydet";
@@ -115,6 +118,7 @@ namespace YesiLdefter
             preparingWebPagesViewControl();
             msPagesService.preparingMsWebLoginPage(f, ds_LoginPageNodes, this.msWebLoginNodes_);
 
+            preparingKaydetButons();
 
             // TileNavMenu buttons
             t.Find_Button_AddClick(this, menuName, buttonMebbisGiris, myNavElementClick);
@@ -124,6 +128,9 @@ namespace YesiLdefter
             t.Find_NavButton_Control(this, menuName, buttonAutoSave, ref buttonAutoSaveControl);
             if (buttonAutoSaveControl != null)
                 myNavElementClick(buttonAutoSaveControl, null);
+
+
+            t.Find_Button_AddClick(this, menuScraping, buttonErrorFalse, myNavElementClick);
 
             // scraping ilişkisi olan TableIPCode ve ilgili fieldler
             // 
@@ -148,6 +155,24 @@ namespace YesiLdefter
             
         }
 
+        private void preparingKaydetButons()
+        {
+            /// Kaydet butonları
+            /// 
+            List<Control> list = new List<Control>();
+            t.Find_Controls_List(this, "DevExpress.XtraEditors.SimpleButton", ref list);
+            foreach (Control button in list)
+            {
+                if (button.Name.IndexOf("simpleButton_kaydet") > -1)
+                {
+                        ((DevExpress.XtraEditors.SimpleButton)button).Click += new System.EventHandler(mySaveClick);
+                }
+            }
+        }
+        public void mySaveClick(object sender, EventArgs e)
+        {
+            f.tableIPCodeIsSave = "";
+        }
         private void preparingWebMain()
         {
             /*
@@ -414,6 +439,15 @@ namespace YesiLdefter
                     buttonAutoSaveControl.Appearance.BackColor = v.colorAutoSave;
                     buttonAutoSaveControl.Appearance.ForeColor = v.AppearanceTextColor;
                 }
+
+
+                //buttonErrorFalse
+                if (((DevExpress.XtraBars.Navigation.NavButton)sender).Name == buttonErrorFalse)
+                {
+                    f.anErrorOccurred = false;
+                    t.FlyoutMessage(this, "Bilgilendirme", "Hata durumu sıfırlandı...");
+                }
+
 
                 if (f.btn_FullSave != null)
                     f.btn_FullSave.Visible = !f.autoSubmit;

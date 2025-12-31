@@ -805,6 +805,7 @@ INSERT INTO [Lkp].[OnmHesapMaster] (ParentId, FirmId, IsActive, UstGrupTipiId, A
 
 (0, @FirmId, 1, 82,   0,    0,  793, '81.12.10', '81.12',  20,  0, 'Bilişim', 0, 1, 4, 0 ),
 (0, @FirmId, 1, 82,   0,    0,  793, '81.12.20', '81.12',  20,  0, 'Baskı ve Matbu', 0, 1, 4, 0 ),
+(0, @FirmId, 1, 82,   0,    0,  793, '81.12.21', '81.12',  20,  0, 'İlan ve Reklam', 0, 1, 4, 0 ),
 (0, @FirmId, 1, 82,   0,    0,  770, '81.12.22', '81.12',  20,  0, 'Kart ücreti (Sürücü//Src Belgesi)', 0, 1, 4, 0 ),
 (0, @FirmId, 1, 82,   0,    0,  793, '81.12.30', '81.12',  20,  0, 'Eğitim', 0, 1, 4, 0 ),
 (0, @FirmId, 1, 82,   0,    0,  770, '81.12.40', '81.12',  20,  0, 'Giyim/Aksesuar', 0, 1, 4, 0 ),

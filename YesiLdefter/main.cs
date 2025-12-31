@@ -1,4 +1,4 @@
-﻿using DevExpress.LookAndFeel;
+using DevExpress.LookAndFeel;
 using DevExpress.XtraEditors;
 using System;
 using System.Collections.Generic;
@@ -67,7 +67,6 @@ namespace YesiLdefter
 
         private void mainForm_Load(object sender, EventArgs e)
         {
-            //
         }
         private void mainForm_Shown(object sender, EventArgs e)
         {
@@ -130,7 +129,6 @@ namespace YesiLdefter
 
             /// Computer hakkındaki verileri topla
             /// 
-            t.WaitFormOpen(v.mainForm, "Bilgisayar hakkındaki bilgiler okunuyor...");
             //Task task1 = new Task(() =>
             //{
                t.Get_MacAddress();
@@ -156,7 +154,6 @@ namespace YesiLdefter
 
             #region Starter
             
-            t.WaitFormOpen(v.mainForm, "Program hazırlanmaya başlıyor ...");
             using (tStarter s = new tStarter())
             {
                s.InitStart();
@@ -164,7 +161,6 @@ namespace YesiLdefter
 
             v.SP_OpenApplication = false;
             v.IsWaitOpen = false;
-            t.WaitFormOpen(v.mainForm, "");
 
             /// Main form size
             /// 
@@ -191,6 +187,12 @@ namespace YesiLdefter
 
                 if (v.active_DB.localDbUses == false)
                     t.DBUpdatesDataTransferOff();
+                
+                // Refresh layout after login to ensure menu structure is properly displayed
+                this.PerformLayout();
+                this.Invalidate();
+                this.Update();
+                Application.DoEvents();
             }
             
             if ((params_) && (v.tUser.UserId > 0))
@@ -278,23 +280,31 @@ namespace YesiLdefter
             {
                 setMenuItems();
                 
-                t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
+                ms_WebViewSplash.UpdateStatus("ManagerDB bağlantısı gerçekleşiyor...");
+                if (v.active_DB.managerMSSQLConn == null)
+                {
+                    MessageBox.Show("Database bağlantısı başlatılamadı. Lütfen uygulamayı kapatıp yeniden açın veya sistem yöneticinize başvurun.",
+                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    v.SP_ApplicationExit = true;
+                    ms_WebViewSplash.CloseSplash();
+                    return;
+                }
                 t.Db_Open(v.active_DB.managerMSSQLConn);
 
                 if (v.active_DB.projectDBType == v.dBaseType.MSSQL)
                 {
-                    t.WaitFormOpen(v.mainForm, "ProjectDB bağlantısı gerçekleşiyor...");
+                    ms_WebViewSplash.UpdateStatus("ProjectDB bağlantısı gerçekleşiyor...");
                     //t.Db_Open(v.active_DB.projectMSSQLConn);
                 }
                 
-                t.WaitFormOpen(v.mainForm, "SysTypes tanımları okunuyor...");
+                ms_WebViewSplash.UpdateStatus("SysTypes tanımları okunuyor...");
                 Task task1 = new Task(() =>
                 {
                     t.SYS_Types_Read();
                 });
                 task1.Start();
 
-                t.WaitFormOpen(v.mainForm, "Dönem listesi okunuyor...");
+                ms_WebViewSplash.UpdateStatus("Dönem listesi okunuyor...");
                 Task task2 = new Task(() =>
                 {
                     t.DonemTipiYilAyRead();
@@ -305,7 +315,7 @@ namespace YesiLdefter
                 //t.WaitFormOpen(v.mainForm, "Read : SysGlyph ...");
                 //t.SYS_Glyph_Read();
 
-                t.WaitFormOpen(v.mainForm, "Menü hazırlanıyor...");
+                ms_WebViewSplash.UpdateStatus("Menü hazırlanıyor...");
                 preparingMenus();
 
                 /// Ustad Crm ve TabimMtsk değil ise DbUpdates çalışacak
@@ -322,20 +332,28 @@ namespace YesiLdefter
 
                     if (v.SP_TabimParamsKurumTipi == "")
                     {
-                        t.WaitFormOpen(v.mainForm, "İl ve İlçe listesi okunuyor...");
+                        ms_WebViewSplash.UpdateStatus("İl ve İlçe listesi okunuyor...");
                         t.SYS_IL_Read();
                         t.SYS_Ilce_Read();
                         // Frmanın Il ve Ilçe adı atanıyor
                         t.preparing_FirmILAdi_IlceAdi();
 
-                        t.WaitFormOpen(v.mainForm, "Takvim kontrolü yapılıyor...");
+                        ms_WebViewSplash.UpdateStatus("Takvim kontrolü yapılıyor...");
                         t.CrsTakvimiAyarla();
 
-                        t.WaitFormOpen(v.mainForm, "......");
+                        ms_WebViewSplash.UpdateStatus("......");
                     }
                 }
 
                 setMainFormCaption();
+                
+                // Ensure layout is refreshed after menu preparation
+                this.PerformLayout();
+                this.Invalidate();
+                Application.DoEvents();
+                
+                // Close splash screen after login completes
+                ms_WebViewSplash.CloseSplash();
             }
         }
 
@@ -352,6 +370,13 @@ namespace YesiLdefter
 
         void autoOpenForm(string FormCode, string FormName)
         {
+            // Ensure we're on the UI thread to avoid cross-thread exceptions
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new Action(() => autoOpenForm(FormCode, FormName)));
+                return;
+            }
+            
             if (FormName == "")
                 FormName = "null";
 
@@ -446,6 +471,25 @@ namespace YesiLdefter
         #region YolHaritasi
         void YolHaritasi()
         {
+            // Ensure we're on the UI thread
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action(YolHaritasi));
+                return;
+            }
+            
+            // Ensure splash screen is closed before opening forms to avoid cross-thread exceptions
+            t.WaitFormClose();
+            
+            // Verify database connection is open before opening forms
+            if (v.active_DB.managerMSSQLConn == null || v.active_DB.managerMSSQLConn.State != System.Data.ConnectionState.Open)
+            {
+                System.Diagnostics.Debug.WriteLine("[YolHaritasi] Database connection not ready, skipping form opening");
+                // Retry after a short delay
+                timer_Mesaj_Suresini_Bitir.Interval = 1000;
+                return;
+            }
+            
             bool onay = t.getSettingsBoolValue((Int16)v.settings.BaslangictaYapilmasiGerekenlerMenu);
 
             if (onay)
@@ -523,6 +567,11 @@ namespace YesiLdefter
             }
 
             setMenuItems();
+            
+            // Refresh layout after menu preparation to fix sketchy layout issues
+            this.PerformLayout();
+            this.Invalidate();
+            Application.DoEvents();
         }
 
         void setMenuItems()
@@ -914,9 +963,22 @@ namespace YesiLdefter
         {
             if (v.Kullaniciya_Mesaj_Var == "YolHaritasi")
             {
-                YolHaritasi();
-                v.Kullaniciya_Mesaj_Var = "";
-                timer_Mesaj_Suresini_Bitir.Interval = 6000;
+                // Ensure YolHaritasi runs on UI thread to avoid cross-thread exceptions with splash screen
+                if (this.InvokeRequired)
+                {
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        YolHaritasi();
+                        v.Kullaniciya_Mesaj_Var = "";
+                        timer_Mesaj_Suresini_Bitir.Interval = 6000;
+                    }));
+                }
+                else
+                {
+                    YolHaritasi();
+                    v.Kullaniciya_Mesaj_Var = "";
+                    timer_Mesaj_Suresini_Bitir.Interval = 6000;
+                }
                 return;
             }
 
@@ -998,9 +1060,29 @@ namespace YesiLdefter
                 DialogResult cevap = t.mySoru("EXIT");
                 if (DialogResult.Yes == cevap)
                 {
-                    //
+                    // Cleanup CefSharp on UI thread before closing
+                    try
+                    {
+                        YesiLdefter.CEFSharp.CEFHelper.Shutdown();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[main] CefSharp shutdown error: {ex.Message}");
+                    }
                 }
                 else e.Cancel = true; // Main formun kapanmasını engeller
+            }
+            else
+            {
+                // Application is exiting, cleanup CefSharp
+                try
+                {
+                    YesiLdefter.CEFSharp.CEFHelper.Shutdown();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[main] CefSharp shutdown error: {ex.Message}");
+                }
             }
         }
 

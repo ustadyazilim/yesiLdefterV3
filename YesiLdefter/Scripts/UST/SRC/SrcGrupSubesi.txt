@@ -29,7 +29,8 @@ begin transaction
    DerslikAdiTipiId        SmallInt      null,
    ToplamDersSayisi        SmallInt      null,   
    TDersIsUploaded         Bit           null, /* Teorik derslerin tamamı Mebbise yüklenince 1 oluyor */
-      
+   VeriKaynakId            Int           null,
+   
    constraint		pk_SrcGrupSubesi primary key (Id)
  )
   

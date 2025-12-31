@@ -1,0 +1,26 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+ create table dbo.SrcDersinPersoneli
+ (
+   Id                   Int IDENTITY(1,1) not null, 
+   FirmId               Int       not null,
+   IsActive             Bit       not null, /* default : 1 = active, 0 = not active */  
+
+   DersId               Int           null,   /* Lkp.SrcDersler.Id  tablosunun Id si */
+   TalepTipiId          SmallInt      null,   /* Lkp.SrcDersler.TalepTipiId > 1: Src1234, 2:Src5, 3:Src6, 4:Ody1234, 5:Udy1234  */ 
+   DersGrubu            Varchar(1)    null,   /* Lkp.SrcDersler.Grubu  > A, B, C veya D */  
+
+   TcVkNo               Varchar(11)   null, /* personel için tc si*/
+
+   constraint		pk_SrcDersinPersoneli primary key (Id)
+ )
+  
+ create index X_SrcDersinPersoneli01 on SrcDersinPersoneli (DersId)
+
+ grant select, insert, update, delete on SrcDersinPersoneli to public
+
+commit transaction
+
+/*CreateTableEnd*/

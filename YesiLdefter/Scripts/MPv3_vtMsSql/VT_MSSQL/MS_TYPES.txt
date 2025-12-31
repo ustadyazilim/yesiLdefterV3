@@ -277,6 +277,8 @@ begin transaction
  insert into MS_TYPES values ( 1, 0, 'DEFAULT_TYPE', 31, '', 'Master=Detail');
  insert into MS_TYPES values ( 1, 0, 'DEFAULT_TYPE', 32, '', 'Master=Detail Multi');
  insert into MS_TYPES values ( 1, 0, 'DEFAULT_TYPE', 33, '', 'Master=Detail Column');
+ insert into MS_TYPES values ( 1, 0, 'DEFAULT_TYPE', 34, '', 'Master=Detail Harmony');
+
  insert into MS_TYPES values ( 1, 0, 'DEFAULT_TYPE', 41, '', 'Line No'); -- 32 > 41
  insert into MS_TYPES values ( 1, 0, 'DEFAULT_TYPE', 42, '', 'MaliDonem Changer'); 
  insert into MS_TYPES values ( 1, 0, 'DEFAULT_TYPE', 51, '', 'Kriter READ (Even.Bas)'); 

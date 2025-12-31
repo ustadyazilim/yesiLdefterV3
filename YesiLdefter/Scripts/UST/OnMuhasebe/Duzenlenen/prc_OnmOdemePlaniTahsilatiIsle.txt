@@ -77,7 +77,7 @@ AS BEGIN
            Where IsActive = 1
            and IsPaid = 0
            and TalepId = @TalepId
-           and VeriKaynakId = @VeriKaynakId
+           and VeriKaynakId = @VeriKaynakId -- TransferDatabase.Muhasebe.Id
            order by VadeTarihi, Id
        end
 

@@ -1124,16 +1124,20 @@ BEGIN
   ;WITH KayitTipi AS (
     Select t.TalepId as TalepId
     , ( case
+         when t.KayitTipiId = 5 and t.eSinavSonrasiTipiId <> 3 then 3  -- hatalı kayıtı düzelt  
+         when t.KayitTipiId = 6 and t.uSinavSonrasiTipiId <> 3 then 3  -- hatalı kayıtı düzelt        
+
+	     when t.eSinavSonrasiTipiId = 2 and (t.TalepTipiId = 4 or t.TalepTipiId = 5) then 4 -- Ody veya Udy Sertifika aldı
+	     when t.uSinavSonrasiTipiId = 2 and t.TalepTipiId = 1 then 4 -- Src1234 Sertifika aldı 
+
          when t.KayitTipiId > 4 then t.KayitTipiId -- aşamasını bulmui, kayıt tipini değiştirme
+
          when t.KayitTipiId < 4 
          and  t.DonemTipiId > 0 
          and  DATEDIFF(MONTH, DATEFROMPARTS(t.DonemTipiId / 100, t.DonemTipiId % 100, 1), DATEFROMPARTS(@BugunDonemTipiId / 100, @BugunDonemTipiId % 100, 1)) > 24
          then 9 -- 24 ayda kapanmamış dosya
 
          when t.KayitTipiId = 8 then 8 -- Manuel dosya kapanmışsa hiç elleme 
-
-	     when t.eSinavSonrasiTipiId = 2 and (t.TalepTipiId = 4 or t.TalepTipiId = 5) then 4 -- Ody veya Udy Sertifika aldı
-	     when t.uSinavSonrasiTipiId = 2 and t.TalepTipiId = 1 then 4 -- Src1234 Sertifika aldı 
 
 	     when t.KayitTipiId = 4 and t.eSinavSonrasiTipiId <= 1 and (t.TalepTipiId = 4 or t.TalepTipiId = 5) then 3 -- Ody veya Udy
 	     when t.KayitTipiId = 4 and t.uSinavSonrasiTipiId <= 1 and t.TalepTipiId = 1 then 3 -- Src1234
@@ -1155,6 +1159,7 @@ BEGIN
     Where @FirmId = t.FirmId 
 	--and @TalepId = t.TalepId
     and t.TalepTipiId < 5
+    and RIGHT(CONVERT(varchar(12), t.DonemTipiId), 2) <> ''00''
   ) -- With
   --Select * from KayitTipi
   Update takip

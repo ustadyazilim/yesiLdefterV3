@@ -18,9 +18,6 @@ begin transaction
       
    -- 10 Dekont Belgesi Hakkında
    BelgeTarihi        DateTime        null, 
-   --BelgeYil           Smallint      null, 
-   --BelgeAy            Smallint      null, 
-   --BelgeGun           Smallint      null, 
    BelgeSeri          nVarChar(5)   null,
    BelgeNo            nVarChar(50)  null,
    BelgeDonemTipiId   Int           null,
@@ -198,8 +195,8 @@ AS BEGIN
 	    , @AlacakTutari  = round(isnull(ins.AlacakTutari,0),2)
 		, @MasrafTutari = round(isnull(ins.MasrafTutari,0),2)
 		, @CariId = ins.CariId
-		, @SourceTypeId = ins.SourceTypeId
-		, @SourceId = ins.SourceId 
+		, @SourceTypeId = isnull(ins.SourceTypeId,0)
+		, @SourceId = isnull(ins.SourceId,0) 
         , @IsTransfer = isnull(ins.IsTransfer,0)
         , @IkizNo = isnull(ins.IkizNo,0)
         , @IkizId = isnull(ins.IkizId,0)
@@ -465,8 +462,8 @@ AS BEGIN
 		, @AHesapTipiId = isnull(dlt.AHesapTipiId,0)
 	    , @BelgeTutari = round(dlt.BelgeTutari,2)
 		, @CariId = dlt.CariId
-		, @SourceTypeId = dlt.SourceTypeId
-		, @SourceId = dlt.SourceId
+		, @SourceTypeId = isnull(dlt.SourceTypeId,0)
+		, @SourceId = isnull(dlt.SourceId,0)
 		, @IadeId = isnull(dlt.IadeId,0)
         , @IkizId = isnull(dlt.IkizId,0)
 
@@ -1182,15 +1179,12 @@ INSERT INTO [Lkp].[OnmBelgeDekontSourceType] (Id, SourceType)
   ( 1,   N'OnmBelgeMaliyet'),
   ( 2,   N'OnmBelgeDekont - Kendisi'), -- kaynak kendisi
   ( 3,   N'OnmBankaKredisiS'),
-
+  ( 11,  N'Veri transferi'),
   ( 201, N'OnmOdemePlani (Mtsk)'),
   ( 202, N'OnmOdemePlani (İsmak)'),
-  ( 203, N'OnmOdemePlani (Src)'), 
-  ( 211, N'Veri transferi')
+  ( 203, N'OnmOdemePlani (Src)') 
 
---  ( 2103,  N'Mtsk Veri Transferi - Giderler'),
---  ( 2104,  N'Mtsk Veri Transferi - CariAlt'),
---  ( 2105,  N'Mtsk Veri Transferi - Kurharc')
+
 
 
 commit transaction

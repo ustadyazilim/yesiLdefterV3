@@ -92,7 +92,7 @@ namespace Tkn_Events
                         Form tForm = t.Find_Form(sender);
                         string TableIPCode = dsData.DataSetName;
 
-                        // eski süreç
+                        // eski süreç ** dataNavigator_PositionChanged
                         //
                         Data_Refresh(tForm, dsData, ((DevExpress.XtraEditors.DataNavigator)sender)); // dataNavigator_PositionChanged
 
@@ -1593,7 +1593,7 @@ namespace Tkn_Events
                     {
                         SubDetail_Preparing(tForm, ref SqlF,
                                             ds, dN, //mst_TableIPCode, 
-                                            ds, SubDetail_List, SubDetail_TableIPCode,
+                                            ds, SubDetail_List, SubDetail_TableIPCode, "", // Master_Detail_Harmony 
                                             DataReadType, FieldName, Value, 
                                             ref sourceTableIPCodeREAD);
                     }
@@ -1602,7 +1602,7 @@ namespace Tkn_Events
                     {
                         SubDetail_Preparing(tForm, ref SqlS,
                                             ds, dN, //mst_TableIPCode,
-                                            ds, SubDetail_List, SubDetail_TableIPCode,
+                                            ds, SubDetail_List, SubDetail_TableIPCode, "", // Master_Detail_Harmony
                                             DataReadType, FieldName, Value,
                                             ref sourceTableIPCodeREAD);
                     }
@@ -8256,6 +8256,8 @@ namespace Tkn_Events
             int DataReadType = t.myInt32(t.MyProperties_Get(myProp, "DataReadType:"));
 
             string SubDetail_List = t.MyProperties_Get(myProp, "About_Detail_SubDetail:");
+            string Master_Detail_Harmony = t.MyProperties_Get(myProp, "MasterDetailHarmony:");
+
             string AutoInsert = t.MyProperties_Get(myProp, "AutoInsert:");
 
             string SqlF = t.MyProperties_Get(myProp, "SqlFirst:");
@@ -8271,6 +8273,7 @@ namespace Tkn_Events
                 onay = SubDetail_Preparing(tForm, ref SqlF,
                                     ds_Master, dN_Master, //mst_TableIPCode,
                                     dsSubDetail_Data, SubDetail_List, SubDetail_TableIPCode,
+                                    Master_Detail_Harmony,
                                     DataReadType, "", "", ref sourceTableIPCodeREAD);
                 if (onay)
                 {
@@ -8285,6 +8288,7 @@ namespace Tkn_Events
                 onay = SubDetail_Preparing(tForm, ref SqlS,
                                     ds_Master, dN_Master, //mst_TableIPCode,
                                     dsSubDetail_Data, SubDetail_List, SubDetail_TableIPCode,
+                                    Master_Detail_Harmony,
                                     DataReadType, "", "", ref sourceTableIPCodeREAD);
                 if (onay)
                 {
@@ -8354,6 +8358,7 @@ namespace Tkn_Events
                    DataSet dsSubDetail_Data,
                    string SubDetail_List, 
                    string SubDetail_TableIPCode,
+                   string Master_Detail_Harmony,
                    int DataReadType, 
                    string Speed_FName, 
                    string Speed_Value,
@@ -8393,6 +8398,8 @@ namespace Tkn_Events
             int pos = 0;
             byte default_type = 0;
             byte buldu = 0;
+            bool harmony_buldu = false; 
+            bool harmony_onayi = false;
 
             DataRow mst_Row = null;
             #endregion Tanımlar
@@ -8416,16 +8423,13 @@ namespace Tkn_Events
             /// sırayla Master/Detail tablodan veriler okunacak ve işlenecek
             /// 
             /// About_Detail_SubDetail:
-            /// =Detail_SubDetail:GRP.GRP_03||ID||[K].GRUP_ID||56||32||LKP_ONAY||1||2774|ds|
-            /// =Detail_SubDetail:SNVLIST_ADAY.SNVLIST_ADAY_01||||[K].E_SINAV||104||3||E_SINAV||||2868|ds|
-            /// =Detail_SubDetail:SNVLIST_ADAY.SNVLIST_ADAY_01||||[K].OGRDURUM||52||1||OGRDURUM||||2772|ds|
-            /// =Detail_SubDetail:FNLNVOL.FNLNVOL_XYL01||||[FNLNVOL].ISLEM_TRHS||58||0||3||ISLEM_TRHS||||3827|ds|
             ///
-            /// About_Detail_SubDetail:
-            /// =Detail_SubDetail:VTSNL_01.VTSNL_01_01 || PART_ID ||[VRSNL_09].@partId || 56 || 31 || 0 |||||| 1434 | ds |
-            /// =Detail_SubDetail:|||| @yil || 56 || 53 || 0 |||||| 2002 | ds |
-            /// =Detail_SubDetail:|||| @ay || 56 || 53 || 0 |||||| 2003 | ds |
-            ///
+            /// =Detail_SubDetail:UST/MEB/SrcAday.TalepFormu||Id||[SrcAdayTalep].AdayId||56||31||0||||||65205|ds|
+            /// =Detail_SubDetail:UST/MEB/SrcAdayTalep.TalepFormuListesi||Id||[SrcAdayTalep].Id||56||31||0||||||65202|ds|
+            /// 
+            /// =Detail_SubDetail: Master >>> UST/MEB/SrcAday.TalepFormu||Id||             <<< Master : Detail >>>  [SrcAdayTalep].AdayId||56||31||0||||||65205|ds|  <<< Detail
+            /// =Detail_SubDetail: Master >>> UST/MEB/SrcAdayTalep.TalepFormuListesi||Id|| <<< Master : Detail >>>  [SrcAdayTalep].Id||56||31||0||||||65202|ds|      <<< Detail
+            /// 
             /// 'KRT_OPERAND_TYPE',    0,  ''
             /// 'KRT_OPERAND_TYPE',    1,  'Even (Double)'
             /// 'KRT_OPERAND_TYPE',    2,  'Odd  (Single)'
@@ -8442,6 +8446,88 @@ namespace Tkn_Events
             /// 'KRT_OPERAND_TYPE',   17,  "Benzerleri (abc%)"
             ///  K harfi < 
             ///  
+
+            /// =Master_Detail_Harmony:UST/MEB/SrcAdayTalep.TalepFormuListesi||TalepTipiId||[SrcAdayTalep].TalepTipiId||52||34||0||||||65210|ds|
+            while (Master_Detail_Harmony.IndexOf("Master_Detail_Harmony:") > -1)
+            {
+                harmony_buldu = true;
+
+                satir = t.Get_And_Clear(ref Master_Detail_Harmony, "|ds|") + "||";
+
+                t.Get_And_Clear(ref satir, "Master_Detail_Harmony:");
+
+                new_And = "";
+                // okunacak field
+                read_mst_TableIPCode = t.Get_And_Clear(ref satir, "||");
+                read_mst_FName = t.Get_And_Clear(ref satir, "||");
+                read_sub_FName = t.Get_And_Clear(ref satir, "||"); // burada okunan alias.fieldName
+                read_sub_FName2 = read_sub_FName.Replace("[", "");
+                read_sub_FName2 = read_sub_FName2.Replace("]", "");
+                read_sub_FName = t.Get_And_Clear(ref satir, "||"); // Harmony için target fieldName bu
+                read_field_type = t.Get_And_Clear(ref satir, "||");
+                default_type = System.Convert.ToByte(t.Get_And_Clear(ref satir, "||"));
+                OperandType = t.Get_And_Clear(ref satir, "||");
+                mst_CheckFName = t.Get_And_Clear(ref satir, "||");
+                mst_CheckValue = t.Get_And_Clear(ref satir, "||");
+                read_RefId = t.Get_And_Clear(ref satir, "||");
+
+                if (OperandType == "=") Operand = " = ";
+                if (OperandType == "0") Operand = " = ";
+                if (OperandType == "2") Operand = " = "; // Odd  (Single) 
+                if (OperandType == "3") Operand = " = "; // 
+                if (OperandType == "11") Operand = " >= ";
+                if (OperandType == "12") Operand = " > ";
+                if (OperandType == "13") Operand = " <= ";
+                if (OperandType == "14") Operand = " < ";
+                if (OperandType == "15") Operand = " <> ";
+
+
+                DataSet dsTarget = null;
+                DataNavigator dNTarget = null;
+                
+                string harmony_master_value = string.Empty;
+                string harmany_target_value = string.Empty;
+
+                /// target tableIPCode
+                if (t.IsNotNull(SubDetail_TableIPCode))
+                {
+                    t.Find_DataSet(tForm, ref dsTarget, ref dNTarget, SubDetail_TableIPCode);
+
+                    if (t.IsNotNull(dsTarget))
+                    {
+                        /// Eğer herhangi bir datası yoksa onayla
+                        if (dNTarget.Position == -1) harmony_onayi = true;
+                        try
+                        {
+                            harmany_target_value = dsTarget.Tables[0].Rows[dNTarget.Position][read_sub_FName].ToString();
+                        }
+                        catch (Exception)
+                        {
+                            harmony_onayi = true; // target field bulunamadı ise yinede onayla kontrol edecek field yok
+                            harmany_target_value = "";
+                        }
+                    }
+                }
+
+                if (mst_TableIPCode == read_mst_TableIPCode)
+                {
+                    if (t.IsNotNull(ds_Master))
+                    {
+                        if (dN_Master.Position == -1) harmony_onayi = true;
+                        harmony_master_value = ds_Master.Tables[0].Rows[dN_Master.Position][read_mst_FName].ToString();
+                    }
+                }
+
+                /// string bbb = SubDetail_TableIPCode;
+
+                if (t.IsNotNull(harmany_target_value) && t.IsNotNull(harmony_master_value))
+                {
+                    if (harmany_target_value == harmony_master_value) 
+                        harmony_onayi = true;    // eğer harmony uymu varsa sub_detail data tekrar okuna bilir
+                    else harmony_onayi = false;  // eğer harmony uymu yoksa sub_detail data tekrar okunmasın
+                }
+            }
+
 
             #region SubDetail_List Read
             //Application.OpenForms[0].Text = Application.OpenForms[0].Text + ";sdR3;" + mst_TableIPCode;
@@ -9057,8 +9143,34 @@ namespace Tkn_Events
                     {
                         if ((new_And != "") && (i_bgn >= 0) && (i_end > 0))
                         {
-                            //Sql = Sql.Remove(i_bgn, (i_end - i_bgn));
-                            //Sql = Sql.Insert(i_bgn, new_And);
+                            string kimGeldi = SubDetail_TableIPCode;
+                            
+                            /// Sql üzerindeki Id value şartı ile yeni new_And aynı ise bir daha yani defalarca çalışmasına gerek yok
+                            /// olduğu gibi geri dönsün ve databaseden tekrar okuma yapmasın, 
+                            /// çünkü çok ağırlaşıyor : Örnek AdayTaleFormu : Talep listesi üzerinde gezinirken defalarca aynı dataları okumaya çaışıyor
+                            /// 
+                            //if (Sql.IndexOf(new_And) > -1)
+                            //{
+                            //    return false;
+                            //}
+
+                            /// harmony/uyum kontrolü varsa
+                            /// harmony_onayi = true;   // eğer harmony uymu varsa sub_detail data tekrar okuna bilir
+                            /// harmony_onayi = false;  // eğer harmony uymu yoksa sub_detail data tekrar okunmasın
+                            if (harmony_buldu == true)  
+                            {
+                                // demekki harmony/uyumlu değil buradan geri dön, yani sub_detail data tekrar okumasın
+                                if (harmony_onayi == false)
+                                {
+                                    return false;
+                                }
+                                // eğer harmony/uyumlu ve new_and de yine aynıysa sub_detail data tekrar okumasın
+                                if (Sql.IndexOf(new_And) > -1)
+                                {
+                                    return false;
+                                }
+                            }
+
                             IsChange = true;
                             f_bgn = 0;
                             f_end = 0;

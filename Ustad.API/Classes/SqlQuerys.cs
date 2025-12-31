@@ -12,9 +12,9 @@ namespace Ustad.API.Classes
         {
             //string query =
             //    @" Select * from UstadUsers where UserEMail = @EMail and UserKey = @Password ";
-            string query = 
+            string query =
                 " Select * from UstadUsers "
-              + " where UserEMail = '" + userEMail + "'" 
+              + " where UserEMail = '" + userEMail + "'"
               + " and UserKey = '" + Password + "'";
             return query;
         }

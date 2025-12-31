@@ -35,27 +35,42 @@ AS BEGIN
     declare @sql nvarchar(max)
     declare @sqlAddField nvarchar(500)
     declare @sqlWhere nvarchar(500)
+    declare @talepTipiId varchar(2)
 
     Set @sqlAddField = ''
     Set @sqlWhere = ''
 
-    if (@SertifikaTipiId = 15001) Set @sqlWhere = ' and GrupSaati1234 > 0 ' -- SRC 1-2-3-4
-    if (@SertifikaTipiId = 15002) Set @sqlWhere = ' and GrupSaati12 > 0 ' -- SRC 1-2
-    if (@SertifikaTipiId = 15003) Set @sqlWhere = ' and GrupSaati34 > 0 ' -- SRC 3-4
-    if (@SertifikaTipiId = 15004) Set @sqlWhere = ' and GrupSaati24 > 0 ' -- SRC 2-4
-    if (@SertifikaTipiId = 15005) Set @sqlWhere = ' and DersSaati1 > 0  ' -- SRC 1
-    if (@SertifikaTipiId = 15006) Set @sqlWhere = ' and DersSaati2 > 0  ' -- SRC 2
-    if (@SertifikaTipiId = 15007) Set @sqlWhere = ' and DersSaati3 > 0  ' -- SRC 3
-    if (@SertifikaTipiId = 15008) Set @sqlWhere = ' and DersSaati4 > 0  ' -- SRC 4
+    if (@SertifikaTipiId >= 15001 and @SertifikaTipiId <= 15008) Set @talepTipiId = '1'
+    if  @SertifikaTipiId = 15021 Set @talepTipiId = '2'
+    if  @SertifikaTipiId = 15031 Set @talepTipiId = '3'
+    if (@SertifikaTipiId >= 15041 and @SertifikaTipiId <= 15047) Set @talepTipiId = '4'
+    if (@SertifikaTipiId >= 15061 and @SertifikaTipiId <= 15067) Set @talepTipiId = '5'
 
-    if (@SertifikaTipiId = 15001) Set @sqlAddField = ' , sd.GrupSaati1234 as Lkp_DersSayisi ' -- SRC 1-2-3-4
-    if (@SertifikaTipiId = 15002) Set @sqlAddField = ' , sd.GrupSaati12 as Lkp_DersSayisi ' -- SRC 1-2
-    if (@SertifikaTipiId = 15003) Set @sqlAddField = ' , sd.GrupSaati34 as Lkp_DersSayisi ' -- SRC 3-4
+
+    if (@SertifikaTipiId = 15001 or @SertifikaTipiId = 15041 or @SertifikaTipiId = 15061) Set @sqlWhere = ' and GrupSaati1234 > 0 and TalepTipiId = ' + @talepTipiId  -- SRC 1-2-3-4
+    if (@SertifikaTipiId = 15002 or @SertifikaTipiId = 15042 or @SertifikaTipiId = 15062) Set @sqlWhere = ' and GrupSaati12 > 0 and TalepTipiId = ' + @talepTipiId -- SRC 1-2
+    if (@SertifikaTipiId = 15003 or @SertifikaTipiId = 15043 or @SertifikaTipiId = 15063) Set @sqlWhere = ' and GrupSaati34 > 0 and TalepTipiId = ' + @talepTipiId -- SRC 3-4
+    if (@SertifikaTipiId = 15004) Set @sqlWhere = ' and GrupSaati24 > 0 and TalepTipiId = ' + @talepTipiId -- SRC 2-4
+    if (@SertifikaTipiId = 15005 or @SertifikaTipiId = 15044 or @SertifikaTipiId = 15064) Set @sqlWhere = ' and DersSaati1 > 0 and TalepTipiId = ' + @talepTipiId -- SRC 1
+    if (@SertifikaTipiId = 15006 or @SertifikaTipiId = 15045 or @SertifikaTipiId = 15065) Set @sqlWhere = ' and DersSaati2 > 0 and TalepTipiId = ' + @talepTipiId -- SRC 2
+    if (@SertifikaTipiId = 15007 or @SertifikaTipiId = 15046 or @SertifikaTipiId = 15066) Set @sqlWhere = ' and DersSaati3 > 0 and TalepTipiId = ' + @talepTipiId -- SRC 3
+    if (@SertifikaTipiId = 15008 or @SertifikaTipiId = 15047 or @SertifikaTipiId = 15067) Set @sqlWhere = ' and DersSaati4 > 0 and TalepTipiId = ' + @talepTipiId -- SRC 4
+
+    if (@SertifikaTipiId = 15001 or @SertifikaTipiId = 15041 or @SertifikaTipiId = 15061) Set @sqlAddField = ' , sd.GrupSaati1234 as Lkp_DersSayisi ' -- SRC 1-2-3-4
+    if (@SertifikaTipiId = 15002 or @SertifikaTipiId = 15042 or @SertifikaTipiId = 15062) Set @sqlAddField = ' , sd.GrupSaati12 as Lkp_DersSayisi ' -- SRC 1-2
+    if (@SertifikaTipiId = 15003 or @SertifikaTipiId = 15043 or @SertifikaTipiId = 15063) Set @sqlAddField = ' , sd.GrupSaati34 as Lkp_DersSayisi ' -- SRC 3-4
     if (@SertifikaTipiId = 15004) Set @sqlAddField = ' , sd.GrupSaati24 as Lkp_DersSayisi ' -- SRC 2-4
-    if (@SertifikaTipiId = 15005) Set @sqlAddField = ' , sd.DersSaati1 as Lkp_DersSayisi  ' -- SRC 1
-    if (@SertifikaTipiId = 15006) Set @sqlAddField = ' , sd.DersSaati2 as Lkp_DersSayisi  ' -- SRC 2
-    if (@SertifikaTipiId = 15007) Set @sqlAddField = ' , sd.DersSaati3 as Lkp_DersSayisi  ' -- SRC 3
-    if (@SertifikaTipiId = 15008) Set @sqlAddField = ' , sd.DersSaati4 as Lkp_DersSayisi  ' -- SRC 4
+    if (@SertifikaTipiId = 15005 or @SertifikaTipiId = 15044 or @SertifikaTipiId = 15064) Set @sqlAddField = ' , sd.DersSaati1 as Lkp_DersSayisi  ' -- SRC 1
+    if (@SertifikaTipiId = 15006 or @SertifikaTipiId = 15045 or @SertifikaTipiId = 15065) Set @sqlAddField = ' , sd.DersSaati2 as Lkp_DersSayisi  ' -- SRC 2
+    if (@SertifikaTipiId = 15007 or @SertifikaTipiId = 15046 or @SertifikaTipiId = 15066) Set @sqlAddField = ' , sd.DersSaati3 as Lkp_DersSayisi  ' -- SRC 3
+    if (@SertifikaTipiId = 15008 or @SertifikaTipiId = 15047 or @SertifikaTipiId = 15067) Set @sqlAddField = ' , sd.DersSaati4 as Lkp_DersSayisi  ' -- SRC 4
+
+    if  @SertifikaTipiId = 15021 Set @sqlWhere = ' and DersSaati1 > 0 and TalepTipiId = ' + @talepTipiId -- SRC5
+    if  @SertifikaTipiId = 15031 Set @sqlWhere = ' and DersSaati1 > 0 and TalepTipiId = ' + @talepTipiId -- SRC6
+
+    if  @SertifikaTipiId = 15021 Set @sqlAddField = ' , sd.DersSaati1 as Lkp_DersSayisi  ' -- SRC5
+    if  @SertifikaTipiId = 15031 Set @sqlAddField = ' , sd.DersSaati1 as Lkp_DersSayisi  ' -- SRC6
+
 
     Set @sql = ' select sd.* '
       + @sqlAddField
@@ -64,7 +79,6 @@ AS BEGIN
 
     --print @sql
     EXEC sp_executesql @sql
-
 
 END -- procedure
 

@@ -42,7 +42,7 @@ begin transaction
    --60
    VeriKaynakTipiId        SmallInt       null, /* 1. Kullanıcı Manuel, 2. Mebbis Dönem Aday Onaylama, 3. Mebbis Uygulama Sınav Listesi, 4. Mebbis Aday Durum Bilgileri, 11. Tabim veritabanı  */
    VeriKaynakId            Int            null, /* Veri transferi edildiği tablodaki Id . Sorun olduğunda bilginin nereden geldiğine referans olsun */
-
+   SourceId                Int            null, /* Veri tarnsferi sırasındaki tablodaki kişinin Id si */
 
    constraint		pk_SrcSinavETeorik primary key (Id)
  )
@@ -88,6 +88,7 @@ AS BEGIN
 	declare @yMebbisESinavTarihValue varchar(20) = ''
 	declare @SinavSonucTipiId smallInt = 0
 	declare @yLineTypeId smallInt = 0
+    declare @ySourceId int
 
     -- Veri Transferi başladımı
     declare @DbUpdatesIsActive Bit = 0
@@ -114,6 +115,7 @@ AS BEGIN
 		,@SinavSonucTipiId = isnull(ins.DurumuTipiId, 0)
 		,@yMebbisESinavTarihValue = isnull(ins.MebbisESinavTarihValue,'')
         ,@yLineTypeId = isnull(ins.LineTypeId,0) 
+        ,@ySourceId = isnull(ins.SourceId,0)
 		from inserted ins
     	where ins.Id = @curId
 
@@ -152,6 +154,15 @@ AS BEGIN
 				   
 		-- Sınavın hangi dönemde yapıldığı tespit ediliyor
         set @SinavDonemTipiId = [dbo].[fnc_getDonemTipiId] ('BUGUN', @ySinavTarihi)
+
+		if (@yTalepId = 0 and @yAdayId = 0 and @ySourceId > 0)
+		begin
+            -- Talepleri kontrol et
+            Select top 1 @yAdayId = AdayId, @yTalepId = Id, @yAdayDonemTipiId = DonemTipiId 
+            From dbo.SrcAdayTalep
+            Where VeriKaynakId = @ySourceId
+            order by DonemTipiId desc, Id desc
+		end
 
 		if (@yTalepId = 0 and @yAdayId = 0 and @yTcNo <> '')
 		begin
@@ -280,52 +291,6 @@ AS BEGIN
 
     CLOSE eSinavCursor
     DEALLOCATE eSinavCursor   
-
-
-END -- trigger
-
-/*CreateTriggerEnd*/
-
-
-
-/*CreateTrigger*/
-
-CREATE TRIGGER [dbo].[trg_SrcSinavETeorikDelete] on [dbo].[SrcSinavETeorik]
-AFTER DELETE
-AS BEGIN
-
-    declare eSinavCursorDlt cursor local for select Id from deleted
-	declare @curId bigint
-
-	OPEN eSinavCursorDlt
-    FETCH NEXT FROM eSinavCursorDlt INTO @curId
-
-    declare @FirmId int
-    declare @TalepId int
-
-    -- Veri Transferi başladımı
-    declare @DbUpdatesIsActive Bit = 0
-    set @DbUpdatesIsActive = [dbo].[fnc_getIsDbUpdate] (0)
-
-    WHILE @@FETCH_STATUS = 0
-    BEGIN
-	    Select 
-          @FirmId = dlt.FirmId
-        , @TalepId = dlt.TalepId
-	    From deleted dlt
-	    Where dlt.Id = @curId
-	  
-        -- Veri transferi yapılmıyorsa 
-        if (@DbUpdatesIsActive = 0)
-        begin
-            EXECUTE [dbo].[prc_SrcAdayTakip] @FirmId, @TalepId, 0, 'SrcAdayTakipESinav'
-        end
-
-        FETCH NEXT FROM eSinavCursorDlt INTO @curId
-    END
-
-    CLOSE eSinavCursorDlt
-    DEALLOCATE eSinavCursorDlt
 
 END
 

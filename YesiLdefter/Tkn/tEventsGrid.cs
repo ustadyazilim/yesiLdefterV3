@@ -377,16 +377,36 @@ namespace Tkn_Events
             //object view = null;
 
             if (tGridHint.view.GetType().ToString() == "DevExpress.XtraGrid.Views.Grid.GridView")
-                view = ((DevExpress.XtraGrid.Views.Grid.GridView)tGridHint.view);
+                view = (DevExpress.XtraGrid.Views.Grid.GridView)tGridHint.view;
 
             if (tGridHint.view.GetType().ToString() == "DevExpress.XtraGrid.Views.BandedGrid.AdvBandedGridView")
-                view = ((DevExpress.XtraGrid.Views.BandedGrid.AdvBandedGridView)tGridHint.view);
+                view = (DevExpress.XtraGrid.Views.BandedGrid.AdvBandedGridView)tGridHint.view;
 
-            //if (tGridHint.parentObject.GetType().ToString() == "DevExpress.XtraGrid.Views.Card.CardView")
-            //    view = tGridHint.parentObject;
+            if (tGridHint.view.GetType().ToString() == "DevExpress.XtraGrid.Views.Card.CardView")
+            {
+                view = null; // (DevExpress.XtraGrid.Views.Card.CardView.CardView)tGridHint.view;
+                // aşağıdaki getCardView() gitmesi gerekiyor
+            }
 
             return view;
         }
+
+        public CardView getCardView(vGridHint tGridHint)
+        {
+            if (tGridHint.view == null)
+            {
+                MessageBox.Show("getCardView() : tGridHint.view == null");
+                return null;
+            }
+
+            CardView view = null;
+
+            if (tGridHint.view.GetType().ToString() == "DevExpress.XtraGrid.Views.Card.CardView")
+                view = (DevExpress.XtraGrid.Views.Card.CardView)tGridHint.view;
+
+            return view;
+        }
+
 
         public void getGridHint_(Form tForm, string tableIPCode, ref vGridHint tGridHint)
         {
@@ -1123,7 +1143,8 @@ namespace Tkn_Events
                     tGridHint.tForm = ((DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.FindForm();
 
                     tGridHint.tableIPCode = ((DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.AccessibleName;
-                    tGridHint.view = ((DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.Views;
+                    tGridHint.view = sender;
+                    //DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.Views;
 
                     if (((DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.AccessibleDescription != null)
                         tGridHint.gridPropNavigator = ((DevExpress.XtraGrid.Views.Card.CardView)sender).GridControl.AccessibleDescription;
@@ -1292,7 +1313,7 @@ namespace Tkn_Events
 
             
             // edit mdounda değilse
-            if (view.IsEditing == false)
+            if (view?.IsEditing == false)
             {
                 tGridHint.tForm.Close();
                 return;
@@ -1314,7 +1335,7 @@ namespace Tkn_Events
             if (keyValue != "")
             {
                 // edit modunda ise
-                if (view.IsEditing)
+                if (view?.IsEditing == true)
                 {
                     view.HideEditor();
 
@@ -1328,11 +1349,11 @@ namespace Tkn_Events
 
                 // yeni açılmış satırı sil
                 //
-                view.DeleteRow(view.FocusedRowHandle);
+                view?.DeleteRow(view.FocusedRowHandle);
 
                 // hiç satır kalmadıysa
                 //
-                if (view.RowCount == 0)
+                if (view?.RowCount == 0)
                 {
                     v.con_PositionChange = true;
                     evb.newData(tGridHint.tForm, tGridHint.tableIPCode);
@@ -1487,10 +1508,10 @@ namespace Tkn_Events
             bool onay = false;
             GridView view = getGridView(tGridHint);
 
-            tGridHint.currentColumn = view.FocusedColumn;
-
             if (view != null)
             {
+                tGridHint.currentColumn = view.FocusedColumn;
+
                 int ind = 0;
 
                 if (tGridHint.currentColumn == null)
@@ -1503,6 +1524,11 @@ namespace Tkn_Events
                 {
                     onay = true;
                 }
+            }
+
+            if (view == null)
+            {
+                // CardView için hazırla
             }
             return onay;
         }
@@ -2187,7 +2213,7 @@ namespace Tkn_Events
                     onay = commonGridClick(sender, e, tGridHint);
 
 
-                if (onay == false)
+                if (onay == false && view != null)
                 {
                     if (view.IsEditorFocused == false)
                     {
