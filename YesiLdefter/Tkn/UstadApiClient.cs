@@ -231,6 +231,65 @@ namespace Tkn_UstadAPI
         }
 
         /// <summary>
+        /// Select firm - validates user access to firm and issues new token with firm claim
+        /// </summary>
+        public async Task<LoginResponse> SelectFirmAsync(string firmGUID)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(firmGUID))
+                {
+                    throw new Exception("FirmGUID is required.");
+                }
+
+                var request = new SelectFirmRequest
+                {
+                    FirmGUID = firmGUID.Trim()
+                };
+
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("/auth/select-firm", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    var statusCode = (int)response.StatusCode;
+                    var httpStatusMessage = response.StatusCode.ToString();
+                    var ex = new Exception($"Select firm failed (HTTP {statusCode} {httpStatusMessage}): {errorContent}");
+                    ex.Data["StatusCode"] = statusCode;
+                    ex.Data["StatusMessage"] = httpStatusMessage;
+                    ex.Data["ErrorContent"] = errorContent;
+                    throw ex;
+                }
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var selectFirmResponse = JsonConvert.DeserializeObject<LoginResponse>(responseContent);
+                
+                // Update token for subsequent requests
+                if (!string.IsNullOrEmpty(selectFirmResponse?.Token))
+                {
+                    _httpClient.DefaultRequestHeaders.Authorization = 
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", selectFirmResponse.Token);
+                }
+
+                return selectFirmResponse;
+            }
+            catch (System.Net.Http.HttpRequestException ex)
+            {
+                throw new Exception($"API connection error to {_apiBaseUrl}: {ex.Message}", ex);
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("API request timeout. Please check if the API is running.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Select firm error: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
         /// Set authorization token for authenticated requests
         /// </summary>
         public void SetAuthToken(string token)
@@ -401,6 +460,11 @@ namespace Tkn_UstadAPI
         public class ResetPasswordRequestRequest
         {
             public string UserName { get; set; }
+        }
+
+        public class SelectFirmRequest
+        {
+            public string FirmGUID { get; set; } = string.Empty;
         }
 
         public class FirmInfo

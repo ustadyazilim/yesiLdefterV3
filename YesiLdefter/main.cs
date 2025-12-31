@@ -152,14 +152,14 @@ namespace YesiLdefter
                 v.timer_Kullaniciya_Mesaj_Var_ = timer_Kullaniciya_Mesaj_Var;
             }
 
-            // Mouse'un ekranına göre konumlandır
+                        // Mouse'un ekranına göre konumlandır
             var mouseScreen = Screen.FromPoint(Cursor.Position);
             this.StartPosition = FormStartPosition.Manual;
             this.Location = new Point(
                 mouseScreen.WorkingArea.Left + (mouseScreen.WorkingArea.Width - this.Width) / 2,
                 mouseScreen.WorkingArea.Top + (mouseScreen.WorkingArea.Height - this.Height) / 2
             );
-
+            
 
             #endregion mainForm
 

@@ -115,9 +115,9 @@ namespace Tkn_Starter
             t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
             if (v.active_DB.localDbUses == false)
             {
-                //InitLoginUser();
+                InitLoginUser(); // WebView2-based login with LoginTemplate.html
                 InitPreparingConnection();// mecburen burada connection hazırlanıyor
-                InitLoginUserLegacy();
+                //InitLoginUserLegacy(); // Legacy form - not used when WebView2 is available
             }
             else
             {

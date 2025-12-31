@@ -229,8 +229,8 @@ namespace YesiLdefter
                     "API URL: " + apiBaseUrl, "API Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            //checkedInputApi();
-            checkedInput();
+            checkedInputApi();
+            //checkedInput();
         }
 
         void cmb_EMail_EditValueChanged(object sender, EventArgs e)
@@ -248,8 +248,8 @@ namespace YesiLdefter
                         "API Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
-                //checkedInputApi();
-                checkedInput();
+                checkedInputApi();
+                //checkedInput();
             }
         }
 
@@ -773,6 +773,33 @@ namespace YesiLdefter
         {
             try
             {
+                // NOTE(@Janberk): Step 1 - Select firm via API to get new token with firm claim
+                t.WaitFormOpen(this, "Firma seçiliyor...");
+                Application.DoEvents();
+                
+                var selectFirmResponse = await ExecuteWithRetryAsync(
+                    () => apiClient.SelectFirmAsync(firm.FirmGUID),
+                    maxRetries: 2,
+                    operationName: "Firma seçimi"
+                );
+
+                if (selectFirmResponse == null || string.IsNullOrEmpty(selectFirmResponse.Token))
+                {
+                    MessageBox.Show("Firma seçimi başarısız oldu.", "Hata",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    v.SP_UserLOGIN = false;
+                    return;
+                }
+
+                // NOTE(@Janberk): Update stored JWT token with firm claim
+                v.tUser.JwtToken = selectFirmResponse.Token;
+                if (selectFirmResponse.FirmId > 0)
+                {
+                    // Store firm ID in MainFirmId (user's current working firm)
+                    v.tUser.MainFirmId = selectFirmResponse.FirmId;
+                }
+
+                // NOTE(@Janberk): Step 2 - Fetch firm details for UI population
                 t.WaitFormOpen(this, "Firma bilgileri alınıyor...");
                 Application.DoEvents();
                 
