@@ -13,6 +13,7 @@ namespace YesiLdefter
     {
         public void preparingMainForm(Form tForm)
         {
+            System.Diagnostics.Debug.WriteLine($"[tMainForm.preparingMainForm] Starting. tForm.Name={tForm?.Name}, tForm.IsMdiContainer={tForm?.IsMdiContainer}");
             tEvents ev = new tEvents();
             tEventsMenu evm = new tEventsMenu();
 
@@ -93,6 +94,10 @@ namespace YesiLdefter
             // 
             // xtraTabbedMdiManager1
             // 
+            // CRITICAL: Main form MUST be an MDI container for child forms to work properly
+            System.Diagnostics.Debug.WriteLine($"[tMainForm.preparingMainForm] Before setting IsMdiContainer: tForm.IsMdiContainer={tForm.IsMdiContainer}");
+            tForm.IsMdiContainer = true;
+            System.Diagnostics.Debug.WriteLine($"[tMainForm.preparingMainForm] After setting IsMdiContainer: tForm.IsMdiContainer={tForm.IsMdiContainer}");
             xtraTabbedMdiManager1.MdiParent = tForm;
             //xtraTabbedMdiManager1.HeaderLocation = DevExpress.XtraTab.TabHeaderLocation.Right;
             //.RightToLeftLayout = DevExpress.Utils.DefaultBoolean.True;
@@ -633,6 +638,7 @@ namespace YesiLdefter
             //((System.ComponentModel.ISupportInitialize)(manager)).EndInit();
             //tForm.ResumeLayout(false);
 
+            System.Diagnostics.Debug.WriteLine($"[tMainForm.preparingMainForm] Completed. tForm.IsMdiContainer={tForm.IsMdiContainer}");
 
         }
     }

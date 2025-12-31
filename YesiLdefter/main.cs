@@ -145,12 +145,14 @@ namespace YesiLdefter
 
             // ana ekranının hazırlanması
             // yani menuler burada hazırlanıyor
+            System.Diagnostics.Debug.WriteLine($"[main.constructor] Before preparingMainForm: this.IsMdiContainer={this.IsMdiContainer}, this.Name={this.Name}");
             using (tMainForm f = new tMainForm())
             {
                 f.preparingMainForm(this);
                 //f.preparingDockPanel(this, "SEK/CEV/prcCihazLogGetIcmal.Icmal_L01");
                 v.timer_Kullaniciya_Mesaj_Var_ = timer_Kullaniciya_Mesaj_Var;
             }
+            System.Diagnostics.Debug.WriteLine($"[main.constructor] After preparingMainForm: this.IsMdiContainer={this.IsMdiContainer}, this.Name={this.Name}, Application.OpenForms.Count={Application.OpenForms.Count}");
 
             // Mouse'un ekranına göre konumlandır
             var mouseScreen = Screen.FromPoint(Cursor.Position);
@@ -159,7 +161,7 @@ namespace YesiLdefter
                 mouseScreen.WorkingArea.Left + (mouseScreen.WorkingArea.Width - this.Width) / 2,
                 mouseScreen.WorkingArea.Top + (mouseScreen.WorkingArea.Height - this.Height) / 2
             );
-
+            
 
             #endregion mainForm
 
@@ -190,13 +192,16 @@ namespace YesiLdefter
 
             #region UserLOGIN
 
+            System.Diagnostics.Debug.WriteLine($"[main.constructor] After InitStart: v.SP_UserLOGIN={v.SP_UserLOGIN}, this.IsMdiContainer={this.IsMdiContainer}, Application.OpenForms.Count={Application.OpenForms.Count}");
             if (v.SP_UserLOGIN)
             {
                 // application set skins
                 t.getUserLookAndFeelSkins();
 
                 // login işlemleri
+                System.Diagnostics.Debug.WriteLine($"[main.constructor] Calling Login()...");
                 Login();
+                System.Diagnostics.Debug.WriteLine($"[main.constructor] After Login(): this.IsMdiContainer={this.IsMdiContainer}, Application.OpenForms.Count={Application.OpenForms.Count}");
 
                 if (v.active_DB.localDbUses == false)
                     t.DBUpdatesDataTransferOff();
@@ -236,7 +241,8 @@ namespace YesiLdefter
 
             #region -- açılışın sonu
 
-            v.SP_OpenApplication = false;
+            // Close splash screen and mark application as fully initialized
+            v.SP_OpenApplication = true; // Now set to true after initialization completes
             v.IsWaitOpen = false;
             t.WaitFormClose();
 
@@ -282,8 +288,11 @@ namespace YesiLdefter
 
             v.con_Search_NullText = "Arama listesi için  " + v.Key_SearchEngine + "  basın ...";
 
+            // NOTE: SP_OpenApplication should remain false during initialization
+            // so that WaitFormOpen can show status messages via SplashScreenManager
+            // It will be set to true after initialization completes (see line 239)
             t.WaitFormOpen(v.mainForm, "yesiLdefter hazırlanıyor ...");
-            v.SP_OpenApplication = true;
+            // v.SP_OpenApplication = true; // Moved to after initialization completes
 
         }
 
@@ -295,8 +304,27 @@ namespace YesiLdefter
             {
                 setMenuItems();
                 
-                t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-                t.Db_Open(v.active_DB.managerMSSQLConn);
+                // Ensure ManagerDB connection is open (it should already be open from tStarter.InitStart())
+                if (v.active_DB.managerMSSQLConn != null)
+                {
+                    // Check if connection is already open
+                    if (v.active_DB.managerMSSQLConn.State != System.Data.ConnectionState.Open)
+                    {
+                        t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
+                        t.Db_Open(v.active_DB.managerMSSQLConn);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[main.Login] ManagerDB connection already open, skipping Db_Open");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[main.Login] WARNING: managerMSSQLConn is null! Database connection was not established properly.");
+                    MessageBox.Show("Veritabanı bağlantısı kurulamadı. Lütfen uygulamayı yeniden başlatın.", 
+                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
 
                 if (v.active_DB.projectDBType == v.dBaseType.MSSQL)
                 {
@@ -353,6 +381,7 @@ namespace YesiLdefter
                 }
 
                 setMainFormCaption();
+                
             }
         }
 
@@ -482,6 +511,9 @@ namespace YesiLdefter
                     ((v.SP_Firm_SectorTypeId == (Int16)v.msSectorType.UstadSrc) ||
                     (v.SP_Firm_SectorTypeId == (Int16)v.msSectorType.TabimSrc)))
                     autoOpenForm("UST/MEB/SRC/YHSrcYasamDongusu", "");
+
+                // NOTE: Main menu opening for SRC/MTSK is now handled separately in OpenMainMenuForFirmType()
+                // This method (YolHaritasi) is for other startup tasks
 
                 ///// şimdilik geçici burada. Daha sonra günde bir defa çalışacak şekilde ayarlamak gerekiyor
                 ///// 

@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #295c00;
+      --primary-light: #8e9c78;
+      --primary-dark: #3a4a0e;
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --text: #111827;
+      --text-secondary: #374151;
+      --text-tertiary: #6b7280;
+      --muted: #374151;
+      --border: rgba(0,0,0,0.08);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 2px 8px 0 rgba(0, 0, 0, 0.04);
+      --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      --radius: 12px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+      --gradient: linear-gradient(180deg, #e6efe4 0%, #f6faf4 70%, #ffffff 100%);
+      --font: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      margin:0; padding:0;
+      height:100vh; width:100vw;
+      min-height: 740px;
+      min-width: 1200px;
+      font-family: var(--font);
+      background: var(--gradient);
+      color: var(--text);
+      display:flex; flex-direction:column;
+      overflow: auto;
+      position: relative;
+    }
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 40px 48px;
+      box-sizing: border-box;
+      display:flex;
+      flex-direction:column;
+      gap:32px;
+      overflow: visible;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 40px;
+      align-items: flex-start;
+      min-width: 0;
+      overflow: visible;
+    }
+    .left-column {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: visible;
+    }
+    .header {
+      display:flex; flex-direction:column; gap:16px;
+      padding-bottom: 8px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0;
+      font-family: var(--font);
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      margin: 0;
+      font-family: var(--font);
+    }
+    .grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      width:100%;
+      max-height: calc(100vh - 280px);
+      min-height: 200px;
+      overflow-y: auto;
+      overflow-x: visible;
+      padding: 6px;
+      box-sizing: border-box;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      padding: 12px;
+      box-sizing: border-box;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      cursor:pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      overflow: visible;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+      border-color: rgba(41, 92, 0, 0.12);
+    }
+    .card.selected {
+      border-color: var(--primary);
+      box-shadow: 0 8px 24px rgba(41,92,0,0.15);
+    }
+    .card.mtsk {
+      border-left: 3px solid #295c00;
+    }
+    .card.src {
+      border-left: 3px solid #6b7280;
+    }
+    .card-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--primary);
+      margin:0;
+      line-height: 1.3;
+      font-family: var(--font);
+      letter-spacing: -0.02em;
+    }
+    .row {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:6px;
+      margin: 4px 0;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .badge {
+      padding: 2px 6px;
+      border-radius: var(--radius-pill);
+      font-size: 9px;
+      font-weight: 700;
+      background: rgba(41,92,0,0.12);
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+    .badge-mtsk {
+      background: rgba(41,92,0,0.15); color: #295c00;
+      font-weight: 700;
+    }
+    .badge-ismak {
+      background: rgba(59,130,246,0.15); color: #3b82f6;
+      font-weight: 700;
+    }
+    .badge-src {
+      background: rgba(107,114,128,0.15); color: #4b5563;
+      font-weight: 700;
+    }
+    .muted {
+      color: var(--text-tertiary);
+      font-size: 11px;
+      margin:0;
+      line-height:1.4;
+      word-break: break-word;
+      font-family: var(--font);
+    }
+    .footer {
+      display:flex;
+      justify-content:flex-end;
+      gap:12px;
+      padding-top: 16px;
+      margin-top: 8px;
+    }
+    button {
+      border:none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-weight: 600;
+      cursor:pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      font-size: 0.9375rem;
+      font-family: var(--font);
+    }
+    .ghost {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      box-shadow: none;
+    }
+    .ghost:hover {
+      background: #f8fafc;
+      border-color: var(--primary);
+    }
+    .primary {
+      background: linear-gradient(135deg, #295c00 0%, #5a7323 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 8px 0 rgba(72, 92, 17, 0.15);
+    }
+    .primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px 0 rgba(72, 92, 17, 0.25);
+    }
+    .primary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px 0 rgba(72, 92, 17, 0.15);
+    }
+    .primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow:none;
+      transform: none;
+    }
+    /* QR Code Panel */
+    .qr-panel {
+      position: sticky;
+      top: 40px;
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-card);
+      text-align: center;
+      min-height: 420px;
+      max-height: calc(100vh - 80px);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+    }
+    .qr-panel-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--primary);
+      font-family: var(--font);
+    }
+    .qr-panel-description {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      margin-bottom: 24px;
+      font-family: var(--font);
+    }
+    .qr-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      padding: 24px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      min-height: 240px;
+      max-height: 300px;
+      box-sizing: border-box;
+      align-items: center;
+      overflow: visible;
+    }
+    .qr-container canvas {
+      max-width: 100%;
+      height: auto;
+    }
+    .qr-loading {
+      color: var(--text-tertiary);
+      font-size: 14px;
+    }
+    .qr-placeholder {
+      color: #999;
+      font-size: 14px;
+    }
+    .qr-firm-info {
+      font-size: 12px;
+      color: #999;
+      margin-top: 8px;
+    }
+    /* Scrollbar styling for better visibility */
+    .grid::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    .grid::-webkit-scrollbar-track,
+    body::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 5px;
+    }
+    .grid::-webkit-scrollbar-thumb,
+    body::-webkit-scrollbar-thumb {
+      background: rgba(41, 92, 0, 0.2);
+      border-radius: 5px;
+    }
+    .grid::-webkit-scrollbar-thumb:hover,
+    body::-webkit-scrollbar-thumb:hover {
+      background: rgba(41, 92, 0, 0.3);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script>
+    // Verify QR code library is loaded
+    function checkQRCodeLibrary() {
+      if (typeof QRCode === 'undefined') {
+        console.error('[QR] QRCode library failed to load from CDN');
+        console.error('[QR] window.QRCode:', window.QRCode);
+        console.error('[QR] typeof QRCode:', typeof QRCode);
+        return false;
+      } else {
+        console.log('[QR] QRCode library loaded successfully');
+        console.log('[QR] QRCode methods:', Object.keys(QRCode));
+        console.log('[QR] QRCode.toCanvas:', typeof QRCode.toCanvas);
+        return true;
+      }
+    }
+    
+    // Check immediately
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', checkQRCodeLibrary);
+    } else {
+      // DOM already loaded
+      setTimeout(checkQRCodeLibrary, 100);
+    }
+    
+    // Also check on window load
+    window.addEventListener('load', function() {
+      console.log('[QR] Window loaded, checking QRCode library again...');
+      checkQRCodeLibrary();
+    });
+  </script>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <h1 class="title">Firma Seçimi</h1>
+      <p class="subtitle">Hangi firma ile devam etmek istediğinizi seçin.</p>
+    </div>
+    <div class="main-grid">
+      <div class="left-column">
+        <div id="grid" class="grid"></div>
+        <div class="footer">
+          <button class="ghost" id="cancelBtn">Vazgeç</button>
+          <button class="primary" id="confirmBtn" disabled>Seç ve Devam Et</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Parse initial payload with error handling
+    let initialPayload;
+    try {
+      const payloadString = '{{initialPayload}}';
+      console.log('[FirmSelect] Raw payload string:', payloadString);
+      initialPayload = JSON.parse(payloadString);
+      console.log('[FirmSelect] Parsed initial payload:', initialPayload);
+    } catch (e) {
+      console.error('[FirmSelect] Failed to parse initial payload:', e);
+      initialPayload = { firms: [], lastFirmId: null, userGUID: null };
+    }
+    
+    let state = {
+      firms: initialPayload.firms || [],
+      lastFirmId: initialPayload.lastFirmId || null,
+      selectedFirmGUID: null,
+      userGUID: initialPayload.userGUID || null,
+      qrData: null,
+      loadingQR: false
+    };
+    
+    // API base URL - should be passed from C# or use relative path
+    let API_BASE_URL = '{{api-base-url}}';
+    
+    // Validate that token was replaced (not still the literal token string)
+    if (API_BASE_URL === '{{api-base-url}}' || !API_BASE_URL || API_BASE_URL.trim() === '') {
+      console.warn('[FirmSelect] API_BASE_URL token not replaced or empty, using fallback');
+      // Fallback to production server
+      API_BASE_URL = 'http://143.198.228.153:5000';
+    }
+    
+    // Remove trailing slash if present
+    API_BASE_URL = API_BASE_URL.replace(/\/$/, '');
+    
+    // Debug logging
+    console.log('[FirmSelect] ===== INITIALIZATION =====');
+    console.log('[FirmSelect] State:', {
+      firmCount: state.firms.length,
+      userGUID: state.userGUID,
+      userGUIDType: typeof state.userGUID,
+      userGUIDLength: state.userGUID ? state.userGUID.length : 0,
+      apiBaseUrl: API_BASE_URL,
+      apiBaseUrlType: typeof API_BASE_URL,
+      lastFirmId: state.lastFirmId,
+      firms: state.firms.map(f => ({ FirmId: f.FirmId, FirmGUID: f.FirmGUID, FirmLongName: f.FirmLongName }))
+    });
+    console.log('[FirmSelect] ===== END INITIALIZATION =====');
+
+    function post(msg) {
+      if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
+        window.chrome.webview.postMessage(JSON.stringify(msg));
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatMenuCode(menuCode) {
+      if (!menuCode || typeof menuCode !== 'string') return '-';
+      const trimmed = menuCode.trim();
+      if (!trimmed) return '-';
+      
+      // If it already looks formatted (contains /), return as is
+      if (trimmed.includes('/')) {
+        return trimmed;
+      }
+      
+      // Otherwise, return the code as is (it might be UST, MEB, MTS, MAIN, etc.)
+      return trimmed;
+    }
+
+    function censorSensitiveInfo(value) {
+      if (!value || typeof value !== 'string') return '-';
+      
+      const trimmed = value.trim();
+      if (!trimmed) return '-';
+      
+      // For database names, show first 2-3 chars and last 2-3 chars with * masking
+      if (trimmed.length <= 6) {
+        // Very short: show first char, mask rest
+        return trimmed.substring(0, 1) + '*'.repeat(Math.max(2, trimmed.length - 1));
+      }
+      
+      // Show first 2-3 chars and last 2-3 chars, mask middle with *
+      const showStart = Math.min(3, Math.floor(trimmed.length / 4));
+      const showEnd = Math.min(3, Math.floor(trimmed.length / 4));
+      const maskedLength = trimmed.length - showStart - showEnd;
+      const masked = '*'.repeat(Math.max(3, maskedLength));
+      
+      return trimmed.substring(0, showStart) + masked + trimmed.substring(trimmed.length - showEnd);
+    }
+
+    function render() {
+      const grid = document.getElementById('grid');
+      const confirmBtn = document.getElementById('confirmBtn');
+      grid.innerHTML = '';
+
+      if (!state.firms || state.firms.length === 0) {
+        grid.innerHTML = '<p class="muted">Firma bulunamadı.</p>';
+        confirmBtn.disabled = true;
+        return;
+      }
+
+      // Auto-select last firm if no selection and lastFirmId exists
+      if (!state.selectedFirmGUID && state.lastFirmId) {
+        const lastFirm = state.firms.find(f => f.FirmId === state.lastFirmId);
+        if (lastFirm && lastFirm.FirmGUID) {
+          state.selectedFirmGUID = lastFirm.FirmGUID;
+        }
+      }
+
+      const effectiveSelected = state.selectedFirmGUID;
+
+      state.firms.forEach(f => {
+        const firmGuid = f.FirmGUID || '';
+        const isSelected = firmGuid && firmGuid === effectiveSelected;
+        const isMtsk = f.SectorTypeId === 201;
+        const isIsmak = f.SectorTypeId === 202;
+        const isSrc = f.SectorTypeId === 203;
+        
+        // Format MenuCode display (UST/MEB/MTS/MAIN)
+        const menuCodeDisplay = formatMenuCode(f.MenuCode);
+        
+        // Determine sector badge
+        let sectorBadge = '';
+        let sectorBadgeClass = '';
+        if (isMtsk) {
+          sectorBadge = 'MTSK';
+          sectorBadgeClass = 'badge-mtsk';
+        } else if (isIsmak) {
+          sectorBadge = 'ISMAK';
+          sectorBadgeClass = 'badge-ismak';
+        } else if (isSrc) {
+          sectorBadge = 'SRC';
+          sectorBadgeClass = 'badge-src';
+        } else {
+          sectorBadge = 'Sektör Bilinmiyor';
+          sectorBadgeClass = '';
+        }
+        
+        const card = document.createElement('div');
+        card.className = 'card' + (isSelected ? ' selected' : '') + (isMtsk ? ' mtsk' : isSrc ? ' src' : '');
+        card.onclick = () => selectFirm(firmGuid);
+        card.innerHTML = `
+          <h3 class='card-title'>${escapeHtml(f.FirmLongName || f.FirmShortName || 'Firma')}</h3>
+          <div class='row'>
+            <span class='badge ${sectorBadgeClass}'>${sectorBadge}</span>
+            <span class='badge'>${f.IsActive ? 'AKTİF' : 'PASİF'}</span>
+          </div>
+          <p class='muted'>DB: ${censorSensitiveInfo(f.DatabaseName)}</p>
+        `;
+        grid.appendChild(card);
+      });
+
+      confirmBtn.disabled = !effectiveSelected;
+      
+      // Generate QR code if a firm is selected
+      if (effectiveSelected && state.userGUID) {
+        console.log('[FirmSelect] render() - Calling generateQRCode for auto-selected firm:', effectiveSelected);
+        generateQRCode(effectiveSelected);
+      } else {
+        console.log('[FirmSelect] render() - Skipping QR generation:', {
+          effectiveSelected: effectiveSelected,
+          hasUserGUID: !!state.userGUID,
+          userGUID: state.userGUID
+        });
+      }
+    }
+
+    async function generateQRCode(firmGUID) {
+      console.log('[QR] ===== generateQRCode START =====');
+      console.log('[QR] Parameters:', { 
+        firmGUID: firmGUID, 
+        userGUID: state.userGUID, 
+        apiBaseUrl: API_BASE_URL,
+        hasFirms: state.firms && state.firms.length > 0,
+        firmCount: state.firms ? state.firms.length : 0
+      });
+      
+      if (!firmGUID) {
+        console.warn('[QR] No firmGUID provided');
+        updateQRDisplay(null, false);
+        return;
+      }
+      
+      if (!state.userGUID) {
+        console.warn('[QR] No userGUID in state. State:', JSON.stringify(state, null, 2));
+        const qrContainer = document.getElementById('qrContainer');
+        if (qrContainer) {
+          qrContainer.innerHTML = '<p class="qr-placeholder" style="color: #ea4335;">Kullanıcı bilgisi bulunamadı (userGUID eksik)</p>';
+        }
+        return;
+      }
+
+      state.loadingQR = true;
+      updateQRDisplay(null, true);
+
+      try {
+        // Call API to get QR data - same endpoint as Next.js
+        // Format: /UstadQR/generate/{firmGUID}/{userGUID}
+        const apiUrl = `${API_BASE_URL}/UstadQR/generate/${encodeURIComponent(firmGUID)}/${encodeURIComponent(state.userGUID)}`;
+        
+        console.log('[QR] Constructed API URL:', apiUrl);
+        console.log('[QR] API_BASE_URL:', API_BASE_URL);
+        console.log('[QR] firmGUID (raw):', firmGUID);
+        console.log('[QR] userGUID (raw):', state.userGUID);
+        console.log('[QR] Encoded firmGUID:', encodeURIComponent(firmGUID));
+        console.log('[QR] Encoded userGUID:', encodeURIComponent(state.userGUID));
+        
+        const fetchStartTime = Date.now();
+        console.log('[QR] Starting fetch request...');
+        
+        console.log('[QR] Making fetch request with options:', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          mode: 'cors'
+        });
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          mode: 'cors',
+          cache: 'no-store'
+        });
+
+        const fetchDuration = Date.now() - fetchStartTime;
+        console.log('[QR] Fetch completed in', fetchDuration, 'ms');
+        console.log('[QR] Response status:', response.status, response.statusText);
+        console.log('[QR] Response headers:', Object.fromEntries(response.headers.entries()));
+
+        if (response.ok) {
+          const responseText = await response.text();
+          console.log('[QR] Raw response text:', responseText);
+          
+          let qrData;
+          try {
+            qrData = JSON.parse(responseText);
+            console.log('[QR] Parsed QR data:', qrData);
+          } catch (parseError) {
+            console.error('[QR] Failed to parse JSON response:', parseError);
+            throw new Error('Invalid JSON response from API');
+          }
+          
+          state.qrData = qrData;
+          
+          // Get firmId from selected firm
+          const selectedFirm = state.firms.find(f => f.FirmGUID === firmGUID);
+          const firmId = selectedFirm ? selectedFirm.FirmId : 0;
+          console.log('[QR] Selected firm:', selectedFirm);
+          console.log('[QR] FirmId:', firmId);
+          
+          // Create QR code value - same format as Next.js
+          const qrCodeValue = JSON.stringify({
+            firmGUID: qrData.firmGUID,
+            userGUID: qrData.userGUID,
+            tcNoTelefonNo: qrData.tcNoTelefonNo,
+            userId: qrData.userId,
+            isActive: qrData.isActive,
+            firmId: firmId,
+            SectorTypeId: 201 // Default sector type
+          });
+          
+          console.log('[QR] QR code value (JSON string):', qrCodeValue);
+          
+          // Generate QR code using qrcode.js library
+          // Wait for QRCode library to be available (with timeout)
+          const waitForQRCode = (maxWait = 5000) => {
+            return new Promise((resolve, reject) => {
+              if (typeof QRCode !== 'undefined' && typeof QRCode.toCanvas === 'function') {
+                resolve(true);
+                return;
+              }
+              
+              const startTime = Date.now();
+              const checkInterval = setInterval(() => {
+                if (typeof QRCode !== 'undefined' && typeof QRCode.toCanvas === 'function') {
+                  clearInterval(checkInterval);
+                  resolve(true);
+                } else if (Date.now() - startTime > maxWait) {
+                  clearInterval(checkInterval);
+                  reject(new Error('QRCode library failed to load within timeout'));
+                }
+              }, 100);
+            });
+          };
+          
+          waitForQRCode()
+            .then(() => {
+              console.log('[QR] QRCode library is available');
+              const qrContainer = document.getElementById('qrContainer');
+              if (!qrContainer) {
+                console.error('[QR] qrContainer element not found');
+                return;
+              }
+              
+              console.log('[QR] Clearing qrContainer and generating QR code...');
+              qrContainer.innerHTML = '';
+              
+              QRCode.toCanvas(qrContainer, qrCodeValue, {
+                width: 220,
+                margin: 2,
+                color: {
+                  dark: '#295c00',
+                  light: '#ffffff'
+                },
+                errorCorrectionLevel: 'M'
+              }, function (error) {
+                if (error) {
+                  console.error('[QR] QR code generation error:', error);
+                  console.error('[QR] Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                  });
+                  qrContainer.innerHTML = '<p class="qr-placeholder" style="color: #ea4335;">QR kodu oluşturulamadı: ' + error.message + '</p>';
+                } else {
+                  console.log('[QR] QR code generated successfully!');
+                  // Show firm info
+                  const firmInfo = document.getElementById('qrFirmInfo');
+                  if (firmInfo && qrData.firmGUID) {
+                    firmInfo.textContent = `Firma: ${qrData.firmGUID.substring(0, 8)}...`;
+                    firmInfo.style.display = 'block';
+                  }
+                }
+              });
+            })
+            .catch((error) => {
+              console.error('[QR] QRCode library not loaded:', error);
+              console.error('[QR] typeof QRCode:', typeof QRCode);
+              console.error('[QR] window.QRCode:', window.QRCode);
+              const qrContainer = document.getElementById('qrContainer');
+              if (qrContainer) {
+                qrContainer.innerHTML = '<p class="qr-placeholder" style="color: #ea4335;">QR kodu kütüphanesi yüklenemedi (QRCode undefined veya zaman aşımı)</p>';
+              }
+            });
+        } else {
+          const errorText = await response.text().catch(() => 'Unknown error');
+          console.error('[QR] API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText: errorText,
+            url: apiUrl,
+            headers: Object.fromEntries(response.headers.entries())
+          });
+          const qrContainer = document.getElementById('qrContainer');
+          if (qrContainer) {
+            let errorMessage = `API hatası: ${response.status} ${response.statusText}`;
+            if (errorText && errorText !== 'Unknown error') {
+              try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage += ' - ' + (errorJson.error || errorJson.message || errorText.substring(0, 100));
+              } catch {
+                errorMessage += ' - ' + errorText.substring(0, 100);
+              }
+            }
+            qrContainer.innerHTML = '<p class="qr-placeholder" style="color: #ea4335;">' + escapeHtml(errorMessage) + '</p>';
+          }
+        }
+      } catch (error) {
+        console.error('[QR] QR generation exception:', error);
+        console.error('[QR] Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          cause: error.cause,
+          apiUrl: apiUrl,
+          firmGUID: firmGUID,
+          userGUID: state.userGUID,
+          apiBaseUrl: API_BASE_URL
+        });
+        
+        // Check if it's a network error - if so, try to generate a test QR code
+        const isNetworkError = error.message && (
+          error.message.includes('Failed to fetch') || 
+          error.message.includes('NetworkError') || 
+          error.message.includes('CORS') ||
+          error.message.includes('network')
+        );
+        
+        if (isNetworkError) {
+          console.warn('[QR] Network error detected. Attempting to generate test QR code to verify library...');
+          console.error('[QR] Network/CORS error detected. API URL:', apiUrl);
+          
+          // Generate a test QR code with sample data to verify the library works
+          try {
+            const testQRData = {
+              firmGUID: firmGUID || 'test-firm-guid',
+              userGUID: state.userGUID || 'test-user-guid',
+              tcNoTelefonNo: '5551234567',
+              userId: 1,
+              isActive: true,
+              firmId: state.firms.find(f => f.FirmGUID === firmGUID)?.FirmId || 0,
+              SectorTypeId: 201
+            };
+            
+            const testQRCodeValue = JSON.stringify(testQRData);
+            console.log('[QR] Generating test QR code with data:', testQRData);
+            
+            const waitForQRCode = (maxWait = 5000) => {
+              return new Promise((resolve, reject) => {
+                if (typeof QRCode !== 'undefined' && typeof QRCode.toCanvas === 'function') {
+                  resolve(true);
+                  return;
+                }
+                
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                  if (typeof QRCode !== 'undefined' && typeof QRCode.toCanvas === 'function') {
+                    clearInterval(checkInterval);
+                    resolve(true);
+                  } else if (Date.now() - startTime > maxWait) {
+                    clearInterval(checkInterval);
+                    reject(new Error('QRCode library failed to load within timeout'));
+                  }
+                }, 100);
+              });
+            };
+            
+            waitForQRCode()
+              .then(() => {
+                const qrContainer = document.getElementById('qrContainer');
+                if (!qrContainer) {
+                  throw new Error('qrContainer not found');
+                }
+                
+                qrContainer.innerHTML = '';
+                
+                QRCode.toCanvas(qrContainer, testQRCodeValue, {
+                  width: 220,
+                  margin: 2,
+                  color: {
+                    dark: '#295c00',
+                    light: '#ffffff'
+                  },
+                  errorCorrectionLevel: 'M'
+                }, function (qrError) {
+                  if (qrError) {
+                    console.error('[QR] Test QR code generation also failed:', qrError);
+                    qrContainer.innerHTML = '<p class="qr-placeholder" style="color: #ea4335;">QR kütüphanesi hatası: ' + escapeHtml(qrError.message) + '</p>';
+                  } else {
+                    console.log('[QR] Test QR code generated successfully! Library is working.');
+                    const firmInfo = document.getElementById('qrFirmInfo');
+                    if (firmInfo) {
+                      firmInfo.textContent = 'TEST MODU - API bağlantısı yok (Firma: ' + (firmGUID ? firmGUID.substring(0, 8) + '...' : 'test') + ')';
+                      firmInfo.style.display = 'block';
+                      firmInfo.style.color = '#ff9800';
+                    }
+                    // Add a warning message
+                    const warning = document.createElement('p');
+                    warning.className = 'qr-placeholder';
+                    warning.style.color = '#ff9800';
+                    warning.style.fontSize = '12px';
+                    warning.style.marginTop = '8px';
+                    warning.textContent = '⚠ API sunucusuna bağlanılamadı - Test QR kodu gösteriliyor';
+                    qrContainer.parentElement?.appendChild(warning);
+                  }
+                });
+              })
+              .catch((qrError) => {
+                console.error('[QR] Failed to generate test QR code:', qrError);
+                const qrContainer = document.getElementById('qrContainer');
+                if (qrContainer) {
+                  qrContainer.innerHTML = '<p class="qr-placeholder" style="color: #ea4335;">QR kütüphanesi yüklenemedi: ' + escapeHtml(qrError.message) + '</p>';
+                }
+              });
+            
+            // Don't show error message since we're trying test mode
+            return;
+          } catch (testError) {
+            console.error('[QR] Test QR generation failed:', testError);
+            // Fall through to show error message
+          }
+        }
+        
+        // Show error message if not handled by test mode
+        const qrContainer = document.getElementById('qrContainer');
+        if (qrContainer) {
+          let errorMessage = 'Hata: ' + (error.message || 'Bilinmeyen hata');
+          if (!isNetworkError) {
+            errorMessage = 'API hatası: ' + errorMessage;
+          }
+          qrContainer.innerHTML = '<p class="qr-placeholder" style="color: #ea4335;">' + escapeHtml(errorMessage) + '</p>';
+        }
+      } finally {
+        state.loadingQR = false;
+        console.log('[QR] ===== generateQRCode END =====');
+      }
+    }
+
+    function updateQRDisplay(qrData, loading) {
+      const qrContainer = document.getElementById('qrContainer');
+      if (loading) {
+        qrContainer.innerHTML = '<p class="qr-loading">QR kodu oluşturuluyor...</p>';
+      } else if (!qrData) {
+        qrContainer.innerHTML = '<p class="qr-placeholder">QR kodu için lütfen bir firma seçiniz</p>';
+        const firmInfo = document.getElementById('qrFirmInfo');
+        if (firmInfo) firmInfo.style.display = 'none';
+      }
+    }
+
+    function selectFirm(firmGuid) {
+      console.log('[FirmSelect] selectFirm called with:', firmGuid);
+      if (!firmGuid) {
+        console.warn('[FirmSelect] selectFirm called with empty firmGuid');
+        return;
+      }
+      state.selectedFirmGUID = firmGuid;
+      console.log('[FirmSelect] Updated selectedFirmGUID:', state.selectedFirmGUID);
+      render();
+      console.log('[FirmSelect] Calling generateQRCode from selectFirm');
+      generateQRCode(firmGuid);
+      if (firmGuid) {
+        post({ action: 'firm-select', firmGUID: firmGuid });
+      }
+    }
+
+    document.getElementById('confirmBtn')?.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[FirmSelect] confirmBtn clicked, selectedFirmGUID:', state.selectedFirmGUID);
+      if (!state.selectedFirmGUID) {
+        console.warn('[FirmSelect] No firm selected');
+        return;
+      }
+      console.log('[FirmSelect] Posting firm-confirm with GUID:', state.selectedFirmGUID);
+      post({ action: 'firm-confirm', firmGUID: state.selectedFirmGUID });
+    });
+    document.getElementById('cancelBtn')?.addEventListener('click', () => {
+      post({ action: 'firm-cancel' });
+    });
+
+    // Contract entry points for host
+    window.__ustadShowFirmSelection = function(payload) {
+      try {
+        console.log('[FirmSelect] ===== __ustadShowFirmSelection CALLED =====');
+        console.log('[FirmSelect] Payload received:', payload);
+        console.log('[FirmSelect] Payload type:', typeof payload);
+        console.log('[FirmSelect] Payload keys:', payload ? Object.keys(payload) : 'null');
+        
+        state.firms = payload?.firms || [];
+        state.lastFirmId = payload?.lastFirmId || null;
+        state.userGUID = payload?.userGUID || state.userGUID || null;
+        state.selectedFirmGUID = null;
+        
+        console.log('[FirmSelect] State updated:', {
+          firmCount: state.firms.length,
+          userGUID: state.userGUID,
+          userGUIDType: typeof state.userGUID,
+          lastFirmId: state.lastFirmId,
+          apiBaseUrl: API_BASE_URL,
+          firms: state.firms.map(f => ({ FirmId: f.FirmId, FirmGUID: f.FirmGUID }))
+        });
+        
+        render();
+        
+        // If a firm is auto-selected, generate QR code
+        if (state.lastFirmId) {
+          const lastFirm = state.firms.find(f => f.FirmId === state.lastFirmId);
+          console.log('[FirmSelect] Auto-selecting last firm:', lastFirm);
+          if (lastFirm && lastFirm.FirmGUID) {
+            setTimeout(() => {
+              console.log('[FirmSelect] Calling selectFirm for auto-selected firm:', lastFirm.FirmGUID);
+              selectFirm(lastFirm.FirmGUID);
+            }, 100);
+          } else {
+            console.warn('[FirmSelect] Last firm not found or missing FirmGUID');
+          }
+        } else {
+          console.log('[FirmSelect] No lastFirmId, skipping auto-selection');
+        }
+        console.log('[FirmSelect] ===== __ustadShowFirmSelection END =====');
+      } catch (e) {
+        console.error('[FirmSelect] Error in __ustadShowFirmSelection:', e);
+        console.error('[FirmSelect] Error stack:', e.stack);
+      }
+    };
+    window.__ustadHighlightFirm = function(firmGuid) {
+      if (!firmGuid) return;
+      state.selectedFirmGUID = firmGuid;
+      render();
+      generateQRCode(firmGuid);
+    };
+    window.__ustadShowLogin = function() {
+      // no-op here; dialog only handles firm selection
+    };
+
+    // initial render
+    render();
+  </script>
+</body>
+</html>

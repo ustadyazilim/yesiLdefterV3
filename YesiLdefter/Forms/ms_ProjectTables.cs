@@ -2025,7 +2025,15 @@ namespace YesiLdefter
 
                 //v.newFirm_DB.projectMSSQLConn.Close();
 
-                onay = t.Db_Open(v.newFirm_DB.MSSQLConn);
+                if (v.newFirm_DB.MSSQLConn != null)
+                {
+                    onay = t.Db_Open(v.newFirm_DB.MSSQLConn);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[ms_ProjectTables] WARNING: newFirm_DB.MSSQLConn is null");
+                    onay = false;
+                }
 
                 //v.IsWaitOpen = false;
                 //t.WaitFormClose();
@@ -2070,7 +2078,15 @@ namespace YesiLdefter
                 t.WaitFormOpen(v.mainForm, "Kaynak database bağlantısı test ediliyor...");
                 v.SP_OpenApplication = true;
 
-                onay = t.Db_Open(v.source_DB.MSSQLConn);
+                if (v.source_DB.MSSQLConn != null)
+                {
+                    onay = t.Db_Open(v.source_DB.MSSQLConn);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[ms_ProjectTables] WARNING: source_DB.MSSQLConn is null");
+                    onay = false;
+                }
 
                 v.IsWaitOpen = false;
                 t.WaitFormClose();

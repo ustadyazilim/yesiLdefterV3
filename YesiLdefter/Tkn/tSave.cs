@@ -1752,8 +1752,16 @@ namespace Tkn_Save
 
                 if (vt.DBaseType == v.dBaseType.MSSQL)
                 {
-                    t.Db_Open(SqlConn);
-                    SqlKomut = new SqlCommand(SQL, SqlConn);
+                    if (SqlConn != null)
+                    {
+                        t.Db_Open(SqlConn);
+                        SqlKomut = new SqlCommand(SQL, SqlConn);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[tSave] WARNING: SqlConn is null, cannot execute SQL");
+                        return false; // Exit early if connection is null
+                    }
                 }
 
                 preparingSetImages(SqlKomut);

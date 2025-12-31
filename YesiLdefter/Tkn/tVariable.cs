@@ -296,7 +296,7 @@ namespace Tkn_Variable
 
         public static Boolean SP_Debug = false;
         public static Boolean SP_UserIN = false;
-        public static Boolean SP_UserLOGIN = true;
+        public static Boolean SP_UserLOGIN = false;
         public static Boolean SP_CheckedNewApplication = false;
         public static Boolean SP_ApplicationExit = false;
 

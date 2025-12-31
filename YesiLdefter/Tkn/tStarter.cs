@@ -115,9 +115,9 @@ namespace Tkn_Starter
             t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
             if (v.active_DB.localDbUses == false)
             {
-                //InitLoginUser();
-                InitPreparingConnection();// mecburen burada connection hazırlanıyor
-                InitLoginUserLegacy();
+                InitLoginUser(); // WebView2-based login with LoginTemplate.html
+                //InitPreparingConnection();// mecburen burada connection hazırlanıyor
+                //InitLoginUserLegacy(); // Legacy form - not used when WebView2 is available
             }
             else
             {
@@ -160,19 +160,15 @@ namespace Tkn_Starter
                 return;
             }
 
-            t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri hazırlanıyor...");
-            InitPreparingConnection();
-
-            t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-            Db_Open(v.active_DB.managerMSSQLConn);
-
             // 2. SECURE AUTHENTICATION FLOW: After successful authentication, get database connection info from API
             // NOTE(@Janberk): Database connections are established ONLY after user authentication.
-            /*
+            System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] SP_UserLOGIN={v.SP_UserLOGIN}, localDbUses={v.active_DB.localDbUses}, managerMSSQLConn={(v.active_DB.managerMSSQLConn != null ? "exists" : "null")}");
             if (v.SP_UserLOGIN == true && v.active_DB.localDbUses == false)
             {
                 t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri API'den alınıyor...");
+                System.Diagnostics.Debug.WriteLine("[tStarter.InitStart] Calling InitPreparingConnectionFromApi()...");
                 bool dbConnectionsEstablished = InitPreparingConnectionFromApi();
+                System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] InitPreparingConnectionFromApi() returned: {dbConnectionsEstablished}");
                 if (!dbConnectionsEstablished)
                 {
                     MessageBox.Show("Database bağlantı bilgileri alınamadı. Lütfen sistem yöneticinize başvurun.",
@@ -182,8 +178,11 @@ namespace Tkn_Starter
                 }
                 if (v.active_DB.managerMSSQLConn != null)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] managerMSSQLConn exists, State={v.active_DB.managerMSSQLConn.State}, ConnectionString length={v.active_DB.managerMSSQLConn.ConnectionString?.Length ?? 0}");
                     t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-                    if (!Db_Open(v.active_DB.managerMSSQLConn))
+                    bool dbOpened = Db_Open(v.active_DB.managerMSSQLConn);
+                    System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] Db_Open(managerMSSQLConn) returned: {dbOpened}, State={v.active_DB.managerMSSQLConn?.State}");
+                    if (!dbOpened)
                     {
                         MessageBox.Show("ManagerDB bağlantısı açılamadı. Lütfen bağlantı bilgilerini kontrol edin.",
                             "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -207,13 +206,21 @@ namespace Tkn_Starter
                 t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
                 if (!Db_Open(v.active_DB.managerMSSQLConn))
                 {
-                    MessageBox.Show("ManagerDB bağlantısı açılamadı (local). Lütfen bağlantı bilgilerini kontrol edin.",
+                    MessageBox.Show("ManagerDB bağlantısı açılamadı. Lütfen bağlantı bilgilerini kontrol edin.",
                         "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     v.SP_ApplicationExit = true;
                     return;
                 }
             }
-            */
+            else
+            {
+                // User did not login - should not reach here, but handle gracefully
+                MessageBox.Show("Kullanıcı girişi yapılmadı. Lütfen tekrar deneyin.",
+                    "Giriş Hatası", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                v.SP_ApplicationExit = true;
+                return;
+            }
+
             /// Mesaj formu nedense kayboluyor
             /// onun açılması için burada bunlar false yapılıyor
             v.IsWaitOpen = false;
@@ -341,6 +348,19 @@ namespace Tkn_Starter
                         System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: Connection objects were not created after parsing connection strings.");
                         return false;
                     }
+                    
+                    // Initialize publishManager_DB connection (uses same connection as manager)
+                    // NOTE(@Janberk): publishManager_DB is a copy of manager connection for publishing purposes
+                    v.publishManager_DB.dBaseNo = v.dBaseNo.publishManager;
+                    v.publishManager_DB.userName = v.active_DB.managerUserName;
+                    v.publishManager_DB.serverName = v.active_DB.managerServerName;
+                    v.publishManager_DB.databaseName = v.active_DB.managerDBName;
+                    v.publishManager_DB.connectionText = v.active_DB.managerConnectionText;
+                    v.publishManager_DB.MSSQLConn = new SqlConnection(v.publishManager_DB.connectionText);
+                    v.publishManager_DB.MSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                    
+                    System.Diagnostics.Debug.WriteLine($"[tStarter.InitPreparingConnectionFromApi] Connections established: managerMSSQLConn={(v.active_DB.managerMSSQLConn != null ? "exists" : "null")}, ustadCrmMSSQLConn={(v.active_DB.ustadCrmMSSQLConn != null ? "exists" : "null")}, publishManager_MSSQLConn={(v.publishManager_DB.MSSQLConn != null ? "exists" : "null")}");
+                    
                     return true;
                 }
             }
@@ -528,7 +548,14 @@ namespace Tkn_Starter
             // DİKKAT : BU METODU KULLANMA MASTER-DETAIL de DETAIL kırılıyor
             // v.SP_Conn_Text_Manager_MSSQL = " Server=94.73.145.8; Database=MSV3DFTRBLT; Uid=user4601;Pwd=CanBerk98";
             tToolBox t = new tToolBox();
-            t.Db_Open(v.active_DB.managerMSSQLConn);
+            if (v.active_DB.managerMSSQLConn != null)
+            {
+                t.Db_Open(v.active_DB.managerMSSQLConn);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[InitPreparingConnection] WARNING: managerMSSQLConn is null, cannot open connection");
+            }
 
         }
 
@@ -675,22 +702,33 @@ namespace Tkn_Starter
         /// <summary>
         /// Opens standalone login form (no database required)
         /// </summary>
+        /// <summary>
+        /// Opens standalone login form (no database required)
+        /// Uses WebView2-based login with LoginTemplate.html
+        /// </summary>
         void InitLoginUser()
         {
+            System.Diagnostics.Debug.WriteLine($"[InitLoginUser] Starting login. v.mainForm={(v.mainForm != null ? v.mainForm.Name : "null")}, v.mainForm.IsMdiContainer={v.mainForm?.IsMdiContainer}, v.mainForm.IsDisposed={v.mainForm?.IsDisposed}");
+            YesiLdefter.ms_User_Standalone loginForm = null;
             try
             {
-                YesiLdefter.ms_User_Standalone loginForm = new YesiLdefter.ms_User_Standalone();
+                loginForm = new YesiLdefter.ms_User_Standalone();
+                System.Diagnostics.Debug.WriteLine($"[InitLoginUser] Created loginForm: {loginForm.Name}, calling ShowDialog with parent: {(v.mainForm != null ? v.mainForm.Name : "null")}");
                 loginForm.ShowDialog(v.mainForm);
+                System.Diagnostics.Debug.WriteLine($"[InitLoginUser] Login dialog closed. DialogResult={loginForm.DialogResult}, SP_UserLOGIN={v.SP_UserLOGIN}");
                 loginForm.Dispose();
             }
             catch (Exception ex)
             {
+                try
+                {
+                    loginForm?.Dispose();
+                    v.SP_ApplicationExit = true;
+                }
+                catch { }
                 MessageBox.Show(
-                    $"Giriş formu açılırken hata oluştu:\n{ex.Message}\n\nLütfen sistem yöneticinize başvurun.",
-                    "Giriş Hatası",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-                v.SP_ApplicationExit = true;
+                    $"Giriş formu açılırken hata oluştu:\n{ex.Message}\n\nDetaylar için debug çıktısını kontrol edin.\n\nLütfen sistem yöneticinize başvurun.",
+                    "Giriş Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         /// <summary>

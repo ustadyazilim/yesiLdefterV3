@@ -1752,8 +1752,19 @@ namespace Tkn_ToolBox
             Boolean onay = false;
 
             SqlConnection msSqlConn = vt.msSqlConnection;
+            
+            // Guard: connection object must exist
+            if (msSqlConn == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sql_Execute] WARNING: msSqlConnection is null for DBaseNo={vt.DBaseNo}, TableName={vt.TableName}, functionName={vt.functionName}");
+                return false;
+            }
                         
-            Db_Open(msSqlConn);
+            if (!Db_Open(msSqlConn))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sql_Execute] WARNING: Db_Open failed for DBaseNo={vt.DBaseNo}, TableName={vt.TableName}, functionName={vt.functionName}");
+                return false;
+            }
 
             SqlDataAdapter msSqlAdapter = null;
 
@@ -4315,7 +4326,9 @@ namespace Tkn_ToolBox
                 if (tNewForm != null)
                 {
                     /// ?? nedir 
-                    tNewForm.Opacity = 50;
+                    // NOTE: Opacity=50 makes forms semi-transparent, which can make them appear "broken"
+                    // Only set opacity for non-main forms or specific use cases
+                    // tNewForm.Opacity = 50; // Commented out - was making forms appear broken
                     //tNewForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
 
                     /// refresh özelliğini taşı
@@ -4424,6 +4437,9 @@ namespace Tkn_ToolBox
 
         public void OpenFormPreparing(string FormName, string FormCode, v.formType formType)
         {
+            System.Diagnostics.Debug.WriteLine($"[OpenFormPreparing] FormName={FormName}, FormCode={FormCode}, formType={formType}");
+            System.Diagnostics.Debug.WriteLine($"[OpenFormPreparing] v.mainForm={(v.mainForm != null ? v.mainForm.Name : "null")}, IsMdiContainer={v.mainForm?.IsMdiContainer}, Application.OpenForms.Count={Application.OpenForms.Count}");
+            
             //string FormName = "ms_User";
             //string FormCode = "UST/PMS/PMS/SYS_USERLOGIN";
 
@@ -4550,26 +4566,47 @@ namespace Tkn_ToolBox
 
             if (IsNotNull(FORMNAME))
             {
+                System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Getting form: FORMNAME={FORMNAME}, FORMCODE={FORMCODE}, FORMTYPE={FORMTYPE}, FORMSTATE={FORMSTATE}");
                 tNewForm = fr.Get_Form(FORMNAME);
+                System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Get_Form returned: {(tNewForm != null ? tNewForm.Name : "null")}");
 
                 // MS_LAYOUT Preparing
                 // form code var ise boş formu kullanarak Layout dizayn et
                 if (FORMCODE != "")
                 {
+                    System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Creating layout for FORMCODE={FORMCODE}");
                     tLayout l = new tLayout();
                     l.Create_Layout(tNewForm, FORMCODE);
                 }
 
                 if (tNewForm != null)
                 {
-                    tNewForm.Opacity = 50;
+                    System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Form created: {tNewForm.Name}, IsMdiContainer={tNewForm.IsMdiContainer}");
+                    // NOTE: Opacity=50 makes forms semi-transparent, which can make them appear "broken"
+                    // Only set opacity for non-main forms or specific use cases
+                    // tNewForm.Opacity = 50; // Commented out - was making forms appear broken
                     //tNewForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
 
                     if (IsNotNull(FORMTYPE))
                     {
+                        System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] FORMTYPE={FORMTYPE}, Application.OpenForms.Count={Application.OpenForms.Count}");
+                        if (Application.OpenForms.Count > 0)
+                        {
+                            var parentForm = Application.OpenForms[0];
+                            System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Parent form: {parentForm.Name}, IsMdiContainer={parentForm.IsMdiContainer}, IsDisposed={parentForm.IsDisposed}");
+                        }
+                        
                         if (FORMTYPE == "CHILD")
                         {
-                            ChildForm_View(tNewForm, Application.OpenForms[0], myFormLoadValue);
+                            System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Opening as CHILD form");
+                            if (Application.OpenForms.Count > 0)
+                            {
+                                ChildForm_View(tNewForm, Application.OpenForms[0], myFormLoadValue);
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] ERROR: No open forms available for CHILD form parent!");
+                            }
                         }
                         if (FORMTYPE == "NORMAL")
                         {
@@ -4612,6 +4649,9 @@ namespace Tkn_ToolBox
 
         public void ChildForm_View(Form tForm, Form tMdiForm, string myFormLoadValue)
         {
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Opening form: {tForm?.Name ?? "null"}, Parent: {tMdiForm?.Name ?? "null"}");
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] tMdiForm.IsMdiContainer={tMdiForm?.IsMdiContainer}, tMdiForm.IsDisposed={tMdiForm?.IsDisposed}");
+            
             // Formun üzerinde MyFormBox isimli memo yok ise eklesin
             tCreateObject co = new tCreateObject();
             co.Create_MyFormBox(tForm, myFormLoadValue);
@@ -4619,9 +4659,20 @@ namespace Tkn_ToolBox
             v.con_FormOpen = true;
             v.sp_OpenFormState = "CHILD";
             tForm.Tag = v.sp_OpenFormState;
-            if (tMdiForm.IsMdiContainer)
+            
+            if (tMdiForm != null && tMdiForm.IsMdiContainer)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Setting MdiParent: {tForm.Name}.MdiParent = {tMdiForm.Name}");
                 tForm.MdiParent = tMdiForm;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[ChildForm_View] WARNING: Cannot set MdiParent - tMdiForm is null or not IsMdiContainer. tMdiForm={(tMdiForm != null ? tMdiForm.Name : "null")}, IsMdiContainer={tMdiForm?.IsMdiContainer}");
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Calling tForm.Show() for {tForm.Name}, MdiParent={(tForm.MdiParent != null ? tForm.MdiParent.Name : "null")}");
             tForm.Show();
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Form {tForm.Name} shown. WindowState={tForm.WindowState}, Visible={tForm.Visible}, MdiParent={(tForm.MdiParent != null ? tForm.MdiParent.Name : "null")}");
             v.con_FormOpen = false;
 
             ScreenSize(tForm);
@@ -4634,18 +4685,30 @@ namespace Tkn_ToolBox
 
         public void ChildForm_View(Form tForm, Form tMdiForm, FormWindowState state, string myFormLoadValue)
         {
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Opening form with state: {tForm?.Name ?? "null"}, Parent: {tMdiForm?.Name ?? "null"}, State={state}");
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] tMdiForm.IsMdiContainer={tMdiForm?.IsMdiContainer}, tMdiForm.IsDisposed={tMdiForm?.IsDisposed}");
+            
             // Formun üzerinde MyFormBox isimli memo yok ise eklesin
             tCreateObject co = new tCreateObject();
             co.Create_MyFormBox(tForm, myFormLoadValue);
 
-            if (tMdiForm.IsMdiContainer)
+            if (tMdiForm != null && tMdiForm.IsMdiContainer)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Setting MdiParent: {tForm.Name}.MdiParent = {tMdiForm.Name}");
                 tForm.MdiParent = tMdiForm;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[ChildForm_View] WARNING: Cannot set MdiParent - tMdiForm is null or not IsMdiContainer. tMdiForm={(tMdiForm != null ? tMdiForm.Name : "null")}, IsMdiContainer={tMdiForm?.IsMdiContainer}");
+            }
 
             v.con_FormOpen = true;
             v.sp_OpenFormState = "CHILD";
             tForm.Tag = v.sp_OpenFormState;
             tForm.WindowState = state;
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Calling tForm.Show() for {tForm.Name}, MdiParent={(tForm.MdiParent != null ? tForm.MdiParent.Name : "null")}, WindowState={state}");
             tForm.Show();
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Form {tForm.Name} shown. WindowState={tForm.WindowState}, Visible={tForm.Visible}, MdiParent={(tForm.MdiParent != null ? tForm.MdiParent.Name : "null")}");
             v.con_FormOpen = false;
 
             ScreenSize(tForm);

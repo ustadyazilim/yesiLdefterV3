@@ -466,6 +466,7 @@
       <DependentUpon>ms_User_Standalone.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\Templates\LoginTemplate.html" />
+    <EmbeddedResource Include="Forms\Templates\FirmSelectTemplate.html" />
     <Compile Include="Forms\ms_UserFirmList.cs">
       <SubType>Form</SubType>
     </Compile>
