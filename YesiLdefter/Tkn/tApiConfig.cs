@@ -16,10 +16,10 @@ namespace Tkn_UstadAPI
         // Default values (fallback if not in registry or environment)
         // NOTE: Prefer environment variables; these are non-secret placeholders to avoid startup crashes.
         // Env vars:
-        //   USTAD_API_BASE_URL (e.g., http://localhost:5000)
+        //   USTAD_API_BASE_URL (e.g., http://143.198.228.153:8081)
         //   USTAD_JWT_KEY      (must match API Jwt:Key)
         private static readonly string DEFAULT_API_BASE_URL =
-            Environment.GetEnvironmentVariable("USTAD_API_BASE_URL") ?? "http://localhost:5000";
+            Environment.GetEnvironmentVariable("USTAD_API_BASE_URL") ?? "http://143.198.228.153:8081";
         private static readonly string DEFAULT_JWT_KEY =
             Environment.GetEnvironmentVariable("USTAD_JWT_KEY") ?? string.Empty;
         /// <summary>
@@ -116,6 +116,7 @@ namespace Tkn_UstadAPI
         /// <summary>
         /// Initialize default API configuration if not already set
         /// NOTE(@Janberk): Call this during application startup to ensure defaults are set
+        /// Also migrates old localhost URLs to production URL
         /// </summary>
         public static void InitializeDefaults()
         {
@@ -126,6 +127,17 @@ namespace Tkn_UstadAPI
                 if (apiUrl == null || string.IsNullOrWhiteSpace(apiUrl.ToString()))
                 {
                     SetApiBaseUrl(DEFAULT_API_BASE_URL);
+                }
+                else
+                {
+                    // Migrate old localhost URLs to production URL
+                    string currentUrl = apiUrl.ToString().Trim();
+                    if (currentUrl.Contains("localhost") || currentUrl.Contains("127.0.0.1") || 
+                        currentUrl == "http://localhost:5000" || currentUrl == "http://localhost:5001")
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[tApiConfig] Migrating API URL from {currentUrl} to {DEFAULT_API_BASE_URL}");
+                        SetApiBaseUrl(DEFAULT_API_BASE_URL);
+                    }
                 }
                 var jwtKey = reg.getRegistryValue(REGISTRY_KEY_JWT_KEY);
                 if (jwtKey == null || string.IsNullOrWhiteSpace(jwtKey.ToString()))

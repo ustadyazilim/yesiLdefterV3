@@ -372,3 +372,7 @@ appsettings.Production.json
 **/appsettings.Production.json
 .env.production
 .env.production.local
+
+# macOS
+.DS_Store
+**/.DS_Store

@@ -80,6 +80,40 @@ namespace Ustad.API.Classes
         }
 
         /// <summary>
+        /// Send demo request email to internal team and confirmation to requester
+        /// </summary>
+        public async Task<bool> SendDemoRequestEmailAsync(string requesterName, string requesterEmail, string note)
+        {
+            try
+            {
+                var subject = $"yesiLdefter - Yeni Demo Talebi: {System.Net.WebUtility.HtmlEncode(requesterName)}";
+                var internalBody = BuildDemoRequestInternalEmailBody(requesterName, requesterEmail, note);
+                
+                // Send to internal team (both addresses)
+                var internalEmails = new[] { "tekinucar70@hotmail.com", "ustadyazilim@gmail.com" };
+                var allSent = true;
+
+                foreach (var email in internalEmails)
+                {
+                    var sent = await SendEmailAsync(email, subject, internalBody);
+                    if (!sent) allSent = false;
+                }
+
+                // Send confirmation to requester
+                var confirmationSubject = "yesiLdefter - Demo Talebiniz Alındı";
+                var confirmationBody = BuildDemoRequestConfirmationEmailBody(requesterName);
+                var confirmationSent = await SendEmailAsync(requesterEmail, confirmationSubject, confirmationBody);
+
+                return allSent && confirmationSent;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Demo request email error: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Generic email sending method
         /// </summary>
         public async Task<bool> SendEmailAsync(string toEmail, string subject, string htmlBody, string? plainTextBody = null)
@@ -238,6 +272,196 @@ namespace Ustad.API.Classes
             <div class=""warning"">
                 <strong>⚠ Önemli:</strong> Bu bağlantı 30 dakika süreyle geçerlidir. Eğer şifre sıfırlama talebinde bulunmadıysanız, bu e-postayı görmezden gelebilirsiniz.
             </div>
+        </div>
+        
+        <div class=""footer"">
+            <p>Bu e-posta yesiLdefter sisteminden otomatik olarak gönderilmiştir.</p>
+            <p>© {DateTime.UtcNow.Year} Ustad. Tüm hakları saklıdır.</p>
+        </div>
+            </div>
+</body>
+</html>";
+        }
+
+        private string BuildDemoRequestInternalEmailBody(string requesterName, string requesterEmail, string note)
+        {
+            return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=""utf-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }}
+        .container {{
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 30px;
+        }}
+        .logo {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }}
+        .content {{
+            margin-bottom: 30px;
+        }}
+        .info-box {{
+            background-color: #f0f7ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }}
+        .info-label {{
+            font-weight: bold;
+            color: #1976D2;
+            margin-bottom: 5px;
+        }}
+        .info-value {{
+            color: #333;
+        }}
+        .note-box {{
+            background-color: #fff9e6;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }}
+        .footer {{
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eeeeee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <div class=""logo"">yesiLdefter</div>
+            <h2>Yeni Demo Talebi</h2>
+        </div>
+        
+        <div class=""content"">
+            <p>Yeni bir demo talebi alındı:</p>
+            
+            <div class=""info-box"">
+                <div class=""info-label"">İsim:</div>
+                <div class=""info-value"">{System.Net.WebUtility.HtmlEncode(requesterName)}</div>
+            </div>
+            
+            <div class=""info-box"">
+                <div class=""info-label"">E-posta:</div>
+                <div class=""info-value""><a href=""mailto:{System.Net.WebUtility.HtmlEncode(requesterEmail)}"">{System.Net.WebUtility.HtmlEncode(requesterEmail)}</a></div>
+            </div>
+            
+            {(string.IsNullOrWhiteSpace(note) ? "" : $@"
+            <div class=""note-box"">
+                <div class=""info-label"">Not:</div>
+                <div class=""info-value"">{System.Net.WebUtility.HtmlEncode(note)}</div>
+            </div>")}
+            
+            <p style=""margin-top: 30px;"">
+                <strong>İşlem:</strong> Lütfen bu demo talebini değerlendirin ve ilgili kişiye geri dönüş yapın.
+            </p>
+        </div>
+        
+        <div class=""footer"">
+            <p>Bu e-posta yesiLdefter sisteminden otomatik olarak gönderilmiştir.</p>
+            <p>© {DateTime.UtcNow.Year} Ustad. Tüm hakları saklıdır.</p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        private string BuildDemoRequestConfirmationEmailBody(string requesterName)
+        {
+            return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=""utf-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }}
+        .container {{
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 30px;
+        }}
+        .logo {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }}
+        .content {{
+            margin-bottom: 30px;
+        }}
+        .success-box {{
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }}
+        .footer {{
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eeeeee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <div class=""logo"">yesiLdefter</div>
+        </div>
+        
+        <div class=""content"">
+            <p>Merhaba <strong>{System.Net.WebUtility.HtmlEncode(requesterName)}</strong>,</p>
+            
+            <div class=""success-box"">
+                <strong>✓ Demo talebiniz başarıyla alındı!</strong>
+            </div>
+            
+            <p>Demo talebiniz ekibimize iletildi. En kısa sürede size geri dönüş yapacağız.</p>
+            
+            <p>yesiLdefter hakkında daha fazla bilgi için web sitemizi ziyaret edebilirsiniz.</p>
         </div>
         
         <div class=""footer"">

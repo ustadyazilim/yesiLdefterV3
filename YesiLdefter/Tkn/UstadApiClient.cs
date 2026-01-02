@@ -20,8 +20,8 @@ namespace Tkn_UstadAPI
         private readonly string _apiBaseUrl;
         private bool _disposed = false;
 
-        // Default aligns with Ustad.API dev settings (Kestrel http://localhost:5000)
-        public UstadApiClient(string apiBaseUrl = "http://localhost:5000")
+        // Default aligns with Ustad.API production settings (Kestrel http://143.198.228.153:8081)
+        public UstadApiClient(string apiBaseUrl = "http://143.198.228.153:8081")
         {
             _apiBaseUrl = apiBaseUrl.TrimEnd('/');
             _httpClient = new HttpClient

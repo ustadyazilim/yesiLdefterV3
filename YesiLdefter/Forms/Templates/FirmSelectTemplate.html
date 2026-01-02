@@ -378,8 +378,8 @@
     // Validate that token was replaced (not still the literal token string)
     if (API_BASE_URL === '{{api-base-url}}' || !API_BASE_URL || API_BASE_URL.trim() === '') {
       console.warn('[FirmSelect] API_BASE_URL token not replaced or empty, using fallback');
-      // Fallback to production server
-      API_BASE_URL = 'http://143.198.228.153:5000';
+      // Fallback to production server (.NET API)
+      API_BASE_URL = 'http://143.198.228.153:8081';
     }
     
     // Remove trailing slash if present
