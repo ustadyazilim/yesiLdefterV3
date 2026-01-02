@@ -174,6 +174,23 @@ namespace Ustad.API.Controllers
         {
             public string Message { get; set; } = string.Empty;
         }
+        /// <summary>
+        /// Demo request payload
+        /// </summary>
+        public class DemoRequestModel
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Email { get; set; } = string.Empty;
+            public string Note { get; set; } = string.Empty;
+        }
+        /// <summary>
+        /// Demo request response payload
+        /// </summary>
+        public class DemoRequestResponse
+        {
+            public string Message { get; set; } = string.Empty;
+            public bool Success { get; set; }
+        }
         #endregion
         #region Private Login Methods
         // SQL Query Constants
@@ -946,6 +963,65 @@ ELSE
                 await tr.RollbackAsync();
                 return StatusCode(500, "Şifre sıfırlama hatası: " + ex.Message);
             }
+        }
+        #endregion
+        #region Public Demo Request Method
+        /// <summary>
+        /// Demo request endpoint for new users
+        /// </summary>
+        /// <param name="request">Demo request including name, email, and optional note</param>
+        /// <returns>DemoRequestResponse with success message</returns>
+        /// <response code="200">Demo request received successfully</response>
+        /// <response code="400">Invalid request (missing name or email)</response>
+        [HttpPost("demo-request")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(DemoRequestResponse), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> DemoRequest([FromBody] DemoRequestModel request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new DemoRequestResponse { Message = "Geçersiz istek.", Success = false });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Email))
+            {
+                return BadRequest(new DemoRequestResponse { Message = "İsim ve e-posta zorunludur.", Success = false });
+            }
+
+            // Validate email format
+            try
+            {
+                var emailAddr = new System.Net.Mail.MailAddress(request.Email);
+            }
+            catch
+            {
+                return BadRequest(new DemoRequestResponse { Message = "Geçersiz e-posta formatı.", Success = false });
+            }
+
+            // Send email asynchronously (fire and forget)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailService.SendDemoRequestEmailAsync(
+                        request.Name,
+                        request.Email,
+                        request.Note ?? string.Empty
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Failed to send demo request email for {Email}", request.Email);
+                }
+            });
+
+            // Always return success (don't reveal if email sending failed)
+            return Ok(new DemoRequestResponse
+            {
+                Message = "Demo talebiniz alındı. En kısa sürede size geri dönüş yapacağız.",
+                Success = true
+            });
         }
         #endregion
         #region Public Refresh Token Method

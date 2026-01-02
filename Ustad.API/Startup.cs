@@ -21,6 +21,8 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 /* Ustad Namespace */
 using Ustad.API.Classes;
+using Ustad.API.Services;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Ustad.API
 {
@@ -97,6 +99,31 @@ namespace Ustad.API
                 });
             });
             services.AddSingleton<EmailService>();
+            
+            // NOTE(@Janberk): Register memory cache for e-src caching
+            services.AddMemoryCache();
+            
+            // NOTE(@Janberk): Register HTTP client factory for e-src API calls
+            services.AddHttpClient();
+            
+            // NOTE(@Janberk): Register e-src.net external data sync services
+            var cacheTTLMinutes = int.TryParse(
+                Environment.GetEnvironmentVariable("ESRC_EXTERNAL_DATA_CACHE_TTL_MINUTES") 
+                ?? Configuration["ESrcExternalData:CacheTTLMinutes"], 
+                out var cacheTTL) ? cacheTTL : 60;
+            
+            services.AddScoped<ESrcExternalDataCacheService>(sp =>
+            {
+                var memoryCache = sp.GetRequiredService<IMemoryCache>();
+                var logger = sp.GetRequiredService<ILogger<ESrcExternalDataCacheService>>();
+                return new ESrcExternalDataCacheService(memoryCache, logger, cacheTTLMinutes);
+            });
+            
+            services.AddScoped<StudentDataService>();
+            services.AddScoped<StudentBalanceService>();
+            services.AddScoped<ActivityTimelineService>();
+            services.AddScoped<ESrcExternalDataService>();
+            
             var jwtKeyRaw = Environment.GetEnvironmentVariable("JWT_KEY") ?? Configuration["Jwt:Key"];            
             if (string.IsNullOrWhiteSpace(jwtKeyRaw))
             {
