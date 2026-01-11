@@ -16,10 +16,10 @@ namespace Tkn_UstadAPI
         // Default values (fallback if not in registry or environment)
         // NOTE: Prefer environment variables; these are non-secret placeholders to avoid startup crashes.
         // Env vars:
-        //   USTAD_API_BASE_URL (e.g., http://143.198.228.153:8081)
+        //   USTAD_API_BASE_URL (e.g., http://143.198.228.153:5001)
         //   USTAD_JWT_KEY      (must match API Jwt:Key)
         private static readonly string DEFAULT_API_BASE_URL =
-            Environment.GetEnvironmentVariable("USTAD_API_BASE_URL") ?? "http://143.198.228.153:8081";
+            Environment.GetEnvironmentVariable("USTAD_API_BASE_URL") ?? "http://143.198.228.153:5001";
         private static readonly string DEFAULT_JWT_KEY =
             Environment.GetEnvironmentVariable("USTAD_JWT_KEY") ?? string.Empty;
         /// <summary>
@@ -130,10 +130,23 @@ namespace Tkn_UstadAPI
                 }
                 else
                 {
-                    // Migrate old localhost URLs to production URL
+                    // Migrate old URLs to production URL
                     string currentUrl = apiUrl.ToString().Trim();
+                    bool shouldMigrate = false;
+                    
+                    // Migrate localhost URLs
                     if (currentUrl.Contains("localhost") || currentUrl.Contains("127.0.0.1") || 
                         currentUrl == "http://localhost:5000" || currentUrl == "http://localhost:5001")
+                    {
+                        shouldMigrate = true;
+                    }
+                    // Migrate incorrect port numbers (8081, 5000) to correct port (5001)
+                    else if (currentUrl.Contains(":8081") || currentUrl.Contains(":5000"))
+                    {
+                        shouldMigrate = true;
+                    }
+                    
+                    if (shouldMigrate)
                     {
                         System.Diagnostics.Debug.WriteLine($"[tApiConfig] Migrating API URL from {currentUrl} to {DEFAULT_API_BASE_URL}");
                         SetApiBaseUrl(DEFAULT_API_BASE_URL);

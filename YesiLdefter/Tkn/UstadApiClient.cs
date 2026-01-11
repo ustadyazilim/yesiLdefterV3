@@ -20,8 +20,8 @@ namespace Tkn_UstadAPI
         private readonly string _apiBaseUrl;
         private bool _disposed = false;
 
-        // Default aligns with Ustad.API production settings (Kestrel http://143.198.228.153:8081)
-        public UstadApiClient(string apiBaseUrl = "http://143.198.228.153:8081")
+        // Default aligns with Ustad.API production settings (Kestrel http://143.198.228.153:5001)
+        public UstadApiClient(string apiBaseUrl = "http://143.198.228.153:5001")
         {
             _apiBaseUrl = apiBaseUrl.TrimEnd('/');
             _httpClient = new HttpClient
@@ -77,7 +77,24 @@ namespace Tkn_UstadAPI
             catch (System.Net.Http.HttpRequestException ex)
             {
                 // Network-level HTTP exception (connection issues)
-                throw new Exception($"API connection error to {_apiBaseUrl}: {ex.Message}", ex);
+                string detailedMessage = $"API connection error to {_apiBaseUrl}: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    detailedMessage += $" (Inner: {ex.InnerException.Message})";
+                }
+                // Check for common connection issues
+                if (ex.Message.Contains("No connection could be made") || 
+                    ex.Message.Contains("Connection refused") ||
+                    ex.Message.Contains("Unable to connect"))
+                {
+                    detailedMessage += $"\n\nPossible causes:\n" +
+                        $"1. API server is not running on {_apiBaseUrl}\n" +
+                        $"2. Port is blocked by firewall\n" +
+                        $"3. Network connectivity issue\n" +
+                        $"4. Incorrect API URL (check registry: HKEY_CURRENT_USER\\Software\\Üstad\\YesiLdefter\\ApiBaseUrl)\n" +
+                        $"5. Verify API is accessible at: {_apiBaseUrl}/swagger/index.html";
+                }
+                throw new Exception(detailedMessage, ex);
             }
             catch (TaskCanceledException)
             {
