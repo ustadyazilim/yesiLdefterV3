@@ -1134,7 +1134,8 @@
             this.tabPage_Resim.Controls.Add(this.pictureEdit1);
             this.tabPage_Resim.Controls.Add(this.pictureEdit2);
             this.tabPage_Resim.Name = "tabPage_Resim";
-            this.tabPage_Resim.Properties.ShowMode = DevExpress.XtraBars.Navigation.ItemShowMode.ImageAndText;
+            //this.tabPage_Resim.Properties.ShowMode = DevExpress.XtraBars.Navigation.ItemShowMode.ImageAndText;
+            this.tabPage_Resim.Properties.ShowMode = DevExpress.XtraBars.Navigation.ItemShowMode.Text;
             this.tabPage_Resim.Size = new System.Drawing.Size(1452, 368);
             // 
             // tabPage_Dosya
@@ -1142,7 +1143,8 @@
             this.tabPage_Dosya.Caption = "Dosyalar";
             this.tabPage_Dosya.Controls.Add(this.splitContainerControl2);
             this.tabPage_Dosya.Name = "tabPage_Dosya";
-            this.tabPage_Dosya.Properties.ShowMode = DevExpress.XtraBars.Navigation.ItemShowMode.ImageAndText;
+            //this.tabPage_Dosya.Properties.ShowMode = DevExpress.XtraBars.Navigation.ItemShowMode.ImageAndText;
+            this.tabPage_Dosya.Properties.ShowMode = DevExpress.XtraBars.Navigation.ItemShowMode.Text;
             this.tabPage_Dosya.Size = new System.Drawing.Size(1452, 368);
             // 
             // groupControlList
@@ -1150,7 +1152,7 @@
             this.groupControlList.Dock = System.Windows.Forms.DockStyle.Left;
             this.groupControlList.Width = 400;
             this.groupControlList.Text = "Liste";
-            this.groupControlList.ShowCaption = true;
+            this.groupControlList.ShowCaption = false;
             this.groupControlList.Visible = true;
 
             // 
@@ -1177,7 +1179,7 @@
             this.groupControlKisi.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupControlKisi.Width = 400;
             this.groupControlKisi.Text = "Kişi";
-            this.groupControlKisi.ShowCaption = true;
+            this.groupControlKisi.ShowCaption = false;
             this.groupControlKisi.Visible = false;
 
 

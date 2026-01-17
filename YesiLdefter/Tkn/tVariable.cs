@@ -1,5 +1,6 @@
 ﻿using DevExpress.LookAndFeel;
 using DevExpress.XtraEditors;
+using DevExpress.XtraGantt.Scheduling;
 using DevExpress.XtraGrid.Views.Base;
 using DevExpress.XtraGrid.Views.Grid;
 using DevExpress.XtraScheduler;
@@ -494,6 +495,8 @@ namespace Tkn_Variable
             UstadMtsk = 201,
             UstadIsmak = 202,
             UstadSrc = 203,
+            UstadSrc5 = 204,
+            UstadPiskoteknik = 205,
             TabimMtsk = 211,
             TabimIsmak = 212,
             TabimSrc = 213,
@@ -830,7 +833,7 @@ namespace Tkn_Variable
         public static Color ColorValidation = Color.LightGoldenrodYellow; 
         public static Color Validate_Ok = Color.GreenYellow;
         public static Color Validate_Not = Color.MistyRose;
-        public static Color AppearanceFocusedColor = Color.MediumSpringGreen;
+        public static Color AppearanceFocusedColor = Color.LawnGreen;
         public static Color ribbonColor = AppearanceFocusedColor;
 
         //Color.LightSeaGreen; //Color.GreenYellow;  //Color.PaleGreen;
@@ -2507,6 +2510,9 @@ namespace Tkn_Variable
         public string imagesMasterTableIPCode { get; set; }
         public string listTableIPCode { get; set; }
         public string formCode { get; set; }
+        public int formWidth { get; set; }  // Eğer with verilirse DockStyle.Left yapılacak
+        public int formHeight { get; set; } // Eğer height verilirse DockStyle.Top yapılacak
+
         public void Clear()
         {
             imagesSourceFormName = "";
@@ -2516,6 +2522,8 @@ namespace Tkn_Variable
             imagesMasterTableIPCode = "";
             listTableIPCode = "";
             formCode = "";
+            formWidth = 0;
+            formHeight = 0;
         }
     }
 
@@ -2918,7 +2926,9 @@ namespace Tkn_Variable
         public string Label { get; set; }
         public string Description { get; set; }
         public string SchedulerViewType { get; set; }
-
+        public string ShowWorkTimeOnly { get; set; } // true/false
+        public string WorkTimeStart { get; set; } // HH:mm 08:00 için 8 
+        public string WorkTimeEnd { get; set; }   // HH:mm 18:00 için 18   
     }
 
 

@@ -25,6 +25,8 @@ AS BEGIN
    if (@SectorTypeId = 201) Set @ModulCode = 'MTS'
    if (@SectorTypeId = 202) Set @ModulCode = 'ISM'
    if (@SectorTypeId = 203) Set @ModulCode = 'SRC'
+   if (@SectorTypeId = 204) Set @ModulCode = 'SR5'
+   if (@SectorTypeId = 205) Set @ModulCode = 'PSK'
    
    if (@ReportCode = 'null') 
        set @ReportCode = ''

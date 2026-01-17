@@ -1556,11 +1556,10 @@ namespace Tkn_Menu
                         backColor2 = Color.FromArgb(52, 152, 219); // Açık mavi
 
                     tItem.AppearanceItem.Normal.BackColor = backColor2;
-                    tItem.AppearanceItem.Normal.BackColor2 = Lighten(backColor2, 0.1f);
-                    tItem.AppearanceItem.Normal.GradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
-                    tItem.AppearanceItem.Normal.BorderColor = Darken(backColor2, 9f);
-                    //tItem.AppearanceItem.Normal.BorderColor
-
+                    tItem.AppearanceItem.Normal.BackColor2 = Lighten(backColor2, 0.7f); 
+                    tItem.AppearanceItem.Normal.GradientMode = System.Drawing.Drawing2D.LinearGradientMode.ForwardDiagonal; //LinearGradientMode.Vertical;
+                    tItem.AppearanceItem.Normal.BorderColor = Darken(backColor2, 0.3f);
+                    tItem.AppearanceItem.Normal.Options.UseBackColor = true;
 
                     tItem.AppearanceItem.Hovered.BackColor = Lighten(backColor2, 0.1f);
                     tItem.AppearanceItem.Hovered.BackColor2 = Lighten(backColor2, 0.4f);

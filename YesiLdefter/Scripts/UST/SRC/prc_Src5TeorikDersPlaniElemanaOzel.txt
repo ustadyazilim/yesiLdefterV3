@@ -1,11 +1,9 @@
 ﻿/*CreateProcedure*/
 
-CREATE PROCEDURE [dbo].[prc_SrcTeorikDersPlaniElemanaOzel] (
-
+CREATE PROCEDURE [dbo].[prc_Src5TeorikDersPlaniElemanaOzel] (
    @FirmId int 
   ,@DonemTipiId int
   ,@GrupTipiId int 
-  ,@SubeTipiId int
   ,@DerslikAdiTipiId int 
   ,@PersonelId varchar(30)
   ,@ElemanGrubu varchar(30))  
@@ -16,21 +14,23 @@ AS BEGIN
 -- DerslikAdiTipiId        : Derslik
 -- PersonelId              : Usta Öğretici
 
- /*
+ 
  --testlerin başı 
+ /* 
+ declare @FirmId int = 4204
  declare @DonemTipiId Int 
  declare @GrupTipiId Int 
- declare @SubeTipiId Int 
  declare @DerslikAdiTipiId Int 
  declare @PersonelId varchar(30)
  declare @ElemanGrubu varchar(30)
  
  set @ElemanGrubu = 'Dönem'
- set @DonemTipiId = 202512
+ set @ElemanGrubu = 'Usta Eğitici'--'Gruplar'
 
- set @ElemanGrubu = 'Gruplar'
+ set @DonemTipiId = 202601
+ set @PersonelId = '12345678901'
+ 
  set @GrupTipiId = 1
- set @SubeTipiId = 1
  -- set @ElemanGrubu = 'Derslikler'
  -- testlerin sonu
  */
@@ -46,7 +46,7 @@ AS BEGIN
   
  
  Select @EgitimBaslangicTarihi = isnull(min(GrupBaslamaTarihi), getdate())
- From  dbo.SrcDonemi
+ From  dbo.Src5Donemi
  Where FirmId = @FirmId
  and   DonemTipiId = @DonemTipiId
 
@@ -68,59 +68,53 @@ AS BEGIN
  , td.[IsActive]
  , td.[DonemTipiId]
  , td.[GrupTipiId]
- , td.[SubeTipiId]
- , td.[DersGrubu]
+
  , td.[DersTipiId]
  , td.[DersSiraNo]
  , td.[DerslikAdiTipiId]
  , td.[DersTarihi]
  , td.[DersSaatiTipiId]
- , td.[PersonelId]
- , td.[EgitimTipiId]
+ , td.[AsilPersonelId]
+ , td.[YedekPersonelId]
+
+ , td.[DersSuresiDakika]
  , td.[BaslamaSaati]
  , td.[BitisSaati]
+ , td.[KamuBaslangicSaati]
+ , td.[KamuBitisSaati]
+
  , td.[TDersIsUploaded]
  , td.[OzelGunlerId]
  , td.[DersHaftasiId]
 
+ -- Join Tables standart fields 
  , [personel].TamAdiSoyadi as Lkp_PersonelTamAdiSoyadi
  , [personel].TcVkNo as Lkp_PersonelTcNo
- , [personel].TamAdiSoyadi + '' . '' + FNo9.DerslikAdiTipi as Lkp_DerslikVePersonel
- , [personel].TamAdiSoyadi + '', '' + FNo9.DerslikAdiTipi + '', '' + FNo5.DonemTipi + '', '' + FNo6.GrupTipi + '', '' + FNo7.SubeTipi as Lkp_DerslikPersDonemGrupSube
-
- , FNo5.DonemTipi as Lkp_DonemTipi
- , FNo6.GrupTipi as Lkp_GrupTipi
- , FNo7.SubeTipi as Lkp_SubeTipi
-
- , FNo9.DerslikAdiTipi as Lkp_DerslikAdiTipi
- , FNo11.DersSaatiTipi as Lkp_DersSaatiTipi
- , FNo5.DonemTipi + '', '' + FNo6.GrupTipi + '', '' + FNo7.SubeTipi as Lkp_DonemGrupSube
-
+ , [personel].TamAdiSoyadi + CHAR(13) + CHAR(10) + FNo23.DerslikAdiTipi as Lkp_DerslikVePersonel
+ , [personel].TamAdiSoyadi + '', '' + FNo23.DerslikAdiTipi + '', '' + FNo11.DonemTipi + '', '' + FNo12.GrupTipi as Lkp_DerslikPersDonemGrup
+ , [dersler].DersAdi + ''  '' + convert(varchar(2),td.DersSiraNo) + ''.Drs'' + CHAR(13) + CHAR(10) + personel.TamAdiSoyadi + CHAR(13) + CHAR(10) + FNo23.DerslikAdiTipi as Lkp_DersTipi
  , ( case 
-     when isnull(OzelGunlerId,0) = 0 then FNo8.DersAdi 
-     when OzelGunlerId > 0 then ozelGunler.GunAdi 
-     end ) as Lkp_DersTipi  
-
- , ( case 
-     when DersGrubu = ''A'' then td.DersTipiId - td.DersTipiId + 1  
-     when DersGrubu = ''B'' then td.DersTipiId - td.DersTipiId + 2  
-     when DersGrubu = ''C'' then td.DersTipiId - td.DersTipiId + 3  
-     when DersGrubu = ''D'' then td.DersTipiId - td.DersTipiId + 4  
-     when isnull(OzelGunlerId,0) = 0 then td.DersTipiId 
-     when OzelGunlerId > 0 then ozelGunler.OzelGunTipiId + 7 
+     when td.DersTipiId >= 2010 then convert(int,dersler.MebbisKodu) - 85 
      end ) as Lkp_LabelId  
+ 
+ -- LookUp Fields
+ , FNo11.DonemTipi as Lkp_DonemTipi
+ , FNo12.GrupTipi as Lkp_GrupTipi
+ , FNo21.DersTipi as Lkp_DersTipi
+ , FNo23.DerslikAdiTipi as Lkp_DerslikAdiTipi
+ -- Özel field : Donem + Grup + Sube 
+ , FNo11.DonemTipi + '' , '' + FNo12.GrupTipi as Lkp_DonemGrup
+ 
+ from dbo.Src5TeorikDers as td with (nolock) 
 
- from dbo.SrcTeorikDers as td with (nolock) 
    -- Join Tables 
-   left outer join dbo.SrcPersoneli as [personel] with (nolock)   on ( td.PersonelId = [personel].TcNoCalismaIzniNo  ) 
-   left outer join dbo.OnmOzelGunler as [ozelGunler] with (nolock) on ( td.OzelGunlerId = [ozelGunler].Id  ) 
+   left outer join dbo.SrcPersoneli as [personel] with (nolock)   on ( td.AsilPersonelId = [personel].TcVkNo  ) 
+   left outer join Lkp.SrcDersler   as [dersler] with (nolock) on ( td.DersTipiId = [dersler].Id  ) 
    -- LookUp Tables
-   left outer join Lkp.SrcDonemTipi as FNo5 with (nolock) on ( td.DonemTipiId = FNo5.Id ) 
-   left outer join Lkp.SrcGrupTipi  as FNo6 with (nolock) on ( td.GrupTipiId = FNo6.Id ) 
-   left outer join Lkp.SrcSubeTipi  as FNo7 with (nolock) on ( td.SubeTipiId = FNo7.Id ) 
-   left outer join Lkp.SrcDersler   as FNo8 with (nolock) on ( td.DersTipiId = FNo8.Id ) 
-   left outer join Lkp.SrcTeorikDersDerslikAdiTipi as FNo9 with (nolock) on ( td.DerslikAdiTipiId = FNo9.Id ) 
-   left outer join Lkp.SrcTeorikDersDersSaatiTipi as FNo11 with (nolock) on ( td.DersSaatiTipiId = FNo11.Id ) 
+   left outer join Lkp.SrcDonemTipi as FNo11 with (nolock) on ( td.DonemTipiId = FNo11.Id ) 
+   left outer join Lkp.Src5GrupTipi as FNo12 with (nolock) on ( td.GrupTipiId = FNo12.Id ) 
+   left outer join Lkp.Src5TeorikDersDersTipi as FNo21 with (nolock) on ( td.DersTipiId = FNo21.Id ) 
+   left outer join Lkp.Src5TeorikDersDerslikAdiTipi as FNo23 with (nolock) on ( td.DerslikAdiTipiId = FNo23.Id ) 
 
  Where td.FirmId = ' + convert(varchar(10),@FirmId) + ' '
 
@@ -129,7 +123,7 @@ AS BEGIN
        and td.BaslamaSaati > DATEADD( mm, -1, ' + @EgitimBaslangicTarihi_ + ') 
        and td.BitisSaati   < DATEADD( mm,  3, ' + @EgitimBaslangicTarihi_ + ') 
       )
-   Order by td.BaslamaSaati, td.DersSaatiTipiId '
+   Order by td.BaslamaSaati '
 
  -- Dönem ve grupla bilgisi isteniyorsa DonemTipiId koşulu olsun
  --if (@ElemanGrubu = 'Dönem' or @ElemanGrubu = 'Gruplar') -- bunu açınca ilk okumada boş data geliyor ve dataset formun üzerine işlenmiyor
@@ -145,14 +139,12 @@ AS BEGIN
  --set @ElemanGrubu = 'Usta Eğitici'
 
  --set @GrupTipiId = 1
- --set @SubeTipiId = 1
  --set @DerslikAdiTipiId = 1
  --set @PersonelId = '205013645624899268'
  
- if ((@GrupTipiId > 0) and (@SubeTipiId > 0) and  (@ElemanGrubu = 'Gruplar'))
+ if ((@GrupTipiId > 0) and (@ElemanGrubu = 'Gruplar'))
    set @sqlWhere = @sqlWhere +
-     '  and td.GrupTipiId = ' + Convert(varchar(20), @GrupTipiId) 
-   + '  and td.SubeTipiId = ' + Convert(varchar(20), @SubeTipiId) + ' '
+     '  and td.GrupTipiId = ' + Convert(varchar(20), @GrupTipiId) + ' '
 
  if ((@DerslikAdiTipiId > 0) and (@ElemanGrubu = 'Derslikler'))
    set @sqlWhere = @sqlWhere +
@@ -160,7 +152,7 @@ AS BEGIN
 
  if ((@PersonelId <> '') and (@ElemanGrubu = 'Usta Eğitici')) 
    set @sqlWhere = @sqlWhere +
-   '  and td.PersonelId = ''' + @PersonelId + ''''
+   '  and td.AsilPersonelId = ''' + @PersonelId + ''''
 
  set @sql = @sql + @sqlWhere + @sqlOrderBy
 

@@ -1,0 +1,163 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+ create table dbo.Src5Donemi
+ (
+   Id                   Int IDENTITY(1,1) not null, 
+   ParentId             Int       not null, /* default 0 */
+   FirmId               Int       not null,
+   IsActive             Bit       not null, /* default : 1 = active, 0 = not active */  
+   -- 10
+   DonemTipiId          Int           null,
+   GrupTipiId           SmallInt      null,
+   SertifikaTipiId      SmallInt      null, /* detayı [Lkp].[SrcSertifikaTipi] tablosunda */
+   SertifikaSinifTipiId SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */
+   -- 20
+   GrupSiraNo           SmallInt      null, /* Kullanıcının kendisinin takip ettiği grup sıra no : kullanıcı manuel giriyor */
+   DonemAdi             nVarchar(100) null, /* YYYY-AY-GrupTipiId SinifAdi [GrupSiraNo] : Örnek : 2026-01-02 Y.Temel + Sınıf7 [123] */
+   DonemAciklamasi      nVarchar(250) null, /* Kullanıcının kendisinin girdiği açıklama */
+   -- 30
+   GrupBaslamaTarihi    Date          null,
+   GrupBitisTarihi      Date          null,
+   GrupAdaySayisi       SmallInt      null, /* grupda kaç kişi var */
+   DonemAdaySayisi      SmallInt      null, /* dönemde kaç kişi var */
+   TeorikDersSayisi     SmallInt      null,
+   UygulamaDersSayisi   SmallInt      null,
+   KurumOnayTipiId      SmallInt      null, /* 0. Onay bekliyor, 1-Onaylandı  tablo = ?   */		
+   VeriKaynakId         Int           null,
+   
+   constraint		pk_Src5Donemi primary key (Id)
+ )
+  
+ grant select, insert, update, delete on Src5Donemi to public
+
+commit transaction
+
+
+/*CreateTableEnd*/
+
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_Src5Donemi] on [dbo].[Src5Donemi]
+AFTER INSERT, UPDATE
+AS BEGIN
+
+    DECLARE cursorSrcDonemi cursor local for select Id from Inserted
+    DECLARE @curId bigint
+
+    OPEN cursorSrc5Donemi
+
+    FETCH NEXT FROM cursorSrc5Donemi INTO @curId
+
+    declare @FirmId Int = 0
+    declare @DonemTipiId int = 0
+    declare @GrupTipiId int = 0
+    declare @SertifikaTipiId smallint = 0
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+       Select @FirmId = ins.FirmId
+         , @DonemTipiId = DonemTipiId
+         , @GrupTipiId  = GrupTipiId
+         , @SertifikaTipiId = SertifikaTipiId
+
+       From inserted as ins
+       Where Id = @curId
+
+
+       FETCH NEXT FROM cursorSrc5Donemi INTO @curId
+    END -- While
+
+    CLOSE cursorSrc5Donemi
+    DEALLOCATE cursorSrc5Donemi   
+
+END -- create trigger
+
+/*CreateTriggerEnd*/
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_Src5DonemiDeleteIsLock] on [dbo].[Src5Donemi]
+INSTEAD of DELETE
+AS BEGIN
+
+    declare isLockCursorDlt cursor local for select Id from deleted
+    declare @curId bigint
+
+    OPEN isLockCursorDlt
+
+    FETCH NEXT FROM isLockCursorDlt INTO @curId
+	   
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        if ( Select COUNT(t.Id) as Adet from deleted as d
+             left join dbo.SrcAdayTalep as t on ( d.DonemTipiId = t.DonemTipiId and d.GrupTipiId = t.GrupTipiId and t.TalepTipiId = 2 ) 
+           ) > 0 
+        begin
+            PRINT 'Bu kayıt silinemez!'
+            RETURN
+        end
+	    IF EXISTS (SELECT 1 FROM deleted WHERE isnull(GrupTipiId,0) = 1 and Id = @curId)
+        BEGIN
+            PRINT 'Bu kayıt silinemez!'
+            RETURN
+        END
+
+        Delete from dbo.Src5Donemi  Where Id = @curId and isnull(GrupTipiId,0) <> 1
+
+      FETCH NEXT FROM isLockCursorDlt INTO @curId
+    END
+
+    CLOSE isLockCursorDlt
+    DEALLOCATE isLockCursorDlt
+
+END
+
+ /*CreateTriggerEnd*/
+
+
+/*CreateLkpTable*/
+
+begin transaction
+
+-- ------------------------------------------------------- 
+-- SertifikaSinifTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'Src5DonemiSertifikaSinifTipi')
+drop table [Lkp].[Src5DonemiSertifikaSinifTipi]
+
+create table Lkp.Src5DonemiSertifikaSinifTipi
+(
+   Id                   Int Unique Not Null,
+   SertifikaSinifTipi   nVarchar(50)   null
+   
+   constraint  pk_Src5DonemiSertifikaSinifTipi primary key (Id)
+)
+
+DELETE Lkp.Src5DonemiSertifikaSinifTipi
+INSERT INTO Lkp.Src5DonemiSertifikaSinifTipi (Id, SertifikaSinifTipi)
+ VALUES 
+  (  0,  N'Tanımsız'),
+  (  1,  N'Temel'),
+  (  2,  N'Tanker'),
+  (  3,  N'Sınıf1, Patlayıcı'),
+  (  4,  N'Sınıf7, Radyoaktif'),
+  (  5,  N'Temel + Tanker'),
+  (  6,  N'Temel + Sınıf1'),
+  (  7,  N'Temel + Sınıf7'),
+
+  ( 11,  N'Y.Temel'),
+  ( 12,  N'Y.Tanker'),
+  ( 13,  N'Y.Sınıf1, Patlayıcı'),
+  ( 14,  N'Y.Sınıf7, Radyoaktif'),
+  ( 15,  N'Y.Temel + Tanker'),
+  ( 16,  N'Y.Temel + Sınıf1'),
+  ( 17,  N'Y.Temel + Sınıf7')
+
+commit transaction
+
+/*CreateLkpTableEnd*/

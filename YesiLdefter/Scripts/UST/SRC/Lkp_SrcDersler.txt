@@ -24,6 +24,8 @@ begin transaction
    GrupSaati1234          Smallint       null,   -- src 1234, ody 121234, üdy 121234
 
    MebbisKodu             Varchar(10)    null,
+   PersonelId             Varchar(20)    null,
+   PersonelYedekId        Varchar(20)    null,
 
     constraint pk_SrcDersler primary key (Id)
  )
@@ -36,6 +38,12 @@ commit transaction
 
 /*CreateTableEnd*/
 
+/*
+
+alter table Lkp.SrcDersler add   PersonelId             Varchar(20)    null
+alter table Lkp.SrcDersler add   PersonelYedekId        Varchar(20)    null
+
+*/
 
 /*CreateLkpTable*/
 
@@ -77,24 +85,10 @@ declare @FirmId int = 0
 Delete from [Lkp].[SrcDersler]
 
 INSERT INTO [Lkp].[SrcDersler]
-           ([Id]
-           ,[FirmId]
-           ,[IsActive]
-           ,[TalepTipiId]
-           ,[Grubu]
-           ,[SiraNo]
-           
-           ,[DersSaati1]
-           ,[DersSaati2]
-           ,[DersSaati3]
-           ,[DersSaati4]
+           ( Id, FirmId, IsActive, TalepTipiId, Grubu, SiraNo
+           , DersSaati1, DersSaati2, DersSaati3, DersSaati4
+           , GrupSaati12, GrupSaati34, GrupSaati24, GrupSaati1234, DersAdi )
 
-           ,[GrupSaati12]
-           ,[GrupSaati34]
-           ,[GrupSaati24]
-           ,[GrupSaati1234]
-
-           ,[DersAdi])
      VALUES                            --  s1, s2, s3, s4,   s12, s34, s24, s1234
 -- A grubu
            (1010, @FirmId, 1, 1, 'A', 0,    1,  1,  1,  1,    1,   1,   1,   1,  'İş Sağlığı ve Güvenliği (İSG), Çevre Güvenliği, Kalite Gereklilikleri ve Müşteri Memnuniyeti')
@@ -198,8 +192,27 @@ INSERT INTO [Lkp].[SrcDersler]
          , (5320, @FirmId, 1, 5, 'D', 2,    0,  0,  4,  4,    0,  4,  0,  4,  'AETR,ADR ve Yükleme')
 
 
+-- SRC5 dersleri = 2000
+INSERT INTO [Lkp].[SrcDersler]
+           ( Id, FirmId, IsActive, TalepTipiId, Grubu, SiraNo, DersSaati1, MebbisKodu, DersAdi )
+VALUES
+           (2010, @FirmId, 1, 2, 'İ', 1, 18, '89', 'ADR Tehlikeli Madde Taşımacılığı')
+         , (2020, @FirmId, 1, 2, 'İ', 1,  1, '87', 'ADR Temel Uygulama Eğitimi')
+
+         , (2030, @FirmId, 1, 2, 'İ', 1, 12, '86', 'TANKER-Tehlikeli Madde Taşımacılığı')
+         , (2040, @FirmId, 1, 2, 'İ', 1,  1, '88', 'TANKER-Uygulama Eğitimi')
+
+         , (2050, @FirmId, 1, 2, 'İ', 1,  8, '90', 'SINIF1-Tehlikeli Madde Taşımacılığı')
+         , (2060, @FirmId, 1, 2, 'İ', 1,  8, '91', 'SINIF7-Tehlikeli Madde Taşımacılığı')
+
+         , (2110, @FirmId, 1, 2, 'Y', 1,  9, '92', 'YENİLEME-ADR Temel Eğitimi')
+         , (2120, @FirmId, 1, 2, 'Y', 1,  6, '93', 'YENİLEME-Tanker Eğitimi')
+         , (2130, @FirmId, 1, 2, 'Y', 1,  4, '94', 'YENİLEME-Sınıf 1 Eğitimi')
+         , (2140, @FirmId, 1, 2, 'Y', 1,  4, '95', 'YENİLEME-Sınıf 7 Eğitimi')
+
+
+
 
 /*CreateDataEnd*/
 
 
--- ([Id],[FirmId],[IsActive],[TipiId],[Grubu],[SiraNo]  ,[DersSaati1],[DersSaati2],[DersSaati3],[DersSaati4]  ,[GrupSaati12],[GrupSaati34],[GrupSaati24],[GrupSaati1234]

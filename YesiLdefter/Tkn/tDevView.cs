@@ -3021,7 +3021,7 @@ MS_FIELDS                                          T03_MSFIELDS                 
                                 if (bl_groupitem != null)
                                     ((DevExpress.XtraLayout.LayoutControlGroup)bl_groupitem).AddItem(es_item1);
                             }
-                            else tDLayout.Root.AddItem(es_item1);
+                            //else tDLayout.Root.AddItem(es_item1); // bunu açınca boşluk oluşuyor 
 
                             if ((es_item1 != null) && (bl_item1 != null))
                             {
@@ -3419,7 +3419,8 @@ MS_FIELDS                                          T03_MSFIELDS                 
             SchedulerButtonAdd(TableIPCode, "6", "Zaman Çizelgesi", tButtonPanel);
             //SchedulerButtonAdd(TableIPCode, "7", "Hafta", tButtonPanel);
             //SchedulerButtonAdd(TableIPCode, "8", "Çalışma Haftası", tButtonPanel);
-            //SchedulerWeekCounterAdd(TableIPCode, "9", "Hafta Sayısı", tButtonPanel);
+            SchedulerWeekCounterAdd(TableIPCode, "9", "Hafta Sayısı", tButtonPanel);
+            SchedulerMinutesAdd(TableIPCode, "10", "Saat Aralığı", tButtonPanel);
         }
         private void SchedulerButtonAdd(string TableIPCode, string groupno, string caption,
             DevExpress.XtraEditors.PanelControl tButtonPanel)
@@ -3479,7 +3480,7 @@ MS_FIELDS                                          T03_MSFIELDS                 
             tEdit1.Properties.AccessibleName = "spinEdit1_" + TableIPCode;
             tEdit1.EnterMoveNextControl = true;
             tEdit1.Dock = DockStyle.Fill;
-            tEdit1.EditValueChanged += new System.EventHandler(evg.checkSchedulerWeekCount);
+            tEdit1.EditValueChanged += new System.EventHandler(evg.schedulerWeekCount);
 
             tEdit1.Properties.SpinStyle = SpinStyles.Horizontal;
             tEdit1.Properties.IsFloatValue = false;
@@ -3516,6 +3517,50 @@ MS_FIELDS                                          T03_MSFIELDS                 
             panel1.BringToFront();
         }
 
+
+        //Minutes
+        private void SchedulerMinutesAdd(string TableIPCode, string groupno, string caption,
+                    DevExpress.XtraEditors.PanelControl tButtonPanel)
+        {
+            tToolBox t = new tToolBox();
+            tEvents ev = new tEvents();
+            tEventsGrid evg = new tEventsGrid();
+
+            System.Windows.Forms.TableLayoutPanel panel1 = new System.Windows.Forms.TableLayoutPanel();
+            DevExpress.XtraEditors.LabelControl labelControl1 = new DevExpress.XtraEditors.LabelControl();
+            DevExpress.XtraEditors.SpinEdit tEdit1 = new DevExpress.XtraEditors.SpinEdit();
+
+            panel1.Name = "panel_Minute";
+            panel1.Width = 150;
+            panel1.Dock = DockStyle.Left;
+
+            panel1.CellBorderStyle = TableLayoutPanelCellBorderStyle.None;
+            panel1.ColumnCount = 2;
+            panel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            panel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+
+            labelControl1.Text = "Saat aralığı";
+            labelControl1.Dock = DockStyle.Left;
+
+            tEdit1.Name = "spinEdit_Minute";
+            tEdit1.Properties.AccessibleName = "spinEdit_Minute" + TableIPCode;
+            tEdit1.EnterMoveNextControl = true;
+            tEdit1.Dock = DockStyle.Fill;
+            tEdit1.EditValueChanged += new System.EventHandler(evg.schedulerSetMinute);
+
+            tEdit1.Properties.SpinStyle = SpinStyles.Horizontal;
+            tEdit1.Properties.IsFloatValue = false;
+            tEdit1.Properties.MinValue = 5;
+            tEdit1.Properties.MaxValue = 45;
+            tEdit1.Properties.Increment = 5; // Adım, adım değeri
+            tEdit1.EditValue = 15;
+
+            panel1.Controls.Add(labelControl1, 0, 0);
+            panel1.Controls.Add(tEdit1, 1, 0);
+
+            tButtonPanel.Controls.Add(panel1);
+            panel1.BringToFront();
+        }
 
         public void tCalenderAndScheduler_Create(DataRow row_Table, DataSet dsFields, DataSet dsData,
             DevExpress.XtraScheduler.SchedulerControl tSchedulerControl, Control tPanelControl)
@@ -3562,10 +3607,18 @@ MS_FIELDS                                          T03_MSFIELDS                 
             //storage.Resources.DataMember = "Resources";
 
             string schedulerViewType = null; 
+            string showWorkTimeOnly = "false";
+            string workTimeStart = "8";
+            string workTimeEnd = "18";
 
             string startDateFieldName = "";
             if (JSON_PropView != null)
-                startDateFieldName = Preparing_Mappings(JSON_PropView, storage, ref schedulerViewType);
+                startDateFieldName = Preparing_Mappings(JSON_PropView, storage
+                    , ref schedulerViewType
+                    , ref showWorkTimeOnly
+                    , ref workTimeStart
+                    , ref workTimeEnd
+                    );
 
             tSchedulerControl.BeginInit();
             
@@ -3615,14 +3668,6 @@ MS_FIELDS                                          T03_MSFIELDS                 
             tSchedulerControl.MonthView.DateTimeScrollbarVisible = true;
             tSchedulerControl.TimelineView.DateTimeScrollbarVisible = true;
             tSchedulerControl.WeekView.DateTimeScrollbarVisible = true;
-            
-            // Saat aralığı            
-            tSchedulerControl.DayView.TimeScale = TimeSpan.FromHours(1);
-            // mesai başlangıç saatlerini ayarlar
-            tSchedulerControl.DayView.WorkTime.Start = TimeSpan.FromHours(7); // Başlangıç saati: 09:00
-            tSchedulerControl.DayView.WorkTime.End = TimeSpan.FromHours(23); // Bitiş saati: 18:00
-            // Sadece çalışma saatlerinin görünmesini sağlayın
-            tSchedulerControl.DayView.ShowWorkTimeOnly = true;
 
             tSchedulerControl.OptionsCustomization.AllowDisplayAppointmentForm = AllowDisplayAppointmentForm.Never;
             tSchedulerControl.OptionsCustomization.AllowAppointmentCreate = UsedAppointmentType.None;
@@ -3635,16 +3680,23 @@ MS_FIELDS                                          T03_MSFIELDS                 
 
             tSchedulerControl.AppointmentDrag += evg.mySchedulerControl_AppointmentDrag;
             tSchedulerControl.AppointmentDrop += evg.mySchedulerControl_AppointmentDrop;
+            //AppointmentDrop += evg.mySchedulerControl_AppointmentDrop;
+
 
             //tSchedulerControl.WorkWeekView.VisibleTime = true;
 
-            timeRulerAdd(tSchedulerControl);
+            timeRulerAdd(tSchedulerControl, showWorkTimeOnly, workTimeStart, workTimeEnd);
             
             tSchedulerControl.EndInit();
 
         }
 
-        private void timeRulerAdd(DevExpress.XtraScheduler.SchedulerControl scheduler)
+        private void timeRulerAdd(
+              DevExpress.XtraScheduler.SchedulerControl scheduler
+            , string showWorkTimeOnly
+            , string workTimeStart
+            , string workTimeEnd
+            )
         {
             //DevExpress.XtraScheduler.TimeRuler timeRuler = new DevExpress.XtraScheduler.TimeRuler()
 
@@ -3663,7 +3715,25 @@ MS_FIELDS                                          T03_MSFIELDS                 
             scheduler.DayView.TimeRulers[0].Visible = true;
             scheduler.DayView.ShowDayHeaders = true;
             scheduler.DayView.ShowAllDayArea = false;// true;
-            scheduler.DayView.ShowWorkTimeOnly = false; // Normal Çalışma saatleri 9-18 arası
+
+            if (showWorkTimeOnly == "TRUE")
+            {
+                scheduler.DayView.ShowWorkTimeOnly = true;
+                try
+                {
+                    scheduler.DayView.WorkTime.Start = TimeSpan.FromHours(Convert.ToDouble(workTimeStart)); // Başlangıç saati
+                    scheduler.DayView.WorkTime.End = TimeSpan.FromHours(Convert.ToDouble(workTimeEnd)); // Bitiş saati
+                }
+                catch (Exception)
+                {
+                    scheduler.DayView.WorkTime.Start = TimeSpan.FromHours(Convert.ToDouble(8)); // Başlangıç saati: 08:00
+                    scheduler.DayView.WorkTime.End = TimeSpan.FromHours(Convert.ToDouble(18)); // Bitiş saati: 18:00                
+                }
+            }
+            else
+            {
+                scheduler.DayView.ShowWorkTimeOnly = false;
+            }
 
             scheduler.DayView.DayCount = 14;
             scheduler.DayView.TopRowTime = DateTime.Now.AddHours(-1).TimeOfDay;
@@ -3673,6 +3743,16 @@ MS_FIELDS                                          T03_MSFIELDS                 
             scheduler.AgendaView.AppointmentDisplayOptions.StatusDisplayType = AppointmentStatusDisplayType.Bounds;
 
             scheduler.Start = DateTime.Today.AddDays(-7);
+
+            /*
+            // Saat aralığı            
+            tSchedulerControl.DayView.TimeScale = TimeSpan.FromMinutes(15);// FromHours(1);
+            // mesai başlangıç saatlerini ayarlar
+            tSchedulerControl.DayView.WorkTime.Start = TimeSpan.FromHours(7); // Başlangıç saati: 09:00
+            tSchedulerControl.DayView.WorkTime.End = TimeSpan.FromHours(23); // Bitiş saati: 18:00
+            // Sadece çalışma saatlerinin görünmesini sağlayın
+            tSchedulerControl.DayView.ShowWorkTimeOnly = true;
+            */
 
         }
 
@@ -3852,23 +3932,47 @@ MS_FIELDS                                          T03_MSFIELDS                 
             }
         }
 
-        private string Preparing_Mappings(PROP_VIEWS_IP prop_, SchedulerDataStorage storage, ref string schedulerViewType)
+        private string Preparing_Mappings(PROP_VIEWS_IP prop_, SchedulerDataStorage storage
+            , ref string schedulerViewType
+            , ref string showWorkTimeOnly
+            , ref string workTimeStart
+            , ref string workTimeEnd
+            )
         {
             tToolBox t = new tToolBox();
              
-            storage.Appointments.Mappings.AppointmentId = prop_.SCHEDULER.AppointmentId.ToString(); //"Id";
-            storage.Appointments.Mappings.Start = prop_.SCHEDULER.StartDate.ToString();// "BaslamaSaati";
-            storage.Appointments.Mappings.End = prop_.SCHEDULER.EndDate.ToString();// "BitisSaati";
-            storage.Appointments.Mappings.Location = prop_.SCHEDULER.Location.ToString(); // "Lkp_DerslikAdiTipiId";
-            storage.Appointments.Mappings.Subject = prop_.SCHEDULER.Subject.ToString();// "Lkp_DerslikTipiId";
-            storage.Appointments.Mappings.Label = prop_.SCHEDULER.Label.ToString(); // "AdayNo";
-            storage.Appointments.Mappings.Description = prop_.SCHEDULER.Description.ToString(); // "Lkp_DonemTipiGrupTipiSubeTipi"; 
+            if (t.IsNotNull(prop_.SCHEDULER.AppointmentId.ToString()))
+                storage.Appointments.Mappings.AppointmentId = prop_.SCHEDULER.AppointmentId.ToString(); //"Id";
+            if (t.IsNotNull(prop_.SCHEDULER.StartDate.ToString()))
+                storage.Appointments.Mappings.Start = prop_.SCHEDULER.StartDate.ToString();// "BaslamaSaati";
+            if (t.IsNotNull(prop_.SCHEDULER.EndDate.ToString()))
+                storage.Appointments.Mappings.End = prop_.SCHEDULER.EndDate.ToString();// "BitisSaati";
+            if (t.IsNotNull(prop_.SCHEDULER.Subject.ToString()))
+                storage.Appointments.Mappings.Subject = prop_.SCHEDULER.Subject.ToString();// "Lkp_DerslikTipiId";
+            if (t.IsNotNull(prop_.SCHEDULER.Description.ToString()))
+                storage.Appointments.Mappings.Description = prop_.SCHEDULER.Description.ToString(); // "Lkp_DonemTipiGrupTipiSubeTipi"; 
+            if (t.IsNotNull(prop_.SCHEDULER.Location.ToString()))
+                storage.Appointments.Mappings.Location = prop_.SCHEDULER.Location.ToString(); // "Lkp_DerslikAdiTipiId";
+            if (t.IsNotNull(prop_.SCHEDULER.Label.ToString()))
+                storage.Appointments.Mappings.Label = prop_.SCHEDULER.Label.ToString(); // "AdayNo";
             //storage.Appointments.Mappings.AllDay = 
 
             if (prop_.SCHEDULER.SchedulerViewType != null)
                 schedulerViewType = prop_.SCHEDULER.SchedulerViewType;
             else schedulerViewType = "Month";
+            
+            if (prop_.SCHEDULER.ShowWorkTimeOnly != null)
+                showWorkTimeOnly = prop_.SCHEDULER.ShowWorkTimeOnly;
+            else showWorkTimeOnly = "false";
 
+            if (prop_.SCHEDULER.WorkTimeStart != null)
+                workTimeStart = prop_.SCHEDULER.WorkTimeStart;
+            else workTimeStart = "8";
+
+            if (prop_.SCHEDULER.WorkTimeEnd != null)
+                workTimeEnd = prop_.SCHEDULER.WorkTimeEnd;
+            else workTimeEnd = "18";
+            
             return prop_.SCHEDULER.StartDate.ToString();
         }
 

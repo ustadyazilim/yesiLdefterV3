@@ -1,15 +1,25 @@
-﻿/*CreateProcedure*/
+﻿
+/*CreateProcedure*/
 
-CREATE PROCEDURE [dbo].[prc_SrcTeorikDersSablonuOlustur] (@SablonTeorikBId int)  
+CREATE PROCEDURE [dbo].[prc_SrcTeorikDersMebbisDatasiniIsle] (
+    @FirmId int, 
+    @DonemTipiId int, 
+    @GrupTipiId smallint, 
+    @SubeTipiId smallint)  
 AS BEGIN
-
-    -- --------------------------------
-    -- ŞABLON OLUŞTUR
-    -- --------------------------------
 
     SET NOCOUNT ON;
 
-    --declare @SablonTeorikBId int = 1
+    -- --------------------------------------------------------------------
+    -- Mebbisten çekilen SrcTeorikDers planına 
+    -- grubun sertfika türüne göre DersTipiId ve DersSiraNo dolduruluyor
+    -- --------------------------------------------------------------------
+/*
+    declare @FirmId int = 4204
+    declare @DonemTipiId int = 202601 
+    declare @GrupTipiId smallint = 1 
+    declare @SubeTipiId smallint = 1  
+*/
     declare @SertifikaTipiId int
     declare @talepTipiId varchar(2)
     declare @DerslikAdiTipiId smallInt
@@ -17,10 +27,15 @@ AS BEGIN
 
     Select  
         @SertifikaTipiId = isnull(SertifikaTipiId,0)
-      , @DerslikAdiTipiId = isnull(DerslikAdiTipiId,0)
-      , @SablonKodu = isnull(SablonKodu,'')
-    From dbo.SrcSablonTeorikB 
-    Where Id = @SablonTeorikBId
+    From dbo.SrcGrupSubesi
+    Where FirmId = @FirmId
+    and   DonemTipiId = @DonemTipiId
+    and   GrupTipiId = @GrupTipiId
+    and   SubeTipiId = @SubeTipiId
+
+    --  , @DerslikAdiTipiId = isnull(DerslikAdiTipiId,0)
+    --  , @SablonKodu = isnull(SablonKodu,'')
+
 
     if (@SertifikaTipiId < 15000 or @SertifikaTipiId > 15999) return;
 
@@ -105,7 +120,7 @@ AS BEGIN
 
 
     SET @sql = N'
-IF OBJECT_ID(''tempdb..##ExpandedDersSablon'') IS NOT NULL DROP TABLE ##ExpandedDersSablon;
+IF OBJECT_ID(''tempdb..##ExpandedDersMebbis'') IS NOT NULL DROP TABLE ##ExpandedDersMebbis;
 
 SELECT
   ROW_NUMBER() OVER (ORDER BY sd.Id, n.number) AS RowNumber,
@@ -114,7 +129,7 @@ SELECT
   sd.GrupSaati12, sd.GrupSaati34, sd.GrupSaati24, sd.GrupSaati1234, sd.MebbisKodu,
   n.number AS DersSira,
   CONVERT(varchar(20), n.number) + ''. ders'' AS DersAdiSatiri
-INTO ##ExpandedDersSablon
+INTO ##ExpandedDersMebbis
 FROM Lkp.SrcDersler AS sd
 CROSS APPLY (SELECT ISNULL(TRY_CONVERT(int, sd.' + @colQ + '), 0) AS Hrs) AS h
 CROSS APPLY (
@@ -133,22 +148,18 @@ and h.Hrs > 0;
 
     EXEC sp_executesql @sql;
 
-    --SELECT * FROM ##ExpandedDersSablon;
+    --SELECT * FROM ##ExpandedDersMebbis;
 
     declare @dersId int
     declare @dersSiraNo smallint
     declare @dersAdi varchar(100)
     declare @dersGrubu varchar(2)
-    declare @tarih date
-    declare @saat int
-
-    set @tarih = convert(date, '01.01.1900', 103)
-    set @saat = -6
+    declare @curId int
 
     declare @myRowNum int
     declare myCursor CURSOR local
     for 
-    Select RowNumber From ##ExpandedDersSablon 
+    Select RowNumber From ##ExpandedDersMebbis
       
     OPEN myCursor;
   
@@ -163,58 +174,37 @@ and h.Hrs > 0;
             , @dersSiraNo = ed.DersSira
             , @dersAdi = ed.DersAdi
             , @dersGrubu = ed.Grubu
-          from ##ExpandedDersSablon as ed 
+          from ##ExpandedDersMebbis as ed 
           Where RowNumber = @myRowNum
 	      
-          --print convert(varchar(10), @dersId) + ' ' + convert(varchar(10), @dersSiraNo) + ' ' + @dersAdi + ' : ' + convert(varchar(15), @tarih) + ' : saat : ' + convert(varchar(3), @saat)      
-		  
-          if ( Select count(Id) as Adet From dbo.SrcSablonTeorikS
-               Where SablonTeorikBId = @SablonTeorikBId
-               and   DersTipiId = @DersId
-               and   DersSiraNo = @dersSiraNo
-             ) = 0
+          print convert(varchar(10), @dersId) + ' ' + convert(varchar(10), @dersSiraNo) + ' ' + @dersAdi 
+
+          Set @curId = 0
+          Select top 1 @curId = Id
+          From dbo.SrcTeorikDers
+          Where FirmId = @FirmId
+          and   DonemTipiId = @DonemTipiId
+          and   GrupTipiId  = @GrupTipiId
+          and   SubeTipiId  = @SubeTipiId
+          and   DersGrubu   = @dersGrubu
+          and   isnull(DersTipiId,0) = 0
+          Order by DersTarihi, DersSaatiTipiId
+
+          if (@curId > 0)
           begin
-
-              INSERT INTO [dbo].[SrcSablonTeorikS]
-                  ([FirmId],[IsActive],[DonemTipiId],[GrupTipiId],[SubeTipiId],[DersGrubu],[DersTipiId],[DerslikAdiTipiId],[DersTarihi],[DersSaatiTipiId],[PersonelId],[EgitimTipiId],[BaslamaSaati],[BitisSaati]
-                  ,[TDersIsUploaded],[SablonTeorikBId],[DersSiraNo],[SablonKodu])
-              VALUES
-                  (0 --FirmId
-                  ,1 --IsActive
-                  ,190001 --DonemTipiId
-                  ,1 --GrupTipiId
-                  ,1 --SubeTipiId
-                  ,@dersGrubu
-                  ,@dersId -- DersTipiId
-                  ,@DerslikAdiTipiId -- DerslikAdiTipiId 
-                  ,@tarih -- DersTarihi
-                  ,@saat  -- DersSaatiTipiId
-                  ,null -- PersonelId
-                  ,0 -- EgitimTipiId
-                  ,0 -- BaslamaSaati, datetime
-                  ,0 -- BitisSaati, datetime
-                  ,0 --TDersIsUploaded
-                  ,@SablonTeorikBId -- SablonTeorikBId   
-                  ,@dersSiraNo      -- DersSiraNo    
-                  ,@SablonKodu      -- SablonKodu
-                  )
-          end -- if
-
-          -- Tarih ve saati ayarla
-          set @saat = @saat + 1
-
-          if (@saat = 0)
-          begin
-              set @saat = -6
-              set @tarih = DATEADD(DAY, 1, @tarih)
-          end
+              Update dbo.SrcTeorikDers Set  
+                  DersTipiId = @dersId
+                 ,DersSiraNo = @dersSiraNo
+              Where Id = @curId
+          end --
 
           FETCH NEXT FROM myCursor INTO @myRowNum;
     end -- While
 
     Close myCursor;
     DealLocate myCursor;
-    
+
 END -- procedure
 
 /*CreateProcedureEnd*/
+

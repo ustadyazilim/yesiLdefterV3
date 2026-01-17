@@ -6,8 +6,10 @@ AS BEGIN
 
   set @kursTipi = 'MTSK'
   Select @dbName = DB_NAME()
+  if (CHARINDEX('SRC5', @dbName) > 0) set @kursTipi = 'SRC5' 
   if (CHARINDEX('SRC', @dbName) > 0) set @kursTipi = 'SRC' 
   if (CHARINDEX('ISMAK', @dbName) > 0) set @kursTipi = 'ISMAK'
+  if (CHARINDEX('PSK', @dbName) > 0) set @kursTipi = 'PSK' 
   
   --print @dbName
   --print @kursTipi

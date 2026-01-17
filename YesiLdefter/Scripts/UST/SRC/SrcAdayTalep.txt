@@ -21,6 +21,7 @@ begin transaction
    TamAdiSoyadi          nVarchar(100) null, 
    Adi                   nVarchar(50)  null,
    Soyadi                nVarchar(50)  null,
+   --DogumYeri             nVarchar(50)  null,
    DogumTarihi           Date          null,
    BabaAdi               nVarchar(50)  null,
    AnneAdi               nVarchar(50)  null,
@@ -35,48 +36,61 @@ begin transaction
    TalepTipiId                    SmallInt        null, /* şimdilk kullanılmayacak, silme kalsın */
 
    -- 30
-   MevcutSertifikaTipiId          SmallInt        null, /* mevcut SRC sertifika tipi Id si */
-   MevcutSinifTipiId              SmallInt        null, /* Mevcut SRC5'in detay sertifika tipi Id si */
+   MevcutSertifikaTipiId          SmallInt        null, /* mevcut SRC, ODY, UDY sertifika tipi Id si, SRC5 için default 14391 olsun, ekranda görünmesede olur  */
+   MevcutSinif1TipiId             SmallInt        null, /* Mevcut SRC5'in detay sertifika tipi Id si */
+   MevcutSinif2TipiId             SmallInt        null, /* Mevcut SRC5'in detay sertifika tipi Id si */
+   MevcutSinif3TipiId             SmallInt        null, /* Mevcut SRC5'in detay sertifika tipi Id si */
+   MevcutSinif4TipiId             SmallInt        null, /* Mevcut SRC5'in detay sertifika tipi Id si */
+
    MevcutSertifikaNumarasi        nVarchar(20)    null,
    MevcutSertifikaVerilisTarihi   date            null,
    MevcutSertVerildigiKurum       nVarchar(100)   null,
    MevcutSertVerildigiIl          nVarchar(15)    null,
 
    -- 41
-   IstenenSertifikaTipiId  SmallInt      null, /* İstenen SRC sertifika tipi Id si */
-   IstenenSinifTipiId      SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */
-   IstemeNedeniTipiId      SmallInt      null, /* 1. sertifika ilk defa alıyor, 2. yenileme */
-   SertifikaVerTarih       date          null, /* Verilen sertifikanın veriliş tarihi */
-   SonGecerlilikTarihi     date          null, /* Verilen sertifikanın son geçerlilik tarihi */
-   SertifikaNo             Varchar(10)   null, /* Sertifika No İlçe Milli Eğitim tarafından veriliyor, kullanıcılar onu mebbis den rapora bakarak öğrenip buraya işliyorlar */
+   IstenenSertifikaTipiId    SmallInt      null, /* İstenen SRC, ODY, UDY sertifika tipi Id si, SRC5için default 14391 olsun ekranda görünmesede olur */
+   IstenenSinif1TipiId       SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */  
+   IstenenSinif2TipiId       SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */  
+
+   ArtiSertifikaTipiId       SmallInt      null, /* İstenen SRC, ODY, UDY + SRC5 sertifika tipi Id si */
+   ArtiSinif1TipiId          SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */  
+   ArtiSinif2TipiId          SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */  
+
+   IstemeNedeniTipiId      SmallInt      null, /* 1. sertifika ilk defa alıyor, 2. yenileme : SRC5 kalmadı */
    
-   /* ODY ve ÜDY ler için hangi yabancı dilleri ve seviye bilgisi olduğu gerekiyor  */ 
 
    -- 50
    -- Ders veya yaş için muafiyeti var
+   SertifikaVerTarih       date          null, /* Verilen sertifikanın veriliş tarihi */
+   SonGecerlilikTarihi     date          null, /* Verilen sertifikanın son geçerlilik tarihi */
+   SertifikaNo             Varchar(10)   null, /* Sertifika No İlçe Milli Eğitim tarafından veriliyor, kullanıcılar onu mebbis den rapora bakarak öğrenip buraya işliyorlar */
    IsMuafiyetiVar          Bit           null, /* 0 = yok, 1 = var */  
    MuafiyetAciklamasi      nVarchar(50)  null, 
 
    -- 60
    /* Dönem bilgileri */
    /* mebbisden Nakil için kayıt olduğu dönem bilgisi isteyebilir */ 
-   DonemTipiId             Int           null,
-   GrupTipiId              SmallInt      null,
-   SubeTipiId              SmallInt      null,
-   GrupSubeId			   Int           null, /* SrcGrupSubesi tablosundaki Id : Kullanıcı tek bir ifadeyi seçsin, trigger detayı set etsin. (DonemTipiId, GrupTipiId, SubeTipiId )  */   
+   DonemTipiId            Int           null,
+   GrupTipiId             SmallInt      null,
+   SubeTipiId             SmallInt      null,
+   GrupSubeId             Int           null, /* SrcGrupSubesi tablosundaki Id : Kullanıcı tek bir ifadeyi seçsin, trigger detayı set etsin. (DonemTipiId, GrupTipiId, SubeTipiId )  */   
+
+   -- 65
+   Sinav1IlTercihiId      SmallInt      null,
+   Sinav2IlTercihiId      SmallInt      null,
+   Sinav3IlTercihiId      SmallInt      null,
 
    -- 70
-   MebbisKurumOnayi        Bit           null, /* 0-Onaysız, 1-Onaylandı */		
-   MebbisDurumTipiId       SmallInt      null,
-   MebbisDurumOkundu       Bit           null,
-   KayitTipiId             SmallInt      null, /* 1.'Ön kayıt', 2.'Kayıt aşamasında', 3.'Kesin kayıt' ... */
+   MebbisKurumOnayi       Bit           null, /* 0-Onaysız, 1-Onaylandı */		
+   MebbisDurumTipiId      SmallInt      null,
+   MebbisDurumOkundu      Bit           null,
+   KayitTipiId            SmallInt      null, /* 1.'Ön kayıt', 2.'Kayıt aşamasında', 3.'Kesin kayıt' ... */
 
    /* Dönem bilgileri SON */
 
    -- 80
-   --BasvuruResim            VarBinary(max) null,
-   --BasvuruResimSmall       VarBinary(max) null,
-
+   BasvuruResim            VarBinary(max) null, /* Başvuru resimi yakında geliyor */
+   BasvuruResimSmall       VarBinary(max) null,
 
    KullaniciUyarilari      nVarchar(200)  null,
    SistemUyarilari         nVarchar(200)  null,
@@ -97,6 +111,7 @@ begin transaction
    AdresAlindi             Bit            null,
    BelgelerGeldi           Bit            null,
      
+
    -- 110
    IsDosyaKapandi          Bit            null, /* Dosya kapandı ise 1, açık ise 0 */
    DosyaKapanmaNedeni      nVarchar(50)   null,
@@ -112,6 +127,7 @@ begin transaction
   create index X_SrcAdayTalep02 on SrcAdayTalep (TamAdiSoyadi)
   create index X_SrcAdayTalep03 on SrcAdayTalep (AdayId)
   create index X_SrcAdayTalep04 on SrcAdayTalep (DonemTipiId,GrupTipiId,SubeTipiId)
+  create index X_SrcAdayTalep05 on SrcAdayTalep (TalepTipiId)
 
 commit transaction
 
@@ -584,7 +600,7 @@ AS BEGIN
               begin
                   Update dbo.SrcAdayTalep Set
                       DonemTipiId = 0
-                    , GrupTipiId = 1
+                    , GrupTipiId = 0
                     , SubeTipiId = 0
                     , GrupSubeId = 0
                   Where Id = @TalepId
@@ -754,11 +770,19 @@ INSERT INTO [Lkp].[SrcAdayTalepTalepTipi] (Id, TalepTipi, IsActive)
   DELETE FROM [Lkp].[SrcAdayTalepMevcutSinifTipi] 
   INSERT INTO [Lkp].[SrcAdayTalepMevcutSinifTipi] (Id, MevcutSinifTipi, IsActive) 
   VALUES 
-    (0, N'Tanımsız', 1 ),
-    (1, N'Temel eğitim', 1 ), 
-    (2, N'Uzmanlık (Tanker)', 1 ), 
-    (3, N'Uzmanlık (Sınıf-1, Patlayıcı)', 1 ), 
-    (4, N'Uzmanlık (Sınıf-7, Radyoaktif)', 1 )
+    (0,  N'Tanımsız', 1 ),
+
+    (1,  N'Temel', 1 ), 
+    (2,  N'Tanker', 1 ), 
+    (3,  N'Sınıf-1, Patlayıcı', 1 ), 
+    (4,  N'Sınıf-7, Radyoaktif', 1 )
+
+/*  Mevcut sertifika tiplerinde bunlar olmaz
+    (11, N'Yenileme Temel', 1 ), 
+    (12, N'Yenileme Tanker', 1 ), 
+    (13, N'Yenileme (Sınıf-1, Patlayıcı)', 1 ), 
+    (14, N'Yenileme (Sınıf-7, Radyoaktif)', 1 )
+*/
 
 
   -- ------------------------------------------------------- 
@@ -780,11 +804,16 @@ INSERT INTO [Lkp].[SrcAdayTalepTalepTipi] (Id, TalepTipi, IsActive)
   INSERT INTO [Lkp].[SrcAdayTalepIstenenSinifTipi] (Id, IstenenSinifTipi, IsActive) 
   VALUES 
     (0, N'Tanımsız', 1 ),
-    (1, N'Temel eğitim', 1 ), 
-    (2, N'Uzmanlık (Tanker : Sınıf-2,3,4,5,6,8,9)', 1 ), 
-    (3, N'Uzmanlık (Sınıf-1, Patlayıcı)', 1 ), 
-    (4, N'Uzmanlık (Sınıf-7, Radyoaktif)', 1 )
 
+    (1,  N'Temel', 1 ), 
+    (2,  N'Tanker', 1 ), 
+    (3,  N'Sınıf-1, Patlayıcı', 1 ), 
+    (4,  N'Sınıf-7, Radyoaktif', 1 ),
+
+    (11, N'Y. Temel', 1 ), 
+    (12, N'Y. Tanker', 1 ), 
+    (13, N'Y. Sınıf-1, Patlayıcı', 1 ), 
+    (14, N'Y. Sınıf-7, Radyoaktif', 1 )
 
 
 
@@ -928,4 +957,28 @@ commit transaction
 
 
 
+/*
 
+ALTER TABLE SrcAdayTalep drop column MevcutSinifTipiId
+ALTER TABLE SrcAdayTalep drop column IstenenSinifTipiId
+
+ALTER TABLE SrcAdayTalep Add    MevcutSinif1TipiId             SmallInt        null
+ALTER TABLE SrcAdayTalep Add    MevcutSinif2TipiId             SmallInt        null
+ALTER TABLE SrcAdayTalep Add    MevcutSinif3TipiId             SmallInt        null
+ALTER TABLE SrcAdayTalep Add    MevcutSinif4TipiId             SmallInt        null
+
+ALTER TABLE SrcAdayTalep Add    IstenenSinif1TipiId       SmallInt      null
+ALTER TABLE SrcAdayTalep Add    IstenenSinif2TipiId       SmallInt      null
+ALTER TABLE SrcAdayTalep Add    ArtiSertifikaTipiId       SmallInt      null
+ALTER TABLE SrcAdayTalep Add    ArtiSinif1TipiId          SmallInt      null
+ALTER TABLE SrcAdayTalep Add    ArtiSinif2TipiId          SmallInt      null
+
+ALTER TABLE SrcAdayTalep Add    Sinav1IlTercihiId      SmallInt      null
+ALTER TABLE SrcAdayTalep Add    Sinav2IlTercihiId      SmallInt      null
+ALTER TABLE SrcAdayTalep Add    Sinav3IlTercihiId      SmallInt      null
+
+ALTER TABLE SrcAdayTalep Add    BasvuruResim            VarBinary(max) null
+ALTER TABLE SrcAdayTalep Add    BasvuruResimSmall       VarBinary(max) null
+
+
+*/

@@ -63,14 +63,33 @@ AS BEGIN
                 ) 
        print ' create : [SrcAdayBelgeler]'
   end -- SrcAdayBelgeler
-        
+
+
+  -- SrcAdayKimlik Insert
+  if ( Select count(*) ADET from dbo.SrcAdayKimlik
+       where AdayId = @yAdayId ) = 0 
+  begin 
+       Insert into [dbo].[SrcAdayKimlik]
+           (FirmId, TalepId, AdayId, TcNo) values (@yFirmId, @TalepId, @yAdayId, @yTcNo)
+       print ' create : [SrcAdayKimlik]'
+  end
+
+  -- SrcAdayEhliyet Insert
+  if ( Select count(*) ADET from dbo.SrcAdayEhliyet
+       where AdayId = @yAdayId ) = 0 
+  begin 
+       Insert into [dbo].[SrcAdayEhliyet]
+           (FirmId, TalepId, AdayId, TcNo) values (@yFirmId, @TalepId, @yAdayId, @yTcNo)
+       print ' create : [SrcAdayEhliyet]'
+  end
+          
   -- SrcAdayAdliSicil Insert
   if ( Select count(*) ADET from dbo.SrcAdayAdliSicil
        where AdayId = @yAdayId --TalepId = @TalepId 
      ) = 0 and (@onayAdliSicil = 1)
   begin 
        Insert into [dbo].[SrcAdayAdliSicil]
-           (FirmId, TalepId, AdayId) VALUES (@yFirmId, @TalepId, @yAdayId ) 
+           (FirmId, TalepId, AdayId, TcNo) VALUES (@yFirmId, @TalepId, @yAdayId, @yTcNo) 
        print ' create : [SrcAdayAdliSicil]'
   end
 
@@ -80,7 +99,7 @@ AS BEGIN
      ) = 0 and (@onayAdres = 1) 
   begin 
        Insert into [dbo].[SrcAdayAdres]
-            (FirmId, TalepId, AdayId) VALUES (@yFirmId, @TalepId, @yAdayId )  
+            (FirmId, TalepId, AdayId, TcNo) VALUES (@yFirmId, @TalepId, @yAdayId, @yTcNo)  
        print ' create : [SrcAdayAdres]'
   end
 
@@ -90,7 +109,7 @@ AS BEGIN
      ) = 0 and (@onayOgrenim = 1) 
   begin 
        Insert into [dbo].[SrcAdayOgrenim]
-            (FirmId, TalepId, AdayId) VALUES (@yFirmId, @TalepId, @yAdayId )   
+            (FirmId, TalepId, AdayId, TcNo) VALUES (@yFirmId, @TalepId, @yAdayId, @yTcNo)   
        print ' create : [SrcAdayOgrenim]'
   end
 
@@ -135,7 +154,6 @@ AS BEGIN
 			)
        print ' create :  SrcAdayUcret'
   end
-
 
   -- SrcAdayTakip Insert
   if ( Select count(*) ADET from dbo.[SrcAdayTakip] 

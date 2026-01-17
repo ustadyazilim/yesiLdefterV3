@@ -12,6 +12,7 @@ begin transaction
    GrupTipiId           SmallInt      null,
    SubeTipiId           SmallInt      null,
    
+   DersGrubuTipiId      SmallInt      null,
    DersGrubu            Varchar(1)    null, /* A, B, C veya D : Mebbisden doğrudan ders programı okunduğunda gerekiyor */  
    DersTipiId           Int           null, /* Detayı : Lkp.SrcDersler tablosunda */
    DersSiraNo           SmallInt      null, /* örnek : 3 saatlik bir dersin, 1. saati, 2. saati, 3. saati şeklindeki işareti */
@@ -19,12 +20,12 @@ begin transaction
    DersTarihi           Date          null,
    DersSaatiTipiId      SmallInt      null,
    PersonelId           Varchar(20)   null,
-   EgitimTipiId         SmallInt      null, /* 1. Normal, 2. Telafi, 9. Şablon kayıt  */
+   EgitimTipiId         SmallInt      null,
 
+   DersSuresiDakika     SmallInt      null,  
    BaslamaSaati         Datetime      null, /* Calender and Scheduling için gerekli */
    BitisSaati           Datetime      null, /* Calender and Scheduling için gerekli */
    TDersIsUploaded      Bit           null,
-   SablonTeorikBId      Int           null, 
    OzelGunlerId         Int           null, /* OnmOzelGunler.Id */
    DersHaftasiId        SmallInt      null, /* yılın hangi haftasına denk geldi, bu sayede o haftadaki tüm dersler listeleniyor */  
 
@@ -58,9 +59,12 @@ AS BEGIN
     declare @yDonemTipiId int = 0
     declare @yGrupTipiId smallInt = 0
     declare @ySubeTipiId smallInt = 0
+    declare @yDersGrubuTipiId smallInt = 0
+    declare @yDersGrubu varchar(1)
     declare @yDersTarihi date = null
     declare @yDersSaatiTipiId smallInt = -1
     declare @yPersonelId varchar(20) = ''
+    declare @yEgitimTipiId smallInt = 0
 	declare @yBaslamaSaati datetime
 	declare @yBitisSaati datetime
     declare @yBaslamaSaatiChechked varchar(20)
@@ -87,8 +91,11 @@ AS BEGIN
       ,@yDonemTipiId = ins.DonemTipiId
       ,@yGrupTipiId = ins.GrupTipiId
       ,@ySubeTipiId = ins.SubeTipiId
+      ,@yDersGrubuTipiId = isnull(ins.DersGrubuTipiId,0)
+      ,@yDersGrubu = isnull(ins.DersGrubu,'')
       ,@yDersTarihi = ins.DersTarihi
       ,@yDersSaatiTipiId = ins.DersSaatiTipiId
+      ,@yEgitimTipiId = isnull(ins.EgitimTipiId,0)
       ,@yPersonelId = isnull(ins.PersonelId,'')
       ,@TDersIsUploaded = isnull(ins.TDersIsUploaded,0)
       ,@yBaslamaSaati = ins.BaslamaSaati
@@ -99,6 +106,52 @@ AS BEGIN
 	    left outer join Lkp.SrcTeorikDersDersSaatiTipi saat on (ins.DersSaatiTipiId = saat.Id)
       Where ins.Id = @curId
       
+
+      -- personelId kontrolu
+      Select @TcNoCalismaIzniNo = isnull(TcNoCalismaIzniNo,'')
+      From dbo.SrcPersoneli
+      Where TamAdiSoyadi like @yPersonelId+'%'
+      
+      -- Mebbisten okuma yapınca alınan ismi alınıyor
+      -- alınan bu ismi TcNoIzinNo ya çeviriyor
+      if (@TcNoCalismaIzniNo <> '')
+      begin
+        update dbo.SrcTeorikDers set 
+        PersonelId = @TcNoCalismaIzniNo
+        Where Id = @curId
+      end
+
+      if (@yDersGrubuTipiId > 0 and @yDersGrubu = '') 
+      begin
+          if @yDersGrubuTipiId = 1 Set @yDersGrubu = 'A' 
+          if @yDersGrubuTipiId = 2 Set @yDersGrubu = 'B' 
+          if @yDersGrubuTipiId = 3 Set @yDersGrubu = 'C' 
+          if @yDersGrubuTipiId = 5 Set @yDersGrubu = 'D' 
+
+          update dbo.SrcTeorikDers set 
+             DersGrubu = @yDersGrubu
+          Where Id = @curId
+      end
+
+      if (@yDersGrubuTipiId = 0 and @yDersGrubu <> '') 
+      begin
+          if @yDersGrubu = 'A' Set @yDersGrubuTipiId = 1
+          if @yDersGrubu = 'B' Set @yDersGrubuTipiId = 2
+          if @yDersGrubu = 'C' Set @yDersGrubuTipiId = 3
+          if @yDersGrubu = 'D' Set @yDersGrubuTipiId = 5
+
+          update dbo.SrcTeorikDers set 
+             DersGrubuTipiId = @yDersGrubuTipiId
+          Where Id = @curId
+      end
+
+      if (@yEgitimTipiId = 0)
+      begin
+          update dbo.SrcTeorikDers set 
+             EgitimTipiId = 1
+          Where Id = @curId
+      end
+
       if (@TDersIsUploaded = 1) -- yani Mebbise yüklenmişse, değşişklik olamaz
       begin
           update dbo.SrcSablonTeorikS set 
@@ -114,7 +167,7 @@ AS BEGIN
       Select @TcNoCalismaIzniNo = isnull(TcNoCalismaIzniNo,'')
       From dbo.SrcPersoneli
       Where TamAdiSoyadi like @yPersonelId+'%'
-      
+
       -- tabloda grünen : 2025-12-05 08:00:11.000
       -- @eBaslamaSaatiChechked atanan : 08:00:11
       if (CHARINDEX(':00:11', @yBaslamaSaatiChechked) > 0)
@@ -133,6 +186,7 @@ AS BEGIN
               , DersSaatiTipiId = @yDersSaatiTipiId
               , BaslamaSaati = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,1,5))
               , BitisSaati   = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,9,5))
+              , DersHaftasiId = DatePart(ww, @eDersTarihi)
           Where Id = @curId
 
       end else 
@@ -148,11 +202,13 @@ AS BEGIN
               DersTarihi = @eDersTarihi
             , BaslamaSaati = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,1,5))
             , BitisSaati   = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,9,5))
+            , DersHaftasiId = DatePart(ww, @eDersTarihi)
           Where Id = @curId
       end
 
       -- Mebbisten okuma yapınca alınan ismi alınıyor
       -- alınan bu ismi TcNoIzinNo ya çeviriyor
+      /*
       if (@TcNoCalismaIzniNo <> '')
       begin
         update dbo.SrcTeorikDers set 
@@ -161,7 +217,7 @@ AS BEGIN
         and isnull(PersonelId,'') <> @TcNoCalismaIzniNo
         and @TcNoCalismaIzniNo <> ''
       end
-	  
+	  */
       --Execute [dbo].[prc_SrcTeorikDersIhlalleriSaatler] @eFirmId, @eDonemTipiId
       --Execute [dbo].[prc_SrcTeorikDersIhlalleriCakismalar] @eFirmId, @eDonemTipiId
       --Execute [dbo].[prc_SrcDersIhlalleriPersonel] @curId, @eFirmId, @eDonemTipiId, @ePersonelId
@@ -272,6 +328,32 @@ begin transaction
 -- ------------------------------------------------------- 
 -- DersTipiId  /* Detayı : Lkp.SrcDersler tablosunda */
 -- ------------------------------------------------------- 
+
+-- ------------------------------------------------------- 
+-- DersGrubuTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'SrcTeorikDersDersGrubuTipi')
+drop table [Lkp].[SrcTeorikDersDersGrubuTipi]
+
+create table Lkp.SrcTeorikDersDersGrubuTipi
+(
+   Id             Int Unique Not Null,
+   DersGrubuTipi  nVarchar(50)   null
+   
+   constraint  pk_SrcTeorikDersDersGrubuTipi primary key (Id)
+)
+
+INSERT INTO Lkp.SrcTeorikDersDersGrubuTipi (Id, DersGrubuTipi)
+ VALUES 
+  ( 0, N'Tanımsız'),
+  ( 1, N'A GRUBU DERSLERİ'),
+  ( 2, N'B GRUBU DERSLERİ'),
+  ( 3, N'C GRUBU DERSLERİ'),
+  ( 5, N'D GRUBU DERSLERİ')
+
+
+
+
 
 -- ------------------------------------------------------- 
 -- DerslikAdiTipiId

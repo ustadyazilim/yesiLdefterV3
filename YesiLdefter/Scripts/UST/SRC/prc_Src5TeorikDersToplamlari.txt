@@ -1,0 +1,86 @@
+﻿/*CreateProcedure*/
+
+CREATE PROCEDURE [dbo].[prc_Src5TeorikDersToplamlari] (
+    @FirmId int
+  , @DonemTipiId int
+  , @GrupTipiId smallint
+)  
+AS BEGIN
+
+  SET NOCOUNT ON;
+
+  /*
+  declare @FirmId int = 4204
+  declare @DonemTipiId int = 202601
+  declare @GrupTipiId smallint = 2
+  */
+  declare @SertifikaSinifTipi smallInt
+
+  Select @SertifikaSinifTipi = SertifikaSinifTipiId 
+  From dbo.Src5Donemi
+  Where FirmId = @FirmId
+  and   DonemTipiId = @DonemTipiId
+  and   GrupTipiId = @GrupTipiId
+
+  /*
+  Lkp.Src5DonemiSertifikaSinifTipi
+  (  0,  N'Tanımsız'),
+  (  1,  N'Temel'),
+  (  2,  N'Tanker'),
+  (  3,  N'Sınıf1, Patlayıcı'),
+  (  4,  N'Sınıf7, Radyoaktif'),
+  (  5,  N'Temel + Tanker'),
+  (  6,  N'Temel + Sınıf1'),
+  (  7,  N'Temel + Sınıf7'),
+
+  ( 11,  N'Y.Temel'),
+  ( 12,  N'Y.Tanker'),
+  ( 13,  N'Y.Sınıf1, Patlayıcı'),
+  ( 14,  N'Y.Sınıf7, Radyoaktif'),
+  ( 15,  N'Y.Temel + Tanker'),
+  ( 16,  N'Y.Temel + Sınıf1'),
+  ( 17,  N'Y.Temel + Sınıf7')
+  */
+
+  Declare @ids varchar(50)
+  Declare @sql NVARCHAR(MAX);
+
+  if (@SertifikaSinifTipi = 1) Set @ids = '2010, 2020'              --  1,  N'Temel'
+  if (@SertifikaSinifTipi = 2) Set @ids = '2030, 2040'              --  2,  N'Tanker'
+  if (@SertifikaSinifTipi = 3) Set @ids = '2050'                    --  3,  N'Sınıf1, Patlayıcı'
+  if (@SertifikaSinifTipi = 4) Set @ids = '2060'                    --  4,  N'Sınıf7, Radyoaktif'
+  if (@SertifikaSinifTipi = 5) Set @ids = '2010, 2020, 2030, 2040'  --  5,  N'Temel + Tanker'
+  if (@SertifikaSinifTipi = 6) Set @ids = '2010, 2020, 2050'        --  6,  N'Temel + Sınıf1'
+  if (@SertifikaSinifTipi = 7) Set @ids = '2010, 2020, 2060'        --  7,  N'Temel + Sınıf7'
+
+  if (@SertifikaSinifTipi = 11) Set @ids = '2110'             -- 11,  N'Y.Temel'
+  if (@SertifikaSinifTipi = 12) Set @ids = '2120'             -- 12,  N'Y.Tanker'
+  if (@SertifikaSinifTipi = 13) Set @ids = '2130'             -- 13,  N'Y.Sınıf1, Patlayıcı'
+  if (@SertifikaSinifTipi = 14) Set @ids = '2140'             -- 14,  N'Y.Sınıf7, Radyoaktif'
+  if (@SertifikaSinifTipi = 15) Set @ids = '2110, 2120'       -- 15,  N'Y.Temel + Tanker'
+  if (@SertifikaSinifTipi = 16) Set @ids = '2110, 2130'       -- 16,  N'Y.Temel + Sınıf1'
+  if (@SertifikaSinifTipi = 17) Set @ids = '2110, 2140'       -- 17,  N'Y.Temel + Sınıf7'
+
+  Set @sql = N'
+  Select 
+      dr.Id
+    , dr.DersAdi as Lkp_DersTipi
+    , dr.DersSaati1 as Lkp_DersSayisi 
+    , count(td.Id) as Lkp_VerilenDersSayisi 
+    , dr.DersSaati1 - count(td.Id) as Lkp_FarkDersSayisi
+
+  From Lkp.SrcDersler as dr
+     left outer join dbo.Src5TeorikDers as td on ( dr.Id = td.DersTipiId 
+          and DonemTipiId = ' + convert(varchar(10), @DonemTipiId) + ' 
+          and GrupTipiId =  ' + convert(varchar(10), @GrupTipiId) + ' 
+       )
+  Where dr.Id in ( ' + @ids + ' ) 
+  group by dr.Id, dr.DersAdi, dr.DersSaati1
+  ';
+
+  EXEC sp_executesql @sql;
+
+END -- procedure
+
+/*CreateProcedureEnd*/
+

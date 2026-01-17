@@ -19,7 +19,12 @@ AS BEGIN
   ( 113,   N'Bordro'),
   ( 201,   N'Mtsk'),
   ( 202,   N'İşmak'),
-  ( 203,   N'SRC')
+  ( 203,   N'SRC'),
+  ( 204,   N'SRC5'),
+  ( 205,   N'Piskoteknik'),
+  ( 211,   N'TabimMtsk'),
+  ( 212,   N'TabimIsmak'),
+  ( 213,   N'TabimSrc')
   */
   /*
   ElementTypeId

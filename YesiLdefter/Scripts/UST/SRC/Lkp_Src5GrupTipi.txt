@@ -1,0 +1,32 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+-- ------------------------------------------------------- 
+-- GrupTipiId
+-- ------------------------------------------------------- 
+create table [Lkp].[Src5GrupTipi]
+(
+   Id               Int Unique Not null,
+   GrupTipi         nVarchar(30)   null
+
+   constraint  pk_Src5GrupTipi primary key (Id)
+)
+
+INSERT INTO [Lkp].[Src5GrupTipi] (Id, GrupTipi)
+ VALUES 
+  ( 0,     N'0.Tanımsız'),
+  ( 1,     N'Grup 1'),
+  ( 2,     N'Grup 2'),
+  ( 3,     N'Grup 3'),
+  ( 4,     N'Grup 4'),
+  ( 5,     N'Grup 5'),
+  ( 6,     N'Grup 6'),
+  ( 7,     N'Grup 7'),
+  ( 8,     N'Grup 8'),
+  ( 9,     N'Grup 9'),
+  (10,     N'Grup 10')
+
+commit transaction
+
+/*CreateTableEnd*/

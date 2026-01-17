@@ -130,7 +130,8 @@ INSERT INTO [Lkp].[OnmOdemePlaniUcretTipi] (Id, UcretTipi)
 
   ( 23111,    N'Teorik sınav ücreti'),
   ( 23112,    N'Uygulama sınav ücreti'),
-  ( 23113,    N'Diğer ücretler')
+  ( 23113,    N'Diğer ücretler'),
+  ( 23114,    N'Src5 Teorik sınav ücreti')
 
   
 -- ------------------------------------------------------- 

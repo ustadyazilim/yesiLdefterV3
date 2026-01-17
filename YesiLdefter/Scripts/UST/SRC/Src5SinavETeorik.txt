@@ -1,0 +1,271 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+ create table Src5SinavETeorik
+ (
+   Id                    Int IDENTITY(1,1) not null, 
+   FirmId                Int       not null,
+   IsActive              Bit       not null, /* default : 1 = active, 0 = not active */  
+   TalepId               Int       not null, 
+   AdayId                Int       not null, /* default 0 */
+   TcNo                  Varchar(11)   null,
+   TamAdiSoyadi          nVarchar(100) null,
+   AdayDonemTipiId       Int           null, /* bu mebbisde e-sınav listelerinde yok, uyg. sınav listelerinde var */ 
+
+   --10
+   SinavDonemTipiId      Int           null, /* sınavın yapıldığı dönem */
+   SinavNo               SmallInt      null,  
+   SinavTarihSaat        Varchar(20)   null,
+   SinavTarihi           Date          null,
+   SinavSaati            Time          null,
+   -- 20
+   TeorikPuani           Numeric(5,2)  null, --SmallInt      null, küsüratlı puan var mış!!!!
+   DogruSayisi           SmallInt      null,
+   YanlisSayisi          SmallInt      null,
+   BosSayisi             SmallInt      null,
+   DurumuTipiId          SmallInt      null, /* kamudan okunuyor:  Başarılı/Başarısız */
+   KamuTarihValue        Varchar(20)   null, /* mebbis valuesi */ 
+   BelgeTuru             Varchar(30)   null, 
+
+   --60
+   VeriKaynakTipiId      SmallInt      null, /* 1. Kullanıcı Manuel, 2. Mebbis Dönem Aday Onaylama, 3. Mebbis Uygulama Sınav Listesi, 4. Mebbis Aday Durum Bilgileri, 11. Tabim veritabanı  */
+   VeriKaynakId          Int           null, /* Veri transferi edildiği tablodaki Id . Sorun olduğunda bilginin nereden geldiğine referans olsun */
+   SourceId              Int           null, /* Veri tarnsferi sırasındaki tablodaki kişinin Id si */
+
+   constraint		pk_Src5SinavETeorik primary key (Id)
+ )
+  
+ grant select, insert, update, delete on Src5SinavETeorik to public
+
+ create index X_Src5SinavETeorik01 on Src5SinavETeorik (TalepId)
+ create index X_Src5SinavETeorik02 on Src5SinavETeorik (AdayId)
+ create index X_Src5SinavETeorik03 on Src5SinavETeorik (TcNo)
+  
+commit transaction
+
+/*CreateTableEnd*/
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_Src5SinavETeorik] on [dbo].[Src5SinavETeorik] 
+AFTER INSERT, UPDATE
+AS BEGIN
+
+    DECLARE eSinavCursor cursor local for select Id from Inserted order by Id
+    DECLARE @curId bigint
+
+    OPEN eSinavCursor
+    FETCH NEXT FROM eSinavCursor INTO @curId
+    
+	declare @yFirmId int = 0
+	declare @yTalepId int = 0
+    declare @TalepTipiId smallInt = 0
+	declare @yAdayId int = 0
+	declare @yTcNo varchar(11)
+	declare @yTamAdiSoyadi nVarchar(100)
+	declare @yAdayDonemTipiId int = 0
+	declare @SinavDonemTipiId int = 0
+	declare @ySinavNo int = 0
+	declare @ySinavTarihSaat varchar(20) = ''
+	declare @xSinavTarihSaat varchar(20) = ''
+	declare @ySinavTarihi date = null
+	declare @ySinavTarihi2 varchar(10)
+	declare @ySinavSaati varchar(10) = ''
+	declare @xSinavSaati varchar(10) = ''
+	declare @yTeorikPuani int = 0
+	declare @yKamuTarihValue varchar(20) = ''
+	declare @SinavSonucTipiId smallInt = 0
+    declare @ySourceId int
+
+    -- Veri Transferi başladımı
+    declare @DbUpdatesIsActive Bit = 0
+    set @DbUpdatesIsActive = [dbo].[fnc_getIsDbUpdate] (0)
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+	    set @ySinavNo = 0 
+	    set @ySinavTarihi = null
+	    set @ySinavSaati = ''
+				
+        select 
+         @yFirmId = ins.FirmId
+        ,@yTalepId = isnull(ins.TalepId,0)
+        ,@yAdayId = isnull(ins.AdayId,0)
+		,@yTcNo = isnull(ins.TcNo,'')
+		,@yTamAdiSoyadi = isnull(ins.TamAdiSoyadi,'')
+        ,@yAdayDonemTipiId = isnull(ins.AdayDonemTipiId,0)
+		,@ySinavNo = isnull(ins.SinavNo,0)
+		,@ySinavTarihSaat = isnull(ins.SinavTarihSaat, '0')
+        ,@ySinavTarihi = ins.SinavTarihi 
+        ,@ySinavSaati = isnull(ins.SinavSaati,'')
+		,@yTeorikPuani = isnull(ins.TeorikPuani, 0)
+		,@SinavSonucTipiId = isnull(ins.DurumuTipiId, 0)
+		,@yKamuTarihValue = isnull(ins.KamuTarihValue,'')
+        ,@ySourceId = isnull(ins.SourceId,0)
+		from inserted ins
+    	where ins.Id = @curId
+
+        Select @TalepTipiId = TalepTipiId 
+        From dbo.SrcAdayTalep
+        Where FirmId = @yFirmId
+        and   Id = @yTalepId
+
+		set @xSinavSaati = Convert(varchar(10), Convert(time, @xSinavTarihSaat, 104))
+			    
+		-- Sınavın hangi dönemde yapıldığı tespit ediliyor
+        set @SinavDonemTipiId = [dbo].[fnc_getDonemTipiId] ('BUGUN', @ySinavTarihi)
+
+		if (@yTalepId = 0 and @yAdayId = 0 and @ySourceId > 0)
+		begin
+            -- Talepleri kontrol et
+            Select top 1 @yAdayId = AdayId, @yTalepId = Id, @yAdayDonemTipiId = DonemTipiId 
+            From dbo.SrcAdayTalep
+            Where VeriKaynakId = @ySourceId
+            order by DonemTipiId desc, Id desc
+		end
+
+		if (@yTalepId = 0 and @yAdayId = 0 and @yTcNo <> '')
+		begin
+            -- Talepleri kontrol et
+            Select top 1 @yAdayId = AdayId, @yTalepId = Id, @yAdayDonemTipiId = DonemTipiId 
+            From dbo.SrcAdayTalep
+            Where TcNo = @yTcNo
+            and   isnull(DonemTipiId,0) < @SinavDonemTipiId
+            order by DonemTipiId desc, Id desc
+		end
+		
+		if (@yAdayDonemTipiId = 0 and @yTcNo <> '')
+		begin
+            -- Talepleri kontrol et
+            Select top 1 @yAdayId = AdayId, @yTalepId = Id, @yAdayDonemTipiId = DonemTipiId 
+            From dbo.SrcAdayTalep
+            Where TcNo = @yTcNo
+            and   isnull(DonemTipiId,0) <= @SinavDonemTipiId
+            order by DonemTipiId desc, Id desc
+		end
+
+		if (@yTeorikPuani >= 60 and @yTeorikPuani <= 100) 
+		   set @SinavSonucTipiId = 1 -- Başarılı
+		
+		if (@yTeorikPuani > 0 and @yTeorikPuani < 60) 
+		   set @SinavSonucTipiId = 2 -- Başarısız
+		
+		if (@yTeorikPuani < 0 or @yTeorikPuani > 100) 
+		   set @SinavSonucTipiId = 0 -- Tanımsız
+
+		if (@yTeorikPuani = 0 and @SinavSonucTipiId < 3)
+		   set @SinavSonucTipiId = 0 -- Tanımsız
+
+
+		-- Dört gün öncesi tarihindekileri say
+		Select @ySinavNo = (count(Id) + 1) From SrcSinavETeorik
+		Where IsActive = 1
+		and FirmId = @yFirmId
+		and TalepId = @yTalepId
+		and SinavTarihi < @ySinavTarihi  
+
+		update Src5SinavETeorik set
+           TalepId = @yTalepId
+         , AdayId = @yAdayId
+		 , AdayDonemTipiId = @yAdayDonemTipiId
+		 , SinavDonemTipiId = @SinavDonemTipiId
+		 , SinavNo = @ySinavNo
+		 --, SinavTarihSaat = @ySinavTarihSaat
+		 , SinavTarihi = @ySinavTarihi
+         --, SinavSaati = @ySinavSaati
+		 , DurumuTipiId = @SinavSonucTipiId
+		Where Id = @curId
+		    
+		/* SinavNo ayarlanıyor */
+        Update dbo.Src5SinavETeorik set 
+           SinavNo = x.yeniSinavNo
+        From dbo.Src5SinavETeorik as a,
+        (
+            Select sinav.Id 
+            , ROW_NUMBER() OVER(ORDER BY sinav.SinavTarihi) AS yeniSinavNo 
+            From dbo.Src5SinavETeorik as sinav
+            where sinav.FirmId = @yFirmId
+            and   sinav.IsActive = 1
+            and   sinav.TalepId = @yTalepId
+        ) as x
+        Where a.Id = x.Id
+        and   a.SinavNo <> x.yeniSinavNo
+
+        -- Aday ken kayıt durumuna halen geçmemişse
+		Update dbo.SrcAdayTalep set KayitTipiId = 3
+        Where Id = @yTalepId
+        and   KayitTipiId < 3 -- Kesin Kayıt değilse ? kesin kayıt durumuna getir
+		
+        -- Veri transferi yapılmıyorsa 
+        if (@DbUpdatesIsActive = 0)
+        begin
+        
+            EXECUTE [dbo].[prc_SrcAdayTakip] @yFirmId, @yTalepId, 0, 'SrcAdayTakipESinav'
+
+        
+            -- Kullanıcı manel sınav tarih girince, eğer o tarih dbo.SrcSinavTarihi tablosunda yoksa otomatik eklesin
+            ;With SinavTarihleri_ as (
+                  Select @ySinavTarihi as SinavTarihi 
+            ) -- with      
+            MERGE dbo.Src5SinavTarihi AS target
+            USING ( Select * From SinavTarihleri_ ) AS source
+            ON target.SinavTarihi = source.SinavTarihi and target.SinavTipiId = 11
+            WHEN NOT MATCHED THEN
+                Insert ( 
+                 [FirmId]
+                ,[IsActive]
+                ,[SinavTipiId]
+                ,[SinavDonemTipiId]
+                ,[SinavTarihSaat]
+                ,[SinavTarihi]
+                ,[SinavSaati]
+                ,[AdaySayisi],[BasariliAdaySayisi],[BasarisizAdaySayisi],[VeriKaynakId] )
+                Values (@yFirmId ,1    ,11  ,0  ,null  ,source.SinavTarihi ,  null,  0  ,0  ,0  ,0  );
+                
+        end
+
+        FETCH NEXT FROM eSinavCursor INTO @curId
+    END
+
+    CLOSE eSinavCursor
+    DEALLOCATE eSinavCursor   
+
+END
+
+/*CreateTriggerEnd*/
+
+
+/*CreateLkpTable*/
+
+begin transaction
+
+-- ------------------------------------------------------- 
+-- DurumuTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'Src5SinavETeorikDurumuTipi')
+drop table [Lkp].[Src5SinavETeorikDurumuTipi]
+
+create table [Lkp].[Src5SinavETeorikDurumuTipi]
+(
+   Id               Int Unique not null, 
+   DurumuTipi       nVarchar(50)   null
+   
+   constraint  pk_Src5SinavETeorikDurumuTipi primary key (Id)
+)
+
+Delete from [Lkp].[Src5SinavETeorikDurumuTipi]
+INSERT INTO [Lkp].[Src5SinavETeorikDurumuTipi] (Id, DurumuTipi)
+ VALUES 
+  ( 0,    N''),
+  ( 1,    N'Başarılı'),
+  ( 2,    N'Başarısız'),
+  ( 3,    N'Girmedi'),
+  ( 4,    N'Raporlu'),
+  ( 5,    N'İptal Edildi'),
+  ( 6,    N'İptal Edildi(Sınav Yasaklı)'),
+  ( 7,    N'Girmeyecek')
+
+commit transaction
+
+/*CreateLkpTableEnd*/

@@ -95,7 +95,7 @@ AS BEGIN
 
     -- Veri Transferi başladımı
     declare @DbUpdatesIsActive Bit = 0
-    set @DbUpdatesIsActive =  dbo]. fnc_getIsDbUpdate] (13)
+    set @DbUpdatesIsActive =  dbo. fnc_getIsDbUpdate (13)
 
     declare @TalepId int = 0
     declare @AdayId int = 0
@@ -203,9 +203,9 @@ begin transaction
 -- TalepTipiId
 -- ------------------------------------------------------- 
 IF EXISTS (Select * From sys.objects WHERE name = 'MtskAdayUcretMebbisTalepTipi')
-drop table  Lkp]. MtskAdayUcretMebbisTalepTipi]
+drop table  Lkp.MtskAdayUcretMebbisTalepTipi
 
-create table  Lkp]. MtskAdayUcretMebbisTalepTipi]
+create table  Lkp.MtskAdayUcretMebbisTalepTipi
 (
    Id               Int Unique not null, 
    TalepTipi        nVarchar(50)   null,
@@ -214,8 +214,8 @@ create table  Lkp]. MtskAdayUcretMebbisTalepTipi]
    constraint  pk_MtskAdayUcretMebbisTalepTipi primary key (Id)
 )
 
-Delete from  Lkp]. MtskAdayUcretMebbisTalepTipi]
-INSERT INTO  Lkp]. MtskAdayUcretMebbisTalepTipi] (Id, TalepTipi, IsActive)
+Delete from  Lkp.MtskAdayUcretMebbisTalepTipi
+INSERT INTO  Lkp.MtskAdayUcretMebbisTalepTipi (Id, TalepTipi, IsActive)
  VALUES 
   ( 0,    N'Seçiniz', 1),
   ( 1,    N'Sertifika', 1),
@@ -231,9 +231,9 @@ INSERT INTO  Lkp]. MtskAdayUcretMebbisTalepTipi] (Id, TalepTipi, IsActive)
 --IF EXISTS (SELECT * FROM sys.objects WHERE name = '')
 
 IF EXISTS (Select * From sys.objects WHERE name = 'MtskAdayUcretMebbisTaksitSayisiTipi')
-drop table  Lkp]. MtskAdayUcretMebbisTaksitSayisiTipi]
+drop table  Lkp.MtskAdayUcretMebbisTaksitSayisiTipi
 
-create table  Lkp]. MtskAdayUcretMebbisTaksitSayisiTipi]
+create table  Lkp.MtskAdayUcretMebbisTaksitSayisiTipi
 (
    Id               Int Unique not null, 
    TaksitSayisiTipi nVarchar(20)   null,
@@ -242,8 +242,8 @@ create table  Lkp]. MtskAdayUcretMebbisTaksitSayisiTipi]
    constraint  pk_MtskAdayUcretMebbisTaksitSayisiTipi primary key (Id)
 )
 
-Delete from  Lkp]. MtskAdayUcretMebbisTaksitSayisiTipi]
-INSERT INTO  Lkp]. MtskAdayUcretMebbisTaksitSayisiTipi] (Id, TaksitSayisiTipi, IsActive)
+Delete from  Lkp.MtskAdayUcretMebbisTaksitSayisiTipi
+INSERT INTO  Lkp.MtskAdayUcretMebbisTaksitSayisiTipi (Id, TaksitSayisiTipi, IsActive)
  VALUES 
   ( 0,    N'Seçiniz', 1),
   (100,   N'Peşin', 1),

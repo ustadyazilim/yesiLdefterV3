@@ -1,0 +1,240 @@
+﻿/*CreateProcedure*/
+
+CREATE PROCEDURE [dbo].[prc_Src5DonemKontrolu] (@FirmId int)  
+AS BEGIN
+ 
+  --declare @FirmId Int 
+  --set @FirmId = 2
+
+  declare @YIL1 varchar(4)
+  declare @YIL2 varchar(4)
+  declare @YIL3 varchar(4)
+  declare @YIL4 varchar(4)
+  declare @YIL5 varchar(4)
+  declare @YIL6 varchar(4)
+  declare @YIL7 varchar(4)
+
+  declare @AY1  varchar(2)
+  declare @AY2  varchar(2)
+  declare @AY3  varchar(2)
+  declare @AY4  varchar(2)
+  declare @AY5  varchar(2)
+  declare @AY6  varchar(2)
+  declare @AY7  varchar(2)
+
+  declare @AyAdi1  nvarchar(15)
+  declare @AyAdi2  nvarchar(15)
+  declare @AyAdi3  nvarchar(15)
+  declare @AyAdi4  nvarchar(15)
+  declare @AyAdi5  nvarchar(15)
+  declare @AyAdi6  nvarchar(15)
+  declare @AyAdi7  nvarchar(15)
+  
+  declare @yilI1 Int
+  declare @ayI1 Int
+  declare @ayI2 Int
+  declare @ayI3 Int
+  declare @ayI4 Int
+  declare @ayI5 Int
+  declare @ayI6 Int
+  declare @ayI7 Int
+  
+  declare @YILAY1 varchar(6)
+  declare @YILAY2 varchar(6)
+  declare @YILAY3 varchar(6)
+  declare @YILAY4 varchar(6)
+  declare @YILAY5 varchar(6)
+  declare @YILAY6 varchar(6)
+  declare @YILAY7 varchar(6)
+
+  print 'prc_Src5DonemKontrolu başladı'
+
+  -- Mevcut yil, ay
+  select 
+	  @yilI1 = YEAR(GETDATE())
+ 	, @ayI1 = MONTH(GETDATE()) 
+
+  --test
+  --set @ayI1 = 12
+
+  set @ayI2 = @ayI1 + 1
+  set @ayI3 = @ayI1 + 2
+  set @ayI4 = @ayI1 + 3
+  set @ayI5 = @ayI1 + 4
+  set @ayI6 = @ayI1 + 5
+  set @ayI7 = @ayI1 + 6
+
+  set @YIL1 = Convert(varchar(4), @yilI1)
+  set @YIL2 = Convert(varchar(4), @yilI1)
+  set @YIL3 = Convert(varchar(4), @yilI1)
+  set @YIL4 = Convert(varchar(4), @yilI1)
+  set @YIL5 = Convert(varchar(4), @yilI1)
+  set @YIL6 = Convert(varchar(4), @yilI1)
+  set @YIL7 = Convert(varchar(4), @yilI1)
+
+  if (@ayI2 > 12) 
+  begin
+    set @ayI2 = @ayI2 - 12
+    set @YIL2 = Convert(varchar(4), @yilI1 + 1)
+  end
+  
+  if (@ayI3 > 12) 
+  begin
+    set @ayI3 = @ayI3 - 12
+    set @YIL3 = Convert(varchar(4), @yilI1 + 1)
+  end
+  
+  if (@ayI4 > 12) 
+  begin
+    set @ayI4 = @ayI4 - 12
+    set @YIL4 = Convert(varchar(4), @yilI1 + 1)
+  end
+
+  if (@ayI5 > 12) 
+  begin
+    set @ayI5 = @ayI5 - 12
+    set @YIL5 = Convert(varchar(4), @yilI1 + 1)
+  end
+
+  if (@ayI6 > 12) 
+  begin
+    set @ayI6 = @ayI6 - 12
+    set @YIL6 = Convert(varchar(4), @yilI1 + 1)
+  end
+
+  if (@ayI7 > 12) 
+  begin
+    set @ayI7 = @ayI7 - 12
+    set @YIL7 = Convert(varchar(4), @yilI1 + 1)
+  end
+
+  /*
+  print @YIL1
+  print @AY1
+  print @YILAY1
+  */
+  
+  set @AY1 = Convert(varchar(2), @ayI1)
+  set @AY2 = Convert(varchar(2), @ayI2)
+  set @AY3 = Convert(varchar(2), @ayI3)
+  set @AY4 = Convert(varchar(2), @ayI4)
+  set @AY5 = Convert(varchar(2), @ayI5)
+  set @AY6 = Convert(varchar(2), @ayI6)
+  set @AY7 = Convert(varchar(2), @ayI7)
+  
+  if (@ayI1 < 10) set @AY1 = '0' + @AY1 
+  if (@ayI2 < 10) set @AY2 = '0' + @AY2 
+  if (@ayI3 < 10) set @AY3 = '0' + @AY3
+  if (@ayI4 < 10) set @AY4 = '0' + @AY4
+  if (@ayI5 < 10) set @AY5 = '0' + @AY5
+  if (@ayI6 < 10) set @AY6 = '0' + @AY6
+  if (@ayI7 < 10) set @AY7 = '0' + @AY7
+
+  set @YILAY1 = @YIL1 + @AY1
+  set @YILAY2 = @YIL2 + @AY2
+  set @YILAY3 = @YIL3 + @AY3
+  set @YILAY4 = @YIL4 + @AY4
+  set @YILAY5 = @YIL5 + @AY5
+  set @YILAY6 = @YIL6 + @AY6
+  set @YILAY7 = @YIL7 + @AY7
+    
+  EXECUTE [dbo].[prc_MonthName] @ayI1, @AyAdi1 output
+  EXECUTE [dbo].[prc_MonthName] @ayI2, @AyAdi2 output
+  EXECUTE [dbo].[prc_MonthName] @ayI3, @AyAdi3 output
+  EXECUTE [dbo].[prc_MonthName] @ayI4, @AyAdi4 output
+  EXECUTE [dbo].[prc_MonthName] @ayI5, @AyAdi5 output
+  EXECUTE [dbo].[prc_MonthName] @ayI6, @AyAdi6 output
+  EXECUTE [dbo].[prc_MonthName] @ayI7, @AyAdi7 output
+
+  --print @YILAY1
+  --print @YILAY2
+  --print @YILAY3
+ 
+  -- Src5Donem 
+  -- Yeni dönem oluşturuluyor. Bu dönem grup ile oluşturuluyor : 2022, 1
+  --
+  if ( Select count(Id) ADET from [Src5Donemi] where [DonemTipiId] = @YILAY1 ) = 0 
+  begin 
+    insert into [Src5Donemi] ( ParentId, FirmId, IsActive, DonemTipiId, GrupTipiId, KurumOnayTipiId ) values ( 0, @FirmId, 1, @YILAY1, 1, 0 ) 
+  end
+ 
+  if ( Select count(Id) ADET from [Src5Donemi] where [DonemTipiId] = @YILAY2 ) = 0 
+  begin 
+    insert into [Src5Donemi] ( ParentId, FirmId, IsActive, DonemTipiId, GrupTipiId, KurumOnayTipiId ) values ( 0, @FirmId, 1, @YILAY2, 1, 0 ) 
+  end
+
+  if ( Select count(Id) ADET from [Src5Donemi] where [DonemTipiId] = @YILAY3 ) = 0 
+  begin 
+    insert into [Src5Donemi] ( ParentId, FirmId, IsActive, DonemTipiId, GrupTipiId, KurumOnayTipiId ) values ( 0, @FirmId, 1, @YILAY3, 1, 0 ) 
+  end
+
+  if ( Select count(Id) ADET from [Src5Donemi] where [DonemTipiId] = @YILAY4 ) = 0 
+  begin 
+    insert into [Src5Donemi] ( ParentId, FirmId, IsActive, DonemTipiId, GrupTipiId, KurumOnayTipiId ) values ( 0, @FirmId, 1, @YILAY4, 1, 0 ) 
+  end
+
+  if ( Select count(Id) ADET from [Src5Donemi] where [DonemTipiId] = @YILAY5 ) = 0 
+  begin 
+    insert into [Src5Donemi] ( ParentId, FirmId, IsActive, DonemTipiId, GrupTipiId, KurumOnayTipiId ) values ( 0, @FirmId, 1, @YILAY5, 1, 0 ) 
+  end
+
+  if ( Select count(Id) ADET from [Src5Donemi] where [DonemTipiId] = @YILAY6 ) = 0 
+  begin 
+    insert into [Src5Donemi] ( ParentId, FirmId, IsActive, DonemTipiId, GrupTipiId, KurumOnayTipiId ) values ( 0, @FirmId, 1, @YILAY6, 1, 0 ) 
+  end
+
+  if ( Select count(Id) ADET from [Src5Donemi] where [DonemTipiId] = @YILAY7 ) = 0 
+  begin 
+    insert into [Src5Donemi] ( ParentId, FirmId, IsActive, DonemTipiId, GrupTipiId, KurumOnayTipiId ) values ( 0, @FirmId, 1, @YILAY7, 1, 0 ) 
+  end
+
+  
+  -- SrcDonemTipi 
+  -- Yeni dönemin combolardaki captionu için  2022 - Ocak şeklindeki ifadesi oluşturuluyor 
+  --
+  if ( Select count(Id) ADET from [Lkp].[SrcDonemTipi] where [Id] = @YILAY1 ) = 0 
+  begin 
+    insert into [Lkp].[SrcDonemTipi] ( Id, DonemTipi ) values ( Convert(int, @YILAY1),  @YIL1 + ' - ' + @AyAdi1 ) 
+  end
+
+  if ( Select count(Id) ADET from [Lkp].[SrcDonemTipi] where [Id] = @YILAY2 ) = 0 
+  begin 
+    insert into [Lkp].[SrcDonemTipi] ( Id, DonemTipi ) values ( Convert(int, @YILAY2),  @YIL2 + ' - ' + @AyAdi2 ) 
+  end
+
+  if ( Select count(Id) ADET from [Lkp].[SrcDonemTipi] where [Id] = @YILAY3 ) = 0 
+  begin 
+    insert into [Lkp].[SrcDonemTipi] ( Id, DonemTipi ) values ( Convert(int, @YILAY3),  @YIL3 + ' - ' + @AyAdi3 ) 
+  end
+
+  if ( Select count(Id) ADET from [Lkp].[SrcDonemTipi] where [Id] = @YILAY4 ) = 0 
+  begin 
+    insert into [Lkp].[SrcDonemTipi] ( Id, DonemTipi ) values ( Convert(int, @YILAY4),  @YIL4 + ' - ' + @AyAdi4 ) 
+  end
+
+  if ( Select count(Id) ADET from [Lkp].[SrcDonemTipi] where [Id] = @YILAY5 ) = 0 
+  begin 
+    insert into [Lkp].[SrcDonemTipi] ( Id, DonemTipi ) values ( Convert(int, @YILAY5),  @YIL5 + ' - ' + @AyAdi5 ) 
+  end
+
+  if ( Select count(Id) ADET from [Lkp].[SrcDonemTipi] where [Id] = @YILAY6 ) = 0 
+  begin 
+    insert into [Lkp].[SrcDonemTipi] ( Id, DonemTipi ) values ( Convert(int, @YILAY6),  @YIL6 + ' - ' + @AyAdi6 ) 
+  end
+
+  if ( Select count(Id) ADET from [Lkp].[SrcDonemTipi] where [Id] = @YILAY7 ) = 0 
+  begin 
+    insert into [Lkp].[SrcDonemTipi] ( Id, DonemTipi ) values ( Convert(int, @YILAY7),  @YIL7 + ' - ' + @AyAdi7 ) 
+  end
+  
+
+  print 'prc_Src5DonemKontrolu bitti'
+
+
+END -- procedure
+
+
+/*CreateProcedureEnd*/
+
+
+

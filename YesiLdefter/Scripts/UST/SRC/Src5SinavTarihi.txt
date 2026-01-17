@@ -1,0 +1,225 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+ create table Src5SinavTarihi
+ (
+   
+   Id                       Int IDENTITY(1,1) not null, 
+   FirmId                   Int       not null,
+   IsActive                 Bit       not null, /* default : 1 = active, 0 = not active */  
+   --10
+   SinavTipiId              SmallInt      null,
+   SinavDonemTipiId         Int           null,
+   SinavTarihSaat           Varchar(20)   null,
+   SinavTarihi              Date          null,
+   SinavSaati               Time          null,
+   KamuTarihValue           Varchar(20)   null, /* kamu.gov.tr valuesi */ 
+
+   --20
+   AdaySayisi               SmallInt      null,
+   BasariliAdaySayisi       SmallInt      null,
+   BasarisizAdaySayisi      SmallInt      null,
+   --30
+   VeriKaynakId             Int           null, /* veri transferlerinde kullanılmak üzere */
+
+   constraint		pk_Src5SinavTarihi primary key (Id)
+ )
+  
+ grant select, insert, update, delete on Src5SinavTarihi to public
+
+ create index X_Src5SinavTarihi01 on Src5SinavTarihi (SinavDonemTipiId desc, SinavTarihi desc)
+ 
+commit transaction
+
+/*CreateTableEnd*/
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_Src5SinavTarihi] on [dbo].[Src5SinavTarihi] 
+AFTER INSERT,UPDATE
+AS 
+BEGIN
+
+    declare myCursor cursor local for select Id from Inserted 
+    declare @curId bigint
+
+    OPEN myCursor
+
+	declare @ySinavTipiId smallInt
+    declare @SinavDonemTipiId int
+	declare @ySinavTarihSaat varchar(20)
+	declare @eSinavTarihi  date
+	declare @ySinavTarihi  date
+	declare @ySinavSaati time
+	declare @yKamuTarihValue varchar(20)
+
+    FETCH NEXT FROM myCursor INTO @curId
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        select 
+		    @eSinavTarihi = isnull(dlt.SinavTarihi, CONVERT(date, getdate(),103))
+        from deleted dlt
+        where dlt.Id = @curId
+
+        select 
+            @ySinavTipiId = isnull(ins.SinavTipiId,0)
+		  , @ySinavTarihSaat = isnull(ins.SinavTarihSaat,'')
+		  , @ySinavTarihi = isnull(ins.SinavTarihi, CONVERT(date, getdate(),103))
+          , @yKamuTarihValue = isnull(ins.KamuTarihValue, '')
+        from inserted ins
+        where ins.Id = @curId
+		
+        -- <option value='12020134?05/12/2021'>05/12/2021</option>
+        if (@ySinavTipiId < 10 and
+            @yKamuTarihValue <> '')
+        begin
+            -- set @ySinavTarihi = CONVERT(date, substring(@yKamuTarihValue, CHARINDEX('?', @yKamuTarihValue) + 1, 10), 103)
+            print 'Kamu sınav tarihi güncellendi.'
+        end 
+
+        if (MONTH(@ySinavTarihi) < 10)
+             set @SinavDonemTipiId = convert(int, convert(varchar(5), YEAR(@ySinavTarihi)) + '0' + convert(varchar(3), MONTH(@ySinavTarihi)))
+        else set @SinavDonemTipiId = convert(int, convert(varchar(5), YEAR(@ySinavTarihi)) + convert(varchar(3), MONTH(@ySinavTarihi)))
+		
+        Update Src5SinavTarihi set
+            SinavTarihi = @ySinavTarihi
+          , SinavSaati = @ySinavSaati 
+          , SinavDonemTipiId = @SinavDonemTipiId 
+		Where Id = @curId
+
+        FETCH NEXT FROM myCursor INTO @curId
+    END
+
+    CLOSE myCursor
+    DEALLOCATE myCursor  
+
+END
+
+/*CreateTriggerEnd*/
+
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_Src5SinavTarihiDelete] on [dbo].[Src5SinavTarihi]
+AFTER DELETE
+AS BEGIN
+
+    declare cursorDlt cursor local for select Id from deleted
+	declare @curId bigint
+
+	OPEN cursorDlt
+    FETCH NEXT FROM cursorDlt INTO @curId
+
+    declare @FirmId int 
+    declare @SinavTarihi date
+	declare @SinavTipiId smallInt
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+	    Select @FirmId = dlt.FirmId
+		, @SinavTarihi = isnull(dlt.SinavTarihi, convert(date, '01.01.1900', 103))
+		, @SinavTipiId = dlt.SinavTipiId
+	    From deleted dlt
+	    Where dlt.Id = @curId
+	  
+        -- Kamu teorik sınavı
+        if (@SinavTipiId = 11)
+        begin
+            Update dbo.SrcAdayTakip Set 
+                eSinavPlanTarihi = null
+            Where eSinavPlanTarihi = @SinavTarihi 
+            and   FirmId = @FirmId
+        end
+/*
+		Delete From dbo.Src5SinavListesi
+        Where  FirmId = @FirmId
+        and    SinavTipiId = @SinavTipiId                
+        and    SinavTarihi = @SinavTarihi
+*/		
+        FETCH NEXT FROM cursorDlt INTO @curId
+    END
+
+    CLOSE cursorDlt
+    DEALLOCATE cursorDlt
+
+END
+
+/*CreateTriggerEnd*/
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_Src5SinavTarihiDeleteIsLock] on [dbo].[Src5SinavTarihi]
+INSTEAD of DELETE
+AS BEGIN
+
+    declare isLockCursorDlt cursor local for select Id from deleted
+    declare @curId bigint
+
+    OPEN isLockCursorDlt
+
+    FETCH NEXT FROM isLockCursorDlt INTO @curId
+    declare @SinavTarihi date
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        Select @SinavTarihi = SinavTarihi 
+        From deleted
+        Where Id = @curId
+        /*
+        if ( Select COUNT(Id) as Adet From dbo.Src5SinavETeorik
+             Where convert(date,SinavTarihi,103) = convert(date,@SinavTarihi,103) ) > 0
+        begin
+            PRINT 'Bu kayıt silinemez!. Bu tarihte teorik sınav kayıtları mevcut...'
+            RETURN
+        end
+        */
+        Delete from dbo.Src5SinavTarihi Where Id = @curId
+
+      FETCH NEXT FROM isLockCursorDlt INTO @curId
+    END
+
+    CLOSE isLockCursorDlt
+    DEALLOCATE isLockCursorDlt
+
+END
+
+/*CreateTriggerEnd*/
+
+
+
+
+
+/*CreateLkpTable*/
+
+begin transaction
+
+-- ------------------------------------------------------- 
+-- SinavTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'Src5SinavTarihiSinavTipi')
+drop table [Lkp].[Src5SinavTarihiSinavTipi]
+
+create table [Lkp].[Src5SinavTarihiSinavTipi]
+(
+   Id               Int Unique not null, 
+   SinavTipi        nVarchar(30)   null
+   
+   constraint  pk_Src5SinavTarihiSinavTipi primary key (Id)
+)
+
+Delete from [Lkp].[Src5SinavTarihiSinavTipi]
+INSERT INTO [Lkp].[Src5SinavTarihiSinavTipi] (Id, SinavTipi)
+ VALUES 
+  ( 0,    N''),
+  ( 1,    N'Teorik Sınav'),
+  ( 11,   N'Teorik Sınav (manuel)')
+
+
+commit transaction
+
+/*CreateLkpTableEnd*/

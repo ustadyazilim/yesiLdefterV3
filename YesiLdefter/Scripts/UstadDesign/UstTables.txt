@@ -155,10 +155,14 @@ INSERT INTO [Lkp].[UpTablesModulCode] (Id, ProjectCode, ModulCode, ModulName)
   ( 12001, N'RSM', N'AYR', N'Ayarlar'),
   
   ( 21001, N'MEB', N'MTS', N'Mtsk'),
-  ( 21002, N'MEB', N'OKL', N'Okul'),
+  ( 21002, N'MEB', N'ISM', N'İşMak')
   ( 21003, N'MEB', N'SRC', N'Src'),
-  ( 21004, N'MEB', N'YDL', N'Yabancı Dil'),
-  ( 21005, N'MEB', N'ISM', N'İşMak')
+  ( 21004, N'MEB', N'SRC5', N'Src5'),
+  ( 21005, N'MEB', N'PSK', N'Piskoteknik')
+  
+  --( 21002, N'MEB', N'OKL', N'Okul'),
+  --( 21004, N'MEB', N'YDL', N'Yabancı Dil'),
+  --( 21005, N'MEB', N'ISM', N'İşMak')
 
 
 

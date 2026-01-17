@@ -2,7 +2,7 @@
 
 begin transaction
 
- create table SrcDonemi
+ create table dbo.SrcDonemi
  (
    Id                   Int IDENTITY(1,1) not null, 
    ParentId             Int       not null, /* default 0 */
@@ -12,6 +12,8 @@ begin transaction
    DonemTipiId          Int           null,
    GrupTipiId           SmallInt      null,
    SertifikaTipiId      SmallInt      null, /* detayı [Lkp].[SrcSertifikaTipi] tablosunda */
+   SertifikaSinifTipiId SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */
+
    GrupBaslamaTarihi    Date          null,
    GrupSubeSayisi       SmallInt      null, /* kaç şube açıldığı bilgisi , fakat ekranda hiç kullanılmadı */
    DonemAdaySayisi      SmallInt      null,
@@ -133,3 +135,4 @@ AS BEGIN
 END
 
  /*CreateTriggerEnd*/
+

@@ -487,11 +487,11 @@ namespace YesiLdefter
                 ///// 
                 if (v.SP_Firm_SectorTypeId == (Int16)v.msSectorType.UstadMtsk)
                 {
-                    Task task1 = new Task(() =>
-                    {
-                        execute_prc_MtskGunlukTakipler();
-                    });
-                    task1.Start();
+                    //Task task1 = new Task(() =>
+                    //{
+                    //    execute_prc_MtskGunlukTakipler();
+                    //});
+                    //task1.Start();
                 }
             }
             else

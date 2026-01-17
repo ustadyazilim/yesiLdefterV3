@@ -1,6 +1,6 @@
 ﻿namespace YesiLdefter
 {
-    partial class ms_User
+    partial class ms_User_Api
     {
         /// <summary>
         /// Required designer variable.
@@ -35,11 +35,14 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(383, 282);
+            this.ControlBox = false;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "ms_User";
             this.Opacity = 0.5D;
             this.Text = "Kullanıcı Girişi";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ms_User_FormClosing);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.ms_User_FormClosed);
             this.ResumeLayout(false);
 
         }

@@ -87,6 +87,8 @@ INSERT INTO [Lkp].[MsDbUpdatesSectorType] (Id, SectorType)
   ( 201,  N'Mtsk'),
   ( 202,  N'İşmak'),
   ( 203,  N'SRC'),
+  ( 204,  N'SRC5'),
+  ( 205,  N'Piskoteknik'),
   ( 211,  N'TabimMtsk')
 
 -- ------------------------------------------------------- 

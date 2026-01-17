@@ -121,6 +121,8 @@ as begin
 		  if (@SectorTypeId = 201) set @dbNameKunye = 'Mtsk'
 		  if (@SectorTypeId = 202) set @dbNameKunye = 'Ismak'
 		  if (@SectorTypeId = 203) set @dbNameKunye = 'Src'
+		  if (@SectorTypeId = 204) set @dbNameKunye = 'Src5'
+		  if (@SectorTypeId = 205) set @dbNameKunye = 'Pskt'
 
 		  set @Id = CONVERT(varchar(8), @curId)
           
@@ -174,6 +176,8 @@ INSERT INTO [Lkp].[UstadFirmsSectorType] (Id, SectorType)
   ( 201,  N'Mtsk'),
   ( 202,  N'İşmak'),
   ( 203,  N'SRC'),
+  ( 204,  N'SRC5'),
+  ( 205,  N'Piskoteknik'),
   ( 211,  N'TabimMtsk'),
   ( 212,  N'TabimIsmak'),
   ( 213,  N'TabimSrc')

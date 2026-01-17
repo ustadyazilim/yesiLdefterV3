@@ -61,6 +61,7 @@ begin transaction
    AlacakTelafiEgitimUcreti     Numeric(22,5) null,
    AlacakBasarisizEgitimUcreti  Numeric(22,5) null,
    AlacakUygBasarisizUcreti     Numeric(22,5) null,
+   AlacakUygBasarisizToplami    Numeric(22,5) null,  /* AlacakUygulamaSinavUcreti + AlacakBasarisizEgitimUcreti + AlacakUygBasarisizUcreti */
    AlacakDigerUcretler          Numeric(22,5) null,
    AlacakUcretlerToplami        Numeric(22,5) null,
 
@@ -71,6 +72,7 @@ begin transaction
    BorcTelafiEgitimUcreti     Numeric(22,5) null,
    BorcBasarisizEgitimUcreti  Numeric(22,5) null,
    BorcUygBasarisizUcreti     Numeric(22,5) null,
+   BorcUygBasarisizToplami    Numeric(22,5) null,  /* BorcUygulamaSinavUcreti + BorcBasarisizEgitimUcreti + BorcUygBasarisizUcreti */
    BorcDigerUcretler          Numeric(22,5) null,
    BorcUcretlerToplami        Numeric(22,5) null,
 
@@ -81,6 +83,7 @@ begin transaction
    VGTelafiEgitimUcreti       Numeric(22,5) null,
    VGBasarisizEgitimUcreti    Numeric(22,5) null,
    VGUygBasarisizUcreti       Numeric(22,5) null,
+   VGUygBasarisizToplami      Numeric(22,5) null,  /* VGUygulamaSinavUcreti + VGBasarisizEgitimUcreti + VGUygBasarisizUcreti */
    VGDigerUcretler            Numeric(22,5) null,
    VGUcretlerToplami          Numeric(22,5) null,
 

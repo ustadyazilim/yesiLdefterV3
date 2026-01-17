@@ -1,0 +1,130 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+ create table Src5SablonTeorikF
+ (
+   Id                      Int IDENTITY(1,1) not null, 
+   FirmId                  Int       not null,
+
+   DersTipiId              Int           null, 
+   DerslikTipiId           SmallInt      null,
+   BaslangicTarihi         Date          null,
+   BaslangicSaati          Varchar(5)    null,
+   DersSureDakika          SmallInt      null,
+   TeorikMolaDakika        SmallInt      null,
+   UygulamaMolaDakika      SmallInt      null,
+   DersAdedi               SmallInt      null,
+   GunlukMaxDers           SmallInt      null,
+
+   constraint		pk_Src5SablonTeorikF primary key (Id)
+ )
+  
+ grant select, insert, update, delete on Src5SablonTeorikF to public
+
+ create index X_Src5SablonTeorikF01 on Src5SablonTeorikF (FirmId)
+ 
+commit transaction
+
+/*CreateTableEnd*/
+
+/*CreateLkpTable*/
+
+begin transaction
+
+
+-- ------------------------------------------------------- 
+-- DersTipiId
+-- ------------------------------------------------------- 
+if exists (Select * From sys.objects WHERE name = 'Src5SablonTeorikFDersTipi')
+drop table [Lkp].[Src5SablonTeorikFDersTipi]
+create table Lkp.Src5SablonTeorikFDersTipi
+(
+   Id          Int Unique Not Null,
+   DersTipi    nVarchar(50)   null,
+
+   constraint  pk_Src5SablonTeorikFDersTipi primary key (Id)
+)
+INSERT INTO Lkp.Src5SablonTeorikFDersTipi (Id, DersTipi)
+ VALUES 
+    (   0, N'Gruba ait tüm dersler')
+  , (2010, N'ADR Tehlikeli Madde Taşımacılığı'),
+  , (2020, N'ADR Temel Uygulama Eğitimi')
+  , (2030, N'TANKER-Tehlikeli Madde Taşımacılığı')
+  , (2040, N'TANKER-Uygulama Eğitimi')
+  , (2050, N'SINIF1-Tehlikeli Madde Taşımacılığı')
+  , (2060, N'SINIF7-Tehlikeli Madde Taşımacılığı')
+  , (2110, N'YENİLEME-ADR Temel Eğitimi')
+  , (2120, N'YENİLEME-Tanker Eğitimi')
+  , (2130, N'YENİLEME-Sınıf 1 Eğitimi')
+  , (2140, N'YENİLEME-Sınıf 7 Eğitimi')
+
+
+-- ------------------------------------------------------- 
+-- DerslikTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'Src5SablonTeorikFDerslikTipi')
+drop table [Lkp].[Src5SablonTeorikFDerslikTipi]
+
+create table Lkp.Src5SablonTeorikFDerslikTipi
+(
+   Id              Int Unique Not Null,
+   DerslikTipi     nVarchar(50)   null,
+   DerslikKamuAdi  nVarchar(50)   null,
+   DerslikKamuKodu nVarchar(20)   null,
+   
+   constraint  pk_Src5SablonTeorikFDerslikTipi primary key (Id)
+)
+
+INSERT INTO Lkp.Src5SablonTeorikFDerslikTipi (Id, DerslikTipi)
+ VALUES 
+  ( 0, N'Tanımsız'),
+  ( 1, N'Derslik-1'),
+  ( 2, N'Derslik-2'),
+  ( 3, N'Derslik-3'),
+  ( 4, N'Derslik-4'),
+  ( 5, N'Derslik-5'),
+  ( 6, N'Derslik-6'),
+  ( 7, N'Derslik-7'),
+  ( 8, N'Derslik-8'),
+  ( 9, N'Derslik-9'),
+  (10, N'Derslik-10')
+
+  commit transaction
+ 
+/*CreateLkpTableEnd*/
+
+
+/*CreateData*/
+
+declare @FirmId int = :FIRM_ID
+
+if ( Select count(Id) From dbo.Src5SablonTeorikF) = 0
+begin
+    INSERT INTO [dbo].[Src5SablonTeorikF]
+           ([FirmId]
+           ,[DersTipiId]
+           ,[DerslikTipiId]
+           ,[BaslangicTarihi]
+           ,[BaslangicSaati]
+           ,[DersSureDakika]
+           ,[TeorikMolaDakika]
+           ,[UygulamaMolaDakika]
+           ,[DersAdedi]
+           ,[GunlukMaxDers])
+     VALUES
+           (@FirmId -- FirmId
+           ,0       -- DersTipiId
+           ,1       -- DerslikTipiId
+           ,null    -- BaslangicTarihi
+           ,'09:00' -- BaslangicSaati
+           ,'50'    -- DersSureDakika
+           ,'10'    -- TeorikMolaDakika
+           ,'20'    -- UygulamaMolaDakika
+           ,0       -- DersAdedi
+           ,8       -- GunlukMaxDers
+           )
+end
+
+/*CreateDataEnd*/
+
