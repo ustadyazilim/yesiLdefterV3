@@ -3,10 +3,15 @@
 CREATE PROCEDURE [dbo].[prc_SrcTeorikDersSablonuOlustur] (@SablonTeorikBId int)  
 AS BEGIN
 
+    -- --------------------------------
+    -- ŞABLON OLUŞTUR
+    -- --------------------------------
+
     SET NOCOUNT ON;
 
-    -- declare @SablonTeorikBId int = 1
+    --declare @SablonTeorikBId int = 1
     declare @SertifikaTipiId int
+    declare @talepTipiId varchar(2)
     declare @DerslikAdiTipiId smallInt
     declare @SablonKodu varchar(30)
 
@@ -49,6 +54,12 @@ AS BEGIN
 15066	ÜDY 3
 15067	ÜDY 4
 */
+    if (@SertifikaTipiId >= 15001 and @SertifikaTipiId <= 15008) Set @talepTipiId = '1' -- Src
+    if  @SertifikaTipiId = 15021 Set @talepTipiId = '2' -- Src5
+    if  @SertifikaTipiId = 15031 Set @talepTipiId = '3' -- Src6
+    if (@SertifikaTipiId >= 15041 and @SertifikaTipiId <= 15047) Set @talepTipiId = '4' -- Ody
+    if (@SertifikaTipiId >= 15061 and @SertifikaTipiId <= 15067) Set @talepTipiId = '5' -- Udy
+
     declare @Kolon NVARCHAR(50) = ''
     -- Src'ler
     if (@SertifikaTipiId = 15001) set @Kolon = 'GrupSaati1234' 
@@ -90,20 +101,20 @@ AS BEGIN
     DECLARE @colQ sysname = QUOTENAME(@col);  -- @colQ = [DersSaati1]
     DECLARE @sql NVARCHAR(MAX);
 
-    Select @colQ
+    -- Select @colQ
 
 
     SET @sql = N'
-IF OBJECT_ID(''tempdb..##ExpandedDers'') IS NOT NULL DROP TABLE ##ExpandedDers;
+IF OBJECT_ID(''tempdb..##ExpandedDersSablon'') IS NOT NULL DROP TABLE ##ExpandedDersSablon;
 
 SELECT
-  ROW_NUMBER() OVER (ORDER BY sd.Id, n.number) AS RowNum,
+  ROW_NUMBER() OVER (ORDER BY sd.Id, n.number) AS RowNumber,
   sd.Id, sd.FirmId, sd.IsActive, sd.TalepTipiId, sd.Grubu, sd.SiraNo, sd.DersAdi,
   sd.DersSaati1, sd.DersSaati2, sd.DersSaati3, sd.DersSaati4,
   sd.GrupSaati12, sd.GrupSaati34, sd.GrupSaati24, sd.GrupSaati1234, sd.MebbisKodu,
   n.number AS DersSira,
   CONVERT(varchar(20), n.number) + ''. ders'' AS DersAdiSatiri
-INTO ##ExpandedDers
+INTO ##ExpandedDersSablon
 FROM Lkp.SrcDersler AS sd
 CROSS APPLY (SELECT ISNULL(TRY_CONVERT(int, sd.' + @colQ + '), 0) AS Hrs) AS h
 CROSS APPLY (
@@ -112,15 +123,17 @@ CROSS APPLY (
   WHERE type = ''P''
     AND number BETWEEN 1 AND h.Hrs
 ) AS n
-WHERE h.Hrs > 0;
+WHERE 0 = 0
+and sd.TalepTipiId = ' + @talepTipiId + '
+and h.Hrs > 0;
 
---SELECT COUNT(*) AS RowCount_ FROM ##ExpandedDers;
---SELECT * FROM ##ExpandedDers;
+--SELECT COUNT(*) AS RowCount_ FROM ##ExpandedDersSablon;
+--SELECT * FROM ##ExpandedDersSablon;
 ';
 
     EXEC sp_executesql @sql;
 
-    --SELECT * FROM ##ExpandedDers;
+    --SELECT * FROM ##ExpandedDersSablon;
 
     declare @dersId int
     declare @dersSiraNo smallint
@@ -135,7 +148,7 @@ WHERE h.Hrs > 0;
     declare @myRowNum int
     declare myCursor CURSOR local
     for 
-    Select RowNum From ##ExpandedDers 
+    Select RowNumber From ##ExpandedDersSablon 
       
     OPEN myCursor;
   
@@ -150,8 +163,8 @@ WHERE h.Hrs > 0;
             , @dersSiraNo = ed.DersSira
             , @dersAdi = ed.DersAdi
             , @dersGrubu = ed.Grubu
-          from ##ExpandedDers as ed 
-          Where RowNum = @myRowNum
+          from ##ExpandedDersSablon as ed 
+          Where RowNumber = @myRowNum
 	      
           --print convert(varchar(10), @dersId) + ' ' + convert(varchar(10), @dersSiraNo) + ' ' + @dersAdi + ' : ' + convert(varchar(15), @tarih) + ' : saat : ' + convert(varchar(3), @saat)      
 		  
@@ -161,6 +174,7 @@ WHERE h.Hrs > 0;
                and   DersSiraNo = @dersSiraNo
              ) = 0
           begin
+
               INSERT INTO [dbo].[SrcSablonTeorikS]
                   ([FirmId],[IsActive],[DonemTipiId],[GrupTipiId],[SubeTipiId],[DersGrubu],[DersTipiId],[DerslikAdiTipiId],[DersTarihi],[DersSaatiTipiId],[PersonelId],[EgitimTipiId],[BaslamaSaati],[BitisSaati]
                   ,[TDersIsUploaded],[SablonTeorikBId],[DersSiraNo],[SablonKodu])

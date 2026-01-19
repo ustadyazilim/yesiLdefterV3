@@ -2955,7 +2955,7 @@ namespace Tkn_DevColumn
             string tExpression = string.Empty;
             string tProp_Navigator = string.Empty;
             string tSearch_TableIPCode = string.Empty;
-
+                        
             Int16 tcmp_format_type = 0;
             Int16 tcmp_format_type2 = 0;
             Int16 tExpressionType = 0;
@@ -2975,6 +2975,7 @@ namespace Tkn_DevColumn
                 tExpression = row_Fields["LKP_PROP_EXPRESSION"].ToString();
                 tProp_Navigator = t.Set(row_Fields["PROP_NAVIGATOR"].ToString(), "", "");
                 tSearch_TableIPCode = row_Fields["SEARCH_TABLEIPCODE"].ToString();
+                //tdisplayformat = t.Set(row_Fields["CMP_DISPLAY_FORMAT"].ToString(), row_Fields["LKP_CMP_DISPLAY_FORMAT"].ToString(), "");
 
                 /// 0,  'none'
                 /// 1,  'Numeric'
@@ -3800,9 +3801,9 @@ namespace Tkn_DevColumn
                 {
                     //((LayoutControlItem)Column).TextVisible = false; // caption olmasın
                     //((LayoutControlItem)Column).TextLocation = DevExpress.Utils.Locations.Top;
-                    ((LayoutControlItem)Column).Control = Create_UserPictureControl(tEdit, FormName, TableIPCode, tFieldName, ImagesMasterTableIPCode);
+                    ((LayoutControlItem)Column).Control = Create_UserPictureControl(tEdit, FormName, TableIPCode, tFieldName, ImagesMasterTableIPCode, tdisplayformat);
                 }
-                else ((Control)Column).Controls.Add(Create_UserPictureControl(tEdit, FormName, TableIPCode, tFieldName, ImagesMasterTableIPCode));
+                else ((Control)Column).Controls.Add(Create_UserPictureControl(tEdit, FormName, TableIPCode, tFieldName, ImagesMasterTableIPCode, tdisplayformat));
 
 
                 tXtraEditors_Properties(row_Fields, tEdit, tcolumn_type, tview_type);
@@ -5821,7 +5822,8 @@ namespace Tkn_DevColumn
             string FormName,
             string TableIPCode,
             string FieldName,
-            string ImagesMasterTableIPCode)
+            string ImagesMasterTableIPCode,
+            string tdisplayformat)
         {
             
             TableLayoutPanel tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
@@ -5829,6 +5831,7 @@ namespace Tkn_DevColumn
             //PopupContainerEdit popupContainerEdit1 = new DevExpress.XtraEditors.PopupContainerEdit();
             //PopupContainerControl popupContainerControl1 = new DevExpress.XtraEditors.PopupContainerControl();
             SimpleButton btn_tPictures = new DevExpress.XtraEditors.SimpleButton();
+            ZoomTrackBarControl zoomTrackBarControl1 = new DevExpress.XtraEditors.ZoomTrackBarControl();
 
             /*
             //WebCam_Capture.WebCamCapture webCamCapture1 = new WebCam_Capture.WebCamCapture();//
@@ -5840,7 +5843,6 @@ namespace Tkn_DevColumn
             SimpleButton btn_Delete = new DevExpress.XtraEditors.SimpleButton();
             SimpleButton btn_SaveAs = new DevExpress.XtraEditors.SimpleButton();
             SimpleButton btn_Save = new DevExpress.XtraEditors.SimpleButton();
-            ZoomTrackBarControl zoomTrackBarControl1 = new DevExpress.XtraEditors.ZoomTrackBarControl();
             LabelControl labelControl_PictureSize = new DevExpress.XtraEditors.LabelControl();
             ButtonEdit btn_Quality = new DevExpress.XtraEditors.ButtonEdit();
             ButtonEdit btn_Compress = new DevExpress.XtraEditors.ButtonEdit();
@@ -5857,8 +5859,8 @@ namespace Tkn_DevColumn
             //((System.ComponentModel.ISupportInitialize)(popupContainerEdit1.Properties)).BeginInit();
             //((System.ComponentModel.ISupportInitialize)(popupContainerControl1)).BeginInit();
             //popupContainerControl1.SuspendLayout();
-            //((System.ComponentModel.ISupportInitialize)(zoomTrackBarControl1)).BeginInit();
-            //((System.ComponentModel.ISupportInitialize)(zoomTrackBarControl1.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(zoomTrackBarControl1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(zoomTrackBarControl1.Properties)).BeginInit();
             //((System.ComponentModel.ISupportInitialize)(checkEdit_Tarayici.Properties)).BeginInit();
             //SuspendLayout();
 
@@ -5868,6 +5870,7 @@ namespace Tkn_DevColumn
             tableLayoutPanel1.ColumnCount = 1;
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             //tableLayoutPanel1.Controls.Add(popupContainerEdit1, 0, 1);
+            
             tableLayoutPanel1.Controls.Add(btn_tPictures, 0, 1);
             tableLayoutPanel1.Controls.Add(pictureEdit1, 0, 0);
             tableLayoutPanel1.Location = new System.Drawing.Point(31, 60);
@@ -5875,16 +5878,30 @@ namespace Tkn_DevColumn
             tableLayoutPanel1.RowCount = 2;
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 28F));
+            tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 28F));
             tableLayoutPanel1.Size = new System.Drawing.Size(130, 175);
             tableLayoutPanel1.TabIndex = 0;
+            
+            if (tdisplayformat == "ZOOM")
+            {
+                tableLayoutPanel1.Controls.Add(zoomTrackBarControl1, 0, 2);
+                tableLayoutPanel1.RowCount = 3;
+            }
+
             // 
             // pictureEdit1
             // 
             pictureEdit1.Dock = System.Windows.Forms.DockStyle.Fill;
             pictureEdit1.Location = new System.Drawing.Point(3, 3);
             //pictureEdit1.Name = "pictureEdit1";
+            pictureEdit1.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
             pictureEdit1.Properties.ShowScrollBars = true;
             pictureEdit1.Properties.ShowZoomSubMenu = DevExpress.Utils.DefaultBoolean.True;
+            if (tdisplayformat == "ZOOM")
+                pictureEdit1.Properties.SizeMode = DevExpress.XtraEditors.Controls.PictureSizeMode.Clip;
+            pictureEdit1.Properties.ZoomAccelerationFactor = 1D;
+            pictureEdit1.Properties.NullText = "Resim Yok";
+            pictureEdit1.Properties.ShowCameraMenuItem = DevExpress.XtraEditors.Controls.CameraMenuItemVisibility.Auto;
             pictureEdit1.Size = new System.Drawing.Size(124, 141);
             pictureEdit1.TabIndex = 0;
             //pictureEdit1.AccessibleName = FieldName;
@@ -6021,20 +6038,21 @@ namespace Tkn_DevColumn
             // 
             // zoomTrackBarControl1
             // 
-            ////zoomTrackBarControl1.EditValue = 100;
-            ////zoomTrackBarControl1.Location = new System.Drawing.Point(10, 92);
-            ////zoomTrackBarControl1.Name = "zoomTrackBarControl1";
-            ////zoomTrackBarControl1.Properties.LargeChange = 25;
-            ////zoomTrackBarControl1.Properties.Maximum = 400;
-            ////zoomTrackBarControl1.Properties.Middle = 5;
-            ////zoomTrackBarControl1.Properties.Minimum = 10;
-            ////zoomTrackBarControl1.Properties.ScrollThumbStyle = DevExpress.XtraEditors.Repository.ScrollThumbStyle.ArrowDownRight;
-            ////zoomTrackBarControl1.Size = new System.Drawing.Size(298, 23);
-            ////zoomTrackBarControl1.TabIndex = 7;
-            ////zoomTrackBarControl1.Value = 100;
-            ////zoomTrackBarControl1.AccessibleName = FieldName;
-            ////zoomTrackBarControl1.AccessibleDescription = FormName;
-            ////zoomTrackBarControl1.EditValueChanged += new System.EventHandler(zoomTrackBarControl1_EditValueChanged);
+            zoomTrackBarControl1.EditValue = 100;
+            zoomTrackBarControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+            zoomTrackBarControl1.Location = new System.Drawing.Point(0, 0);
+            zoomTrackBarControl1.Name = "zoomTrackBarControl1";
+            zoomTrackBarControl1.Properties.LargeChange = 25;
+            zoomTrackBarControl1.Properties.Maximum = 400;
+            zoomTrackBarControl1.Properties.Middle = 5;
+            zoomTrackBarControl1.Properties.Minimum = 10;
+            zoomTrackBarControl1.Properties.ScrollThumbStyle = DevExpress.XtraEditors.Repository.ScrollThumbStyle.ArrowDownRight;
+            zoomTrackBarControl1.Size = new System.Drawing.Size(298, 23);
+            zoomTrackBarControl1.TabIndex = 7;
+            zoomTrackBarControl1.Value = 100;
+            zoomTrackBarControl1.AccessibleName = FieldName;
+            zoomTrackBarControl1.AccessibleDescription = FormName;
+            zoomTrackBarControl1.EditValueChanged += new System.EventHandler(zoomTrackBarControl1_EditValueChanged);
             // 
             // labelControl_PictureSize
             // 
@@ -6126,7 +6144,7 @@ namespace Tkn_DevColumn
             //
             //
             //
-#endregion
+            #endregion
 
             tableLayoutPanel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(pictureEdit1.Properties)).EndInit();
@@ -6135,8 +6153,8 @@ namespace Tkn_DevColumn
             ////popupContainerControl1.ResumeLayout(false);
             ////popupContainerControl1.PerformLayout();
             //flowLayoutPanel1.ResumeLayout(false);
-            ////((System.ComponentModel.ISupportInitialize)(zoomTrackBarControl1.Properties)).EndInit();
-            ////((System.ComponentModel.ISupportInitialize)(zoomTrackBarControl1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(zoomTrackBarControl1.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(zoomTrackBarControl1)).EndInit();
             ////((System.ComponentModel.ISupportInitialize)(checkEdit_Tarayici.Properties)).EndInit();
 
             return tableLayoutPanel1;

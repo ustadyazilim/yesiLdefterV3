@@ -476,7 +476,7 @@ namespace YesiLdefter
                 {
                     t.AlertMessage("Uyarı", "Web tarayıcısı kapatılmış.");
                     v.webDriver_ = null;
-                    f.loginPageUrl = "";
+                    //f.loginPageUrl = "";
                     f.loginPageRun = false;
                 }
             }

@@ -1,6 +1,6 @@
 ﻿/*CreateProcedure*/
 
-CREATE PROCEDURE [dbo].[prc_SrcTeorikDersPlaniGruplari] (@DonemTipiId int)  
+CREATE PROCEDURE [dbo].[prc_SrcTeorikDersPlaniGruplari] (@FirmId int, @DonemTipiId int)  
 AS BEGIN
 
 -- DonemTipiId             : Dönem
@@ -23,7 +23,7 @@ AS BEGIN
    
    from Lkp.SrcDonemTipi as donem
    Where donem.Id = @DonemTipiId
-
+   
    union all
 
    Select  
@@ -42,6 +42,7 @@ AS BEGIN
 	   left outer join Lkp.SrcGrupTipi as grup on ( teoDers.GrupTipiId = grup.Id )
 	   left outer join Lkp.SrcSubeTipi as sube on ( teoDers.SubeTipiId = sube.Id )
      Where [teoDers].DonemTipiId = @DonemTipiId
+     and   [teoDers].FirmId = @FirmId
    ) as x
 
    union all
@@ -61,6 +62,7 @@ AS BEGIN
      from SrcTeorikDers as [teoDers]
 	   left outer join SrcPersoneli as [per] on (teoDers.PersonelId = per.TcNoCalismaIzniNo)
      Where [teoDers].DonemTipiId = @DonemTipiId
+     and   [teoDers].FirmId = @FirmId
    ) x
 
    union all
@@ -80,6 +82,7 @@ AS BEGIN
      from SrcTeorikDers as [teoDers]
 	   left outer join Lkp.SrcTeorikDersDerslikAdiTipi as [derslik] on (teoDers.DerslikAdiTipiId = derslik.Id)
      Where [teoDers].DonemTipiId = @DonemTipiId
+     and   [teoDers].FirmId = @FirmId
    ) x
 
 END -- procedure

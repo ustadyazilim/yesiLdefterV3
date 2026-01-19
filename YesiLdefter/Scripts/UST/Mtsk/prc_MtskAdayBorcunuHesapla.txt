@@ -24,6 +24,7 @@ UPDATE [dbo].[MtskAdayUcret]
       ,[AlacakTelafiEgitimUcreti] = x.AlacakTelafiEgitimUcreti
       ,[AlacakBasarisizEgitimUcreti] = x.AlacakBasarisizEgitimUcreti
       ,[AlacakUygBasarisizUcreti] = x.AlacakUygBasarisizUcreti
+      ,[AlacakUygBasarisizToplami] = x.AlacakUygulamaSinavUcreti + x.AlacakBasarisizEgitimUcreti + x.AlacakUygBasarisizUcreti
       ,[AlacakDigerUcretler] = x.AlacakDigerUcretler
       ,[AlacakUcretlerToplami] = x.AlacakToplamTutar
    
@@ -33,6 +34,7 @@ UPDATE [dbo].[MtskAdayUcret]
       ,[BorcTelafiEgitimUcreti] = x.BorcTelafiEgitimUcreti
       ,[BorcBasarisizEgitimUcreti] = x.BorcBasarisizEgitimUcreti
       ,[BorcUygBasarisizUcreti] = x.BorcUygBasarisizUcreti
+      ,[BorcUygBasarisizToplami] = x.BorcUygulamaSinavUcreti + x.BorcBasarisizEgitimUcreti + x.BorcUygBasarisizUcreti
       ,[BorcDigerUcretler] = x.BorcDigerUcretler
       ,[BorcUcretlerToplami] = x.BorcToplamTutar
 
@@ -42,6 +44,7 @@ UPDATE [dbo].[MtskAdayUcret]
       ,[VGTelafiEgitimUcreti] = x.VGTelafiEgitimUcreti
       ,[VGBasarisizEgitimUcreti] = x.VGBasarisizEgitimUcreti
       ,[VGUygBasarisizUcreti] = x.VGUygBasarisizUcreti
+      ,[VGUygBasarisizToplami] = x.VGUygulamaSinavUcreti + x.VGBasarisizEgitimUcreti + x.VGUygBasarisizUcreti
       ,[VGDigerUcretler] = x.VGDigerUcretler
       ,[VGUcretlerToplami] = x.VGToplamTutar
 

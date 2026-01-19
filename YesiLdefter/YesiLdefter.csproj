@@ -447,6 +447,12 @@
     <Compile Include="Forms\ms_User.Designer.cs">
       <DependentUpon>ms_User.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\ms_User_Api.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ms_User_Api.Designer.cs">
+      <DependentUpon>ms_User_Api.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\ms_User_Standalone.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -478,6 +484,12 @@
     </Compile>
     <Compile Include="Forms\ms_Webbrowser.Designer.cs">
       <DependentUpon>ms_Webbrowser.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ms_WhatsApp.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ms_WhatsApp.Designer.cs">
+      <DependentUpon>ms_WhatsApp.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\ms_XMLRead.cs">
       <SubType>Form</SubType>
@@ -601,8 +613,8 @@
     <EmbeddedResource Include="Forms\ms_ProjeDef.resx">
       <DependentUpon>ms_ProjeDef.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Forms\ms_User.resx">
-      <DependentUpon>ms_User.cs</DependentUpon>
+    <EmbeddedResource Include="Forms\ms_User_Api.resx">
+      <DependentUpon>ms_User_Api.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\ms_Webbrowser.resx">
       <DependentUpon>ms_Webbrowser.cs</DependentUpon>
@@ -923,6 +935,7 @@
     <Content Include="Scripts\UST\MsV3\prc_UsesTableIPCode.txt" />
     <Content Include="Scripts\UST\MsV3\tempEduUsersList.txt" />
     <Content Include="Scripts\UST\Hub\HubBildirimSablonlari.txt" />
+    <Content Include="Scripts\UST\MsV3\WhatsApp.txt" />
     <Content Include="Scripts\UST\Mtsk\BildirimSMS.txt" />
     <Content Include="Scripts\UST\Mtsk\DbUpdates.txt" />
     <Content Include="Scripts\UST\Mtsk\FileUpdates.txt" />
@@ -1016,7 +1029,7 @@
     <Content Include="Scripts\UST\Mtsk\prc_MtskUygulamaDersPlanHazirlaManuel.txt" />
     <Content Include="Scripts\UST\Mtsk\prc_MtskUygulamaDersPlaniListele.txt" />
     <Content Include="Scripts\UST\Mtsk\prc_MtskUygulamaDersBorclandir.txt" />
-    <Content Include="Scripts\UST\Mtsk\prc_setIsDbUpdateActive.txt" />
+    <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\prc_setIsDbUpdateActive.txt" />
     <Content Include="Scripts\UST\Mtsk\prc_MtskAdayNoVer.txt" />
     <Content Include="Scripts\UST\Mtsk\fnc_getHaftaBasiSonu.txt" />
     <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\CrsBildirimB.txt" />
@@ -1220,16 +1233,27 @@
     <Content Include="Scripts\UST\SRC\DbUpdates.txt" />
     <Content Include="Scripts\UST\SRC\fnc_getDonemTipiId.txt" />
     <Content Include="Scripts\UST\SRC\fnc_getEUSinavNo.txt" />
+    <Content Include="Scripts\UST\SRC\Lkp_Src5GrupTipi.txt" />
+    <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersPlaniElemanaOzel.txt" />
+    <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersPlaniGruplari.txt" />
+    <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersPlaniOlustur.txt" />
+    <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersToplamlari.txt" />
+    <Content Include="Scripts\UST\SRC\prc_Src5AdayTakip.txt" />
+    <Content Include="Scripts\UST\SRC\Src5SablonTeorikF.txt" />
     <Content Include="Scripts\UST\SRC\prc_MonthName.txt" />
+    <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersListesi.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcAdayBorclandirESinavTekTalep.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcAdayBorclandirUSinavTekTalep.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcAdayTakipTalepKaydiSingleSet.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcArtiTalepOlustur.txt" />
+    <Content Include="Scripts\UST\SRC\prc_Src5DonemKontrolu.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcDonemKontrolu.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcSinavListesi.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcSinavSatiriOlustur.txt" />
+    <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersMebbisDatasiniIsle.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersPlaniOlustur.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersSablonuOlustur.txt" />
+    <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersToplamlari.txt" />
     <Content Include="Scripts\UST\SRC\SrcAdayKimlik.txt" />
     <Content Include="Scripts\UST\SRC\SrcAdayEhliyet.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcAdayTablesInsert.txt" />
@@ -1237,7 +1261,10 @@
     <Content Include="Scripts\UST\SRC\prc_SrcAdayTakip.txt" />
     <Content Include="Scripts\UST\SRC\SrcAdayPisko.txt" />
     <Content Include="Scripts\UST\SRC\SrcDersinPersoneli.txt" />
+    <Content Include="Scripts\UST\SRC\Src5Donemi.txt" />
+    <Content Include="Scripts\UST\SRC\Src5SinavETeorik.txt" />
     <Content Include="Scripts\UST\SRC\SrcSinavETeorik.txt" />
+    <Content Include="Scripts\UST\SRC\Src5SinavTarihi.txt" />
     <Content Include="Scripts\UST\SRC\SrcSinavTarihi.txt" />
     <Content Include="Scripts\UST\SRC\SrcSinavUygulama.txt" />
     <Content Include="Scripts\UST\SRC\SrcSablonTeorikB.txt" />
@@ -1254,6 +1281,7 @@
     <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersPlaniElemanaOzel.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcTeorikDersPlaniGruplari.txt" />
     <Content Include="Scripts\UST\SRC\SrcKIhlalTeorikD.txt" />
+    <Content Include="Scripts\UST\SRC\Src5TeorikDers.txt" />
     <Content Include="Scripts\UST\SRC\SrcTeorikDers.txt" />
     <Content Include="Scripts\UST\SRC\Lkp_SrcDersler.txt" />
     <Content Include="Scripts\UST\SRC\SrcUcretPisko.txt" />

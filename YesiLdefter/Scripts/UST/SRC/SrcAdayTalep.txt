@@ -21,6 +21,7 @@ begin transaction
    TamAdiSoyadi          nVarchar(100) null, 
    Adi                   nVarchar(50)  null,
    Soyadi                nVarchar(50)  null,
+   --DogumYeri             nVarchar(50)  null,
    DogumTarihi           Date          null,
    BabaAdi               nVarchar(50)  null,
    AnneAdi               nVarchar(50)  null,
@@ -35,48 +36,61 @@ begin transaction
    TalepTipiId                    SmallInt        null, /* şimdilk kullanılmayacak, silme kalsın */
 
    -- 30
-   MevcutSertifikaTipiId          SmallInt        null, /* mevcut SRC sertifika tipi Id si */
-   MevcutSinifTipiId              SmallInt        null, /* Mevcut SRC5'in detay sertifika tipi Id si */
+   MevcutSertifikaTipiId          SmallInt        null, /* mevcut SRC, ODY, UDY sertifika tipi Id si, SRC5 için default 14391 olsun, ekranda görünmesede olur  */
+   MevcutSinif1TipiId             SmallInt        null, /* Mevcut SRC5'in detay sertifika tipi Id si */
+   MevcutSinif2TipiId             SmallInt        null, /* Mevcut SRC5'in detay sertifika tipi Id si */
+   MevcutSinif3TipiId             SmallInt        null, /* Mevcut SRC5'in detay sertifika tipi Id si */
+   MevcutSinif4TipiId             SmallInt        null, /* Mevcut SRC5'in detay sertifika tipi Id si */
+
    MevcutSertifikaNumarasi        nVarchar(20)    null,
    MevcutSertifikaVerilisTarihi   date            null,
    MevcutSertVerildigiKurum       nVarchar(100)   null,
    MevcutSertVerildigiIl          nVarchar(15)    null,
 
    -- 41
-   IstenenSertifikaTipiId  SmallInt      null, /* İstenen SRC sertifika tipi Id si */
-   IstenenSinifTipiId      SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */
-   IstemeNedeniTipiId      SmallInt      null, /* 1. sertifika ilk defa alıyor, 2. yenileme */
-   SertifikaVerTarih       date          null, /* Verilen sertifikanın veriliş tarihi */
-   SonGecerlilikTarihi     date          null, /* Verilen sertifikanın son geçerlilik tarihi */
-   SertifikaNo             Varchar(10)   null, /* Sertifika No İlçe Milli Eğitim tarafından veriliyor, kullanıcılar onu mebbis den rapora bakarak öğrenip buraya işliyorlar */
+   IstenenSertifikaTipiId    SmallInt      null, /* İstenen SRC, ODY, UDY sertifika tipi Id si, SRC5için default 14391 olsun ekranda görünmesede olur */
+   IstenenSinif1TipiId       SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */  
+   IstenenSinif2TipiId       SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */  
+
+   ArtiSertifikaTipiId       SmallInt      null, /* İstenen SRC, ODY, UDY + SRC5 sertifika tipi Id si */
+   ArtiSinif1TipiId          SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */  
+   ArtiSinif2TipiId          SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */  
+
+   IstemeNedeniTipiId      SmallInt      null, /* 1. sertifika ilk defa alıyor, 2. yenileme : SRC5 kalmadı */
    
-   /* ODY ve ÜDY ler için hangi yabancı dilleri ve seviye bilgisi olduğu gerekiyor  */ 
 
    -- 50
    -- Ders veya yaş için muafiyeti var
+   SertifikaVerTarih       date          null, /* Verilen sertifikanın veriliş tarihi */
+   SonGecerlilikTarihi     date          null, /* Verilen sertifikanın son geçerlilik tarihi */
+   SertifikaNo             Varchar(10)   null, /* Sertifika No İlçe Milli Eğitim tarafından veriliyor, kullanıcılar onu mebbis den rapora bakarak öğrenip buraya işliyorlar */
    IsMuafiyetiVar          Bit           null, /* 0 = yok, 1 = var */  
    MuafiyetAciklamasi      nVarchar(50)  null, 
 
    -- 60
    /* Dönem bilgileri */
    /* mebbisden Nakil için kayıt olduğu dönem bilgisi isteyebilir */ 
-   DonemTipiId             Int           null,
-   GrupTipiId              SmallInt      null,
-   SubeTipiId              SmallInt      null,
-   GrupSubeId			   Int           null, /* SrcGrupSubesi tablosundaki Id : Kullanıcı tek bir ifadeyi seçsin, trigger detayı set etsin. (DonemTipiId, GrupTipiId, SubeTipiId )  */   
+   DonemTipiId            Int           null,
+   GrupTipiId             SmallInt      null,
+   SubeTipiId             SmallInt      null,
+   GrupSubeId             Int           null, /* SrcGrupSubesi tablosundaki Id : Kullanıcı tek bir ifadeyi seçsin, trigger detayı set etsin. (DonemTipiId, GrupTipiId, SubeTipiId )  */   
+
+   -- 65
+   Sinav1IlTercihiId      SmallInt      null,
+   Sinav2IlTercihiId      SmallInt      null,
+   Sinav3IlTercihiId      SmallInt      null,
 
    -- 70
-   MebbisKurumOnayi        Bit           null, /* 0-Onaysız, 1-Onaylandı */		
-   MebbisDurumTipiId       SmallInt      null,
-   MebbisDurumOkundu       Bit           null,
-   KayitTipiId             SmallInt      null, /* 1.'Ön kayıt', 2.'Kayıt aşamasında', 3.'Kesin kayıt' ... */
+   MebbisKurumOnayi       Bit           null, /* 0-Onaysız, 1-Onaylandı */		
+   MebbisDurumTipiId      SmallInt      null,
+   MebbisDurumOkundu      Bit           null,
+   KayitTipiId            SmallInt      null, /* 1.'Ön kayıt', 2.'Kayıt aşamasında', 3.'Kesin kayıt' ... */
 
    /* Dönem bilgileri SON */
 
    -- 80
-   --BasvuruResim            VarBinary(max) null,
-   --BasvuruResimSmall       VarBinary(max) null,
-
+   BasvuruResim            VarBinary(max) null, /* Başvuru resimi yakında geliyor */
+   BasvuruResimSmall       VarBinary(max) null,
 
    KullaniciUyarilari      nVarchar(200)  null,
    SistemUyarilari         nVarchar(200)  null,
@@ -97,6 +111,7 @@ begin transaction
    AdresAlindi             Bit            null,
    BelgelerGeldi           Bit            null,
      
+
    -- 110
    IsDosyaKapandi          Bit            null, /* Dosya kapandı ise 1, açık ise 0 */
    DosyaKapanmaNedeni      nVarchar(50)   null,
@@ -112,6 +127,7 @@ begin transaction
   create index X_SrcAdayTalep02 on SrcAdayTalep (TamAdiSoyadi)
   create index X_SrcAdayTalep03 on SrcAdayTalep (AdayId)
   create index X_SrcAdayTalep04 on SrcAdayTalep (DonemTipiId,GrupTipiId,SubeTipiId)
+  create index X_SrcAdayTalep05 on SrcAdayTalep (TalepTipiId)
 
 commit transaction
 
@@ -211,6 +227,9 @@ AS BEGIN
   declare @DbUpdatesIsActive Bit = 0
   set @DbUpdatesIsActive = [dbo].[fnc_getIsDbUpdate] (0)
 
+  declare @SectorTypeId smallint = 0 -- 201. Mtsk, 202. İşmak, 203. Src, 204. Src5
+  
+
   WHILE @@FETCH_STATUS = 0
   BEGIN
       print '  talep while begin '
@@ -282,6 +301,8 @@ AS BEGIN
 
       From inserted as ins
       Where ins.Id = @TalepId
+
+      Set @SectorTypeId = dbo.fnc_getSectorTypeId(@yFirmId)
 
       -- TamAdiSoyadi var ise Adi ve Soyadi tespit ediliyor 
       if ((@yTamAdiSoyadi <> '') and (@yAdi = '') and (@ySoyadi = ''))
@@ -397,9 +418,6 @@ AS BEGIN
           (@yEhliyetGeldi = 1) and
           (@yOgrenimGeldi = 1) and
           (@yAdliSicilGeldi = 1) and
-          --(@ySaglikGeldi = 1) and
-          --(@yImzaAlindi = 1) and
-          --(@ySozlesmeYapildi = 1) and
           (@yAdresAlindi = 1)) 
            set @yBelgelerGeldi = 1
       else set @yBelgelerGeldi = 0
@@ -449,130 +467,211 @@ AS BEGIN
 
       if (@DbUpdatesIsActive = 0)
       begin 
-          if ( Select Count(Id) as ADET
+          -----------------------------------------------------------
+          -- Src ise 
+          -----------------------------------------------------------
+          if (@SectorTypeId = 203)    
+          begin
+               -- Tanımlı olmayan Donem kayıt edilirse 
+               -- (tarnsferler sırasında oluyor)
+               if ( Select Count(Id) as ADET
                From [dbo].[SrcDonemi]
                Where DonemTipiId = @yDonemTipiId
                and   GrupTipiId = @yGrupTipiId ) = 0 
                and @yGrupTipiId > 1
-          begin
-              INSERT INTO [dbo].[SrcDonemi]
-                   ([ParentId]
-                   ,[FirmId]
-                   ,[IsActive]
-                   ,[DonemTipiId]
-                   ,[GrupTipiId]
-                   ,[KurumOnayTipiId])
-              VALUES
-                   (0 --ParentId
-                   ,@yFirmId
-                   ,1 --IsActive
-                   ,@yDonemTipiId
-                   ,@yGrupTipiId
-                   ,0 -- KurumOnayTipiId
-				   )
-          end
+               begin
+                   INSERT INTO [dbo].[SrcDonemi]
+                        ([ParentId]
+                        ,[FirmId]
+                        ,[IsActive]
+                        ,[DonemTipiId]
+                        ,[GrupTipiId]
+                        ,[KurumOnayTipiId])
+                   VALUES
+                        (0 --ParentId
+                        ,@yFirmId
+                        ,1 --IsActive
+                        ,@yDonemTipiId
+                        ,@yGrupTipiId
+                        ,0 -- KurumOnayTipiId
+			     	   )
+               end
 
-          if ( Select Count(Id) as ADET
+               -- Tanımlı olmayan Grup kayıt edilirse 
+               if ( Select Count(Id) as ADET
                From [dbo].[SrcGrupSubesi]
                Where DonemTipiId = @yDonemTipiId
                and   GrupTipiId = @yGrupTipiId 
                and   SubeTipiId = @ySubeTipiId ) = 0 
                and   @yGrupTipiId > 0
                and   @ySubeTipiId > 0
-          begin
-              INSERT INTO [dbo].[SrcGrupSubesi]
-                  ([ParentId]
-                  ,[FirmId]
-                  ,[IsActive]
-                  ,[DonemTipiId]
-                  ,[GrupTipiId]
-                  ,[SubeTipiId]
-                  ,[KurumOnayTipiId]
-                  ,[TDersIsUploaded]
-                  )
-              VALUES
-                  (0 --ParentId
-                  ,@yFirmId
-                  ,1 --IsActive
-                  ,@yDonemTipiId
-                  ,@yGrupTipiId
-                  ,@ySubeTipiId
-                  ,0 --KurumOnayTipiId
-                  ,0 --TDersIsUploaded
-                  )
-          end
+               begin
+                   INSERT INTO [dbo].[SrcGrupSubesi]
+                       ([ParentId]
+                       ,[FirmId]
+                       ,[IsActive]
+                       ,[DonemTipiId]
+                       ,[GrupTipiId]
+                       ,[SubeTipiId]
+                       ,[KurumOnayTipiId]
+                       ,[TDersIsUploaded]
+                       )
+                   VALUES
+                       (0 --ParentId
+                       ,@yFirmId
+                       ,1 --IsActive
+                       ,@yDonemTipiId
+                       ,@yGrupTipiId
+                       ,@ySubeTipiId
+                       ,0 --KurumOnayTipiId
+                       ,0 --TDersIsUploaded
+                       )
+               end
 
+               -- Donem, grup veya şube değiştiyse
+               if (@eDonemTipiId <> @yDonemTipiId
+               or  @eGrupTipiId <> @yGrupTipiId
+               or  @eSubeTipiId <> @ySubeTipiId
+               ) and (@eGrupSubeId = @yGrupSubeId)
+               begin
+               
+                   Select @kontrol1GrupSubeId = isnull(Id,0)
+                   From dbo.SrcGrupSubesi
+                   Where FirmId = @yFirmId 
+                   and   DonemTipiId = @yDonemTipiId
+                   and   GrupTipiId = @yGrupTipiId
+                   and   SubeTipiId = @ySubeTipiId
+               
+                   --Select @kontrol1GrupSubeId
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @yDonemTipiId
+                      ,GrupTipiId = @yGrupTipiId
+                      ,SubeTipiId = @ySubeTipiId
+                      ,GrupSubeId = @kontrol1GrupSubeId
+                   Where Id = @TalepId 
+               
+                   Set @eGrupSubeId = @kontrol1GrupSubeId
+                   Set @yGrupSubeId = @kontrol1GrupSubeId
+               end
+               
+               -- GrupSubeId değiştiyse
+               if (@eDonemTipiId = @yDonemTipiId
+               and @eGrupTipiId = @yGrupTipiId
+               and @eSubeTipiId = @ySubeTipiId
+               ) and (@eGrupSubeId <> @yGrupSubeId)
+               begin
+                   Select 
+                       @kontrol2DonemTipiId = isnull(DonemTipiId,0)
+                      ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
+                      ,@kontrol2SubeTipiId = isnull(SubeTipiId,0)
+                   From dbo.SrcGrupSubesi
+                   Where FirmId = @yFirmId 
+                   and   Id = @yGrupSubeId
+               
+                   --Select @kontrol2DonemTipiId,@kontrol2GrupTipiId,@kontrol2SubeTipiId,'yy'
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @kontrol2DonemTipiId
+                      ,GrupTipiId = @kontrol2GrupTipiId
+                      ,SubeTipiId = @kontrol2SubeTipiId
+                   Where Id = @TalepId 
+               end 
+               
+               -- Donem veya Grup veya Şube ve hatta GrupSubeId değiştiyse
+               -- GrupSubeId baz alınıyor
+               if (@eDonemTipiId <> @yDonemTipiId
+               or @eGrupTipiId <> @yGrupTipiId
+               or @eSubeTipiId <> @ySubeTipiId
+               ) and (@eGrupSubeId <> @yGrupSubeId)
+               begin
+                   Select 
+                       @kontrol2DonemTipiId = isnull(DonemTipiId,0)
+                      ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
+                      ,@kontrol2SubeTipiId = isnull(SubeTipiId,0)
+                   From dbo.SrcGrupSubesi
+                   Where FirmId = @yFirmId 
+                   and   Id = @yGrupSubeId
+               
+                   --Select @kontrol2DonemTipiId,@kontrol2GrupTipiId,@kontrol2SubeTipiId,'xx'
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @kontrol2DonemTipiId
+                      ,GrupTipiId = @kontrol2GrupTipiId
+                      ,SubeTipiId = @kontrol2SubeTipiId
+                   Where Id = @TalepId 
+               end 
 
-          -- Donem, grup veya şube değiştiyse
-          if (@eDonemTipiId <> @yDonemTipiId
-          or  @eGrupTipiId <> @yGrupTipiId
-          or  @eSubeTipiId <> @ySubeTipiId
-          ) and (@eGrupSubeId = @yGrupSubeId)
-          begin
-
-              Select @kontrol1GrupSubeId = isnull(Id,0)
-              From dbo.SrcGrupSubesi
-              Where FirmId = @yFirmId 
-              and   DonemTipiId = @yDonemTipiId
-              and   GrupTipiId = @yGrupTipiId
-              and   SubeTipiId = @ySubeTipiId
-    
-              --Select @kontrol1GrupSubeId
-              Update dbo.SrcAdayTalep Set
-                  DonemTipiId = @yDonemTipiId
-                 ,GrupTipiId = @yGrupTipiId
-                 ,SubeTipiId = @ySubeTipiId
-                 ,GrupSubeId = @kontrol1GrupSubeId
-              Where Id = @TalepId 
-
-              Set @eGrupSubeId = @kontrol1GrupSubeId
-              Set @yGrupSubeId = @kontrol1GrupSubeId
-          end
-
-          -- GrupSubeId değiştiyse
-          if (@eDonemTipiId = @yDonemTipiId
-          and @eGrupTipiId = @yGrupTipiId
-          and @eSubeTipiId = @ySubeTipiId
-          ) and (@eGrupSubeId <> @yGrupSubeId)
-          begin
-              Select 
-                  @kontrol2DonemTipiId = isnull(DonemTipiId,0)
-                 ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
-                 ,@kontrol2SubeTipiId = isnull(SubeTipiId,0)
-              From dbo.SrcGrupSubesi
-              Where FirmId = @yFirmId 
-              and   Id = @yGrupSubeId
-
-              --Select @kontrol2DonemTipiId,@kontrol2GrupTipiId,@kontrol2SubeTipiId,'yy'
-              Update dbo.SrcAdayTalep Set
-                  DonemTipiId = @kontrol2DonemTipiId
-                 ,GrupTipiId = @kontrol2GrupTipiId
-                 ,SubeTipiId = @kontrol2SubeTipiId
-              Where Id = @TalepId 
           end 
+          -----------------------------------------------------------
+          -- Src ise END
+          -----------------------------------------------------------
 
-          -- Donem veya Grup veya Şube ve hatta GrupSubeId değiştiyse
-          -- GrupSubeId baz alınıyor
-          if (@eDonemTipiId <> @yDonemTipiId
-          or @eGrupTipiId <> @yGrupTipiId
-          or @eSubeTipiId <> @ySubeTipiId
-          ) and (@eGrupSubeId <> @yGrupSubeId)
+          -----------------------------------------------------------
+          -- Src5 ise 
+          -----------------------------------------------------------
+          if (@SectorTypeId = 204)    
           begin
-              Select 
-                  @kontrol2DonemTipiId = isnull(DonemTipiId,0)
-                 ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
-                 ,@kontrol2SubeTipiId = isnull(SubeTipiId,0)
-              From dbo.SrcGrupSubesi
-              Where FirmId = @yFirmId 
-              and   Id = @yGrupSubeId
-
-              --Select @kontrol2DonemTipiId,@kontrol2GrupTipiId,@kontrol2SubeTipiId,'xx'
-              Update dbo.SrcAdayTalep Set
-                  DonemTipiId = @kontrol2DonemTipiId
-                 ,GrupTipiId = @kontrol2GrupTipiId
-                 ,SubeTipiId = @kontrol2SubeTipiId
-              Where Id = @TalepId 
+               -- Donem, grup değiştiyse
+               if (@eDonemTipiId <> @yDonemTipiId
+               or  @eGrupTipiId <> @yGrupTipiId
+               ) and (@eGrupSubeId = @yGrupSubeId)
+               begin
+               
+                   Select @kontrol1GrupSubeId = isnull(Id,0)
+                   From dbo.Src5Donemi
+                   Where FirmId = @yFirmId 
+                   and   DonemTipiId = @yDonemTipiId
+                   and   GrupTipiId = @yGrupTipiId
+               
+                   --Select @kontrol1GrupSubeId
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @yDonemTipiId
+                      ,GrupTipiId = @yGrupTipiId
+                      ,GrupSubeId = @kontrol1GrupSubeId
+                   Where Id = @TalepId 
+               
+                   Set @eGrupSubeId = @kontrol1GrupSubeId
+                   Set @yGrupSubeId = @kontrol1GrupSubeId
+               end
+               
+               -- GrupSubeId değiştiyse
+               if (@eDonemTipiId = @yDonemTipiId
+               and @eGrupTipiId = @yGrupTipiId
+               ) and (@eGrupSubeId <> @yGrupSubeId)
+               begin
+                   Select 
+                       @kontrol2DonemTipiId = isnull(DonemTipiId,0)
+                      ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
+                   From dbo.Src5Donemi
+                   Where FirmId = @yFirmId 
+                   and   Id = @yGrupSubeId
+               
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @kontrol2DonemTipiId
+                      ,GrupTipiId = @kontrol2GrupTipiId
+                   Where Id = @TalepId 
+               end 
+               
+               -- Donem veya Grup ve hatta GrupSubeId değiştiyse
+               -- GrupSubeId baz alınıyor
+               if (@eDonemTipiId <> @yDonemTipiId
+               or @eGrupTipiId <> @yGrupTipiId
+               ) and (@eGrupSubeId <> @yGrupSubeId)
+               begin
+                   Select 
+                       @kontrol2DonemTipiId = isnull(DonemTipiId,0)
+                      ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
+                   From dbo.Src5Donemi
+                   Where FirmId = @yFirmId 
+                   and   Id = @yGrupSubeId
+               
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @kontrol2DonemTipiId
+                      ,GrupTipiId = @kontrol2GrupTipiId
+                   Where Id = @TalepId 
+               end 
           end 
+          -----------------------------------------------------------
+          -- Src5 ise END
+          -----------------------------------------------------------
 
           -- Eğer bu belge (Artı/2. Belge) ise
           if (@yArtiBelgeTipiId = 2)
@@ -584,7 +683,7 @@ AS BEGIN
               begin
                   Update dbo.SrcAdayTalep Set
                       DonemTipiId = 0
-                    , GrupTipiId = 1
+                    , GrupTipiId = 0
                     , SubeTipiId = 0
                     , GrupSubeId = 0
                   Where Id = @TalepId
@@ -605,14 +704,16 @@ AS BEGIN
               Where Id = @TalepId
           end
 
-	      --Execute [dbo].[prc_SrcAdayTalepYasiniHesapla] @TalepId
           
           -- Veri transferi yapılmıyorsa 
           if (@DbUpdatesIsActive = 0)
           begin
               Execute [dbo].[prc_SrcAdayTablesInsert] @TalepId  -- Data transferi sırasında oluşturuluyor zaten insert oluyor
               Execute [dbo].[prc_SrcAdayTakipTalepKaydiSingleSet] @TalepId
-              Execute [dbo].[prc_SrcAdayTakip] @yFirmId, @TalepId, 0, 'SrcAdayTakipKayit'
+              if (@SectorTypeId = 203) -- Src 
+                  Execute [dbo].[prc_SrcAdayTakip] @yFirmId, @TalepId, 0, 'SrcAdayTakipKayit'
+              if (@SectorTypeId = 204) -- Src5
+                  Execute [dbo].[prc_Src5AdayTakip] @yFirmId, @TalepId, 0, 'SrcAdayTakipKayit'
           end
 		  
           -- SrcAdayBelgeler tablosu
@@ -754,11 +855,19 @@ INSERT INTO [Lkp].[SrcAdayTalepTalepTipi] (Id, TalepTipi, IsActive)
   DELETE FROM [Lkp].[SrcAdayTalepMevcutSinifTipi] 
   INSERT INTO [Lkp].[SrcAdayTalepMevcutSinifTipi] (Id, MevcutSinifTipi, IsActive) 
   VALUES 
-    (0, N'Tanımsız', 1 ),
-    (1, N'Temel eğitim', 1 ), 
-    (2, N'Uzmanlık (Tanker)', 1 ), 
-    (3, N'Uzmanlık (Sınıf-1, Patlayıcı)', 1 ), 
-    (4, N'Uzmanlık (Sınıf-7, Radyoaktif)', 1 )
+    (0,  N'Tanımsız', 1 ),
+
+    (1,  N'Temel', 1 ), 
+    (2,  N'Tanker', 1 ), 
+    (3,  N'Sınıf-1, Patlayıcı', 1 ), 
+    (4,  N'Sınıf-7, Radyoaktif', 1 )
+
+/*  Mevcut sertifika tiplerinde bunlar olmaz
+    (11, N'Yenileme Temel', 1 ), 
+    (12, N'Yenileme Tanker', 1 ), 
+    (13, N'Yenileme (Sınıf-1, Patlayıcı)', 1 ), 
+    (14, N'Yenileme (Sınıf-7, Radyoaktif)', 1 )
+*/
 
 
   -- ------------------------------------------------------- 
@@ -780,11 +889,16 @@ INSERT INTO [Lkp].[SrcAdayTalepTalepTipi] (Id, TalepTipi, IsActive)
   INSERT INTO [Lkp].[SrcAdayTalepIstenenSinifTipi] (Id, IstenenSinifTipi, IsActive) 
   VALUES 
     (0, N'Tanımsız', 1 ),
-    (1, N'Temel eğitim', 1 ), 
-    (2, N'Uzmanlık (Tanker : Sınıf-2,3,4,5,6,8,9)', 1 ), 
-    (3, N'Uzmanlık (Sınıf-1, Patlayıcı)', 1 ), 
-    (4, N'Uzmanlık (Sınıf-7, Radyoaktif)', 1 )
 
+    (1,  N'Temel', 1 ), 
+    (2,  N'Tanker', 1 ), 
+    (3,  N'Sınıf-1, Patlayıcı', 1 ), 
+    (4,  N'Sınıf-7, Radyoaktif', 1 ),
+
+    (11, N'Y. Temel', 1 ), 
+    (12, N'Y. Tanker', 1 ), 
+    (13, N'Y. Sınıf-1, Patlayıcı', 1 ), 
+    (14, N'Y. Sınıf-7, Radyoaktif', 1 )
 
 
 
@@ -928,4 +1042,28 @@ commit transaction
 
 
 
+/*
 
+ALTER TABLE SrcAdayTalep drop column MevcutSinifTipiId
+ALTER TABLE SrcAdayTalep drop column IstenenSinifTipiId
+
+ALTER TABLE SrcAdayTalep Add    MevcutSinif1TipiId             SmallInt        null
+ALTER TABLE SrcAdayTalep Add    MevcutSinif2TipiId             SmallInt        null
+ALTER TABLE SrcAdayTalep Add    MevcutSinif3TipiId             SmallInt        null
+ALTER TABLE SrcAdayTalep Add    MevcutSinif4TipiId             SmallInt        null
+
+ALTER TABLE SrcAdayTalep Add    IstenenSinif1TipiId       SmallInt      null
+ALTER TABLE SrcAdayTalep Add    IstenenSinif2TipiId       SmallInt      null
+ALTER TABLE SrcAdayTalep Add    ArtiSertifikaTipiId       SmallInt      null
+ALTER TABLE SrcAdayTalep Add    ArtiSinif1TipiId          SmallInt      null
+ALTER TABLE SrcAdayTalep Add    ArtiSinif2TipiId          SmallInt      null
+
+ALTER TABLE SrcAdayTalep Add    Sinav1IlTercihiId      SmallInt      null
+ALTER TABLE SrcAdayTalep Add    Sinav2IlTercihiId      SmallInt      null
+ALTER TABLE SrcAdayTalep Add    Sinav3IlTercihiId      SmallInt      null
+
+ALTER TABLE SrcAdayTalep Add    BasvuruResim            VarBinary(max) null
+ALTER TABLE SrcAdayTalep Add    BasvuruResimSmall       VarBinary(max) null
+
+
+*/

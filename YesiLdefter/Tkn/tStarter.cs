@@ -115,9 +115,10 @@ namespace Tkn_Starter
             t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
             if (v.active_DB.localDbUses == false)
             {
-                InitLoginUser(); // WebView2-based login with LoginTemplate.html
-                //InitPreparingConnection();// mecburen burada connection hazırlanıyor
-                //InitLoginUserLegacy(); // Legacy form - not used when WebView2 is available
+                //InitLoginUser(); // WebView2-based login with LoginTemplate.html
+
+                InitPreparingConnection();// mecburen burada connection hazırlanıyor
+                InitLoginUserLegacy(); // Legacy form - not used when WebView2 is available
             }
             else
             {
@@ -252,13 +253,17 @@ namespace Tkn_Starter
             //t.DonemTipiYilAyRead();
 
             // Settings table
-            t.WaitFormOpen(v.mainForm, "Settings okunuyor...");
+            t.WaitFormOpen(v.mainForm, "Settings read...");
             t.read_Settings();
 
 
             // 3S_MSGLY 
-            t.WaitFormOpen(v.mainForm, "Images okunuyor...");
-            t.SYS_Glyph_Read();
+            t.WaitFormOpen(v.mainForm, "Images read...");
+            Task task1 = new Task(() =>
+            {
+                t.SYS_Glyph_Read();
+            });
+            task1.Start();
 
             //t.TestRead();
 

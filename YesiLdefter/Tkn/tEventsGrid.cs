@@ -2850,6 +2850,7 @@ namespace Tkn_Events
             e.EditedAppointment.LabelKey = 1;
         }
         public void mySchedulerControl_AppointmentDrop(object sender, AppointmentDragEventArgs e) 
+        //public void mySchedulerControl_AppointmentDrop(object sender, AppointmentDropEventArgs e)
         { 
             // Bırakılan randevuyu belirgin yap
             e.EditedAppointment.LabelKey = 10;
@@ -2857,15 +2858,25 @@ namespace Tkn_Events
             if (((DevExpress.XtraScheduler.SchedulerControl)sender).AccessibleName == null) return;
             //if (((DevExpress.XtraScheduler.SchedulerControl)sender).AccessibleDescription == null) return;
             if (((DevExpress.XtraScheduler.SchedulerControl)sender).AccessibleDefaultActionDescription == null) return;
-
+            
             string gun = e.EditedAppointment.Start.Date.ToString();
             int saat = e.EditedAppointment.Start.Hour;
+            int dakk = e.EditedAppointment.Start.Minute;
             string saat_ = "";
-            if (saat < 10) saat_ = "0" + saat.ToString() + ":00:11";
-            else saat_ = saat.ToString() + ":00:11";
+            //if (saat < 10) saat_ = "0" + saat.ToString() + ":00:11";
+            //else saat_ = saat.ToString() + ":00:11";
+            
+            // 9 + : + 15 + :00.000
+            // 
+            saat_ = saat.ToString() + ":" + dakk.ToString() + ":00.000";
 
             //05.12.2024 00:00:00 >>  05.12.2024 ??:00:11  şekline getiriliyor
             string gun2 = gun.Replace("00:00:00", saat_);
+            
+            //e.Appointment.Start = e.NewStart; 
+            //e.Appointment.End = e.NewEnd;
+            //string gun2 = e.NewStart.ToString();
+
 
             Form tForm = ((DevExpress.XtraScheduler.SchedulerControl)sender).FindForm();
             string tableIPCode = ((DevExpress.XtraScheduler.SchedulerControl)sender).AccessibleName;
@@ -3869,19 +3880,28 @@ namespace Tkn_Events
             int h = ((DevExpress.XtraEditors.CheckButton)sender).TabIndex;
             string TableIPCode = ((DevExpress.XtraEditors.CheckButton)sender).AccessibleDescription;
 
-            selectSchedulerView(tForm, TableIPCode, h);
+            selectSchedulerView(tForm, TableIPCode, h, 0);
         }
-        public void checkSchedulerWeekCount(object sender, EventArgs e)
+        public void schedulerWeekCount(object sender, EventArgs e)
         {
             Form tForm = t.Find_Form(sender);
             
             string TableIPCode = ((DevExpress.XtraEditors.SpinEdit)sender).AccessibleName;
+            TableIPCode = TableIPCode.Replace("spinEdit1_", "");
+            int weekCount = t.myInt32(((DevExpress.XtraEditors.SpinEdit)sender).EditValue.ToString());
+            selectSchedulerView(tForm, TableIPCode, 9, weekCount);
+        }
+        public void schedulerSetMinute(object sender, EventArgs e)
+        {
+            Form tForm = t.Find_Form(sender);
 
-            //selectSchedulerView(tForm, TableIPCode, h);
+            string TableIPCode = ((DevExpress.XtraEditors.SpinEdit)sender).AccessibleName;
+            TableIPCode = TableIPCode.Replace("spinEdit_Minute", "");
+            int minute = t.myInt32(((DevExpress.XtraEditors.SpinEdit)sender).EditValue.ToString());
+            selectSchedulerView(tForm, TableIPCode, 10, minute);
         }
 
-
-        public void selectSchedulerView(Form tForm, string TableIPCode, int tabIndex)
+        public void selectSchedulerView(Form tForm, string TableIPCode, int tabIndex, int value)
         {
             Control cntrl = null;
             cntrl = t.Find_Control_View(tForm, TableIPCode);
@@ -3937,8 +3957,21 @@ namespace Tkn_Events
                     ((DevExpress.XtraScheduler.SchedulerControl)cntrl).WorkWeekView.TimeRulers.Add(v.timeRuler);
                     ((DevExpress.XtraScheduler.SchedulerControl)cntrl).WorkWeekView.TimeRulers[0].Visible = true;
                 }
+                if (tabIndex == 9)//Hafta sayısı
+                {
+                    ((DevExpress.XtraScheduler.SchedulerControl)cntrl).DayView.DayCount = Math.Max(1, value * 7);
+                    ((DevExpress.XtraScheduler.SchedulerControl)cntrl).DayView.TimeRulers.Add(v.timeRuler);
+                    ((DevExpress.XtraScheduler.SchedulerControl)cntrl).DayView.TimeRulers[0].Visible = true;
+                }
+                if (tabIndex == 10)// Saat aralığı            
+                {
+                    ((DevExpress.XtraScheduler.SchedulerControl)cntrl).DayView.TimeScale = TimeSpan.FromMinutes(value);// FromHours(1);
+                    ((DevExpress.XtraScheduler.SchedulerControl)cntrl).DayView.TimeRulers.Add(v.timeRuler);
+                    ((DevExpress.XtraScheduler.SchedulerControl)cntrl).DayView.TimeRulers[0].Visible = true;
+                }
 
                 ((DevExpress.XtraScheduler.SchedulerControl)cntrl).EndInit();
+                ((DevExpress.XtraScheduler.SchedulerControl)cntrl).Refresh();
 
                 /*
                 int j = tView.Bands.Count;

@@ -1,0 +1,9 @@
+﻿
+https://developers.facebook.com/
+
+web sayfası : https://developers.facebook.com/apps/
+
+app id : 1546758859910839
+
+app secret : e1762028ac06aef1c12e99e097995bef
+

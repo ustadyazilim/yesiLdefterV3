@@ -1076,3 +1076,83 @@ INSERT INTO [dbo].MsWebNodeItems (NodeId, PageCode, IsActive, ItemValue, ItemTex
 ( 554, 'MTSKILKDATAADAYTCAL2', 9202, '9202',  '100 Ceza Puanı (Otomatik)' )
 
 
+
+
+delete [dbo].MsWebNodeItems where NodeId = 281 and PageCode = 'SRCDERSTEO'
+
+INSERT INTO [dbo].MsWebNodeItems (NodeId, PageCode, IsActive, ItemValue, ItemText)
+ VALUES 
+( 281, 'SRCDERSTEO', 1, '-1',  '..Seçiniz..' ),
+( 281, 'SRCDERSTEO', 1,  '1',  'DERSLİK-1' ),
+( 281, 'SRCDERSTEO', 1,  '2',  'DERSLİK-2' ),
+( 281, 'SRCDERSTEO', 1,  '3',  'DERSLİK-3' ),
+( 281, 'SRCDERSTEO', 1,  '4',  'DERSLİK-4' ),
+( 281, 'SRCDERSTEO', 1,  '5',  'DERSLİK-5' ),
+( 281, 'SRCDERSTEO', 1,  '6',  'DERSLİK-6' ),
+( 281, 'SRCDERSTEO', 1,  '7',  'DERSLİK-7' ),
+( 281, 'SRCDERSTEO', 1,  '8',  'DERSLİK-8' ),
+( 281, 'SRCDERSTEO', 1,  '9',  'DERSLİK-9' ),
+( 281, 'SRCDERSTEO', 1, '10',  'DERSLİK-10' ),
+( 281, 'SRCDERSTEO', 1,  '1',  'Derslik 1' ),
+( 281, 'SRCDERSTEO', 1,  '2',  'Derslik 2' ),
+( 281, 'SRCDERSTEO', 1,  '3',  'Derslik 3' ),
+( 281, 'SRCDERSTEO', 1,  '4',  'Derslik 4' ),
+( 281, 'SRCDERSTEO', 1,  '5',  'Derslik 5' ),
+( 281, 'SRCDERSTEO', 1,  '6',  'Derslik 6' ),
+( 281, 'SRCDERSTEO', 1,  '7',  'Derslik 7' ),
+( 281, 'SRCDERSTEO', 1,  '8',  'Derslik 8' ),
+( 281, 'SRCDERSTEO', 1,  '9',  'Derslik 9' ),
+( 281, 'SRCDERSTEO', 1, '10',  'Derslik 10' )
+
+
+delete [dbo].MsWebNodeItems where NodeId = 293 and PageCode = 'SRCDERSTEO'
+
+INSERT INTO [dbo].MsWebNodeItems (NodeId, PageCode, IsActive, ItemValue, ItemText)
+ VALUES 
+( 293, 'SRCDERSTEO', 1, 'A',  'A GRUBU DERSLERİ' ),
+( 293, 'SRCDERSTEO', 1, 'B',  'B GRUBU DERSLERİ' ),
+( 293, 'SRCDERSTEO', 1, 'C',  'C GRUBU DERSLERİ' ),
+( 293, 'SRCDERSTEO', 1, 'D',  'D GRUBU DERSLERİ' )
+
+
+delete [dbo].MsWebNodeItems where NodeId = 304 and PageCode = 'SRCDERSTEO'
+
+INSERT INTO [dbo].MsWebNodeItems (NodeId, PageCode, IsActive, ItemValue, ItemText)
+ VALUES 
+( 304, 'SRCDERSTEO', 1, '1',  'Normal Eğitim' )
+
+
+delete [dbo].MsWebNodeItems where NodeId = 1357 and PageCode = 'SRCDERSTEO'
+
+INSERT INTO [dbo].MsWebNodeItems (NodeId, PageCode, IsActive, ItemValue, ItemText)
+ VALUES 
+( 1357, 'SRCDERSTEO', 1, '2',  '09:00-09:50' ),
+( 1357, 'SRCDERSTEO', 1, '3',  '10:00-10:50' ),
+( 1357, 'SRCDERSTEO', 1, '4',  '11:00-11:50' ),
+( 1357, 'SRCDERSTEO', 1, '5',  '12:00-12:50' ),
+( 1357, 'SRCDERSTEO', 1, '6',  '13:00-13:50' ),
+( 1357, 'SRCDERSTEO', 1, '7',  '14:00-14:50' ),
+( 1357, 'SRCDERSTEO', 1, '8',  '15:00-15:50' ),
+( 1357, 'SRCDERSTEO', 1, '9',  '16:00-16:50' ),
+( 1357, 'SRCDERSTEO', 1, '10', '17:00-17:50' ),
+( 1357, 'SRCDERSTEO', 1, '11', '18:00-18:50' ),
+( 1357, 'SRCDERSTEO', 1, '12', '19:00-19:50' ),
+( 1357, 'SRCDERSTEO', 1, '13', '20:00-20:50' ),
+( 1357, 'SRCDERSTEO', 1, '14', '21:00-21:50' )
+
+/*
+<option selected="selected" value="1">09:00-09:50
+</option>
+		<option value="2">10:00-10:50</option>
+		<option value="3">11:00-11:50</option>
+		<option value="4">12:00-12:50</option>
+		<option value="5">13:00-13:50</option>
+		<option value="6">14:00-14:50</option>
+		<option value="7">15:00-15:50</option>
+		<option value="8">16:00-16:50</option>
+		<option value="9">17:00-17:50</option>
+		<option value="10">18:00-18:50</option>
+		<option value="11">19:00-19:50</option>
+		<option value="12">20:00-20:50</option>
+		<option value="13">21:00-21:50</option>
+*/

@@ -7,6 +7,11 @@ CREATE PROCEDURE [dbo].[prc_SrcTeorikDersPlaniOlustur] (
    , @SubeTipiId smallint 
    , @SablonTeorikBId int)  
 AS BEGIN
+
+  -- --------------------------------
+  -- DERS PLANI OLUŞTUR
+  -- --------------------------------
+
   SET NOCOUNT ON;
 
   /*  
@@ -139,7 +144,7 @@ AS BEGIN
            ,[BaslamaSaati]
            ,[BitisSaati]
            ,[TDersIsUploaded]
-           ,[SablonTeorikBId]
+           --,[SablonTeorikBId]
            ,[OzelGunlerId]
            ,[DersHaftasiId])
           Select
@@ -159,7 +164,7 @@ AS BEGIN
            ,null as BaslamaSaati
            ,null as BitisSaati
            ,0 as TDersIsUploaded
-           ,@SablonTeorikBId
+           --,@SablonTeorikBId
            ,0 as OzelGunlerId
            ,0 as DersHaftasiId
 

@@ -1,0 +1,168 @@
+﻿
+/*CreateProcedure*/
+
+CREATE PROCEDURE [dbo].[prc_SrcTeorikDersToplamlari] (
+   @FirmId int
+  ,@DonemTipiId int
+  ,@GrupTipiId int 
+  ,@SubeTipiId int
+)  
+AS BEGIN
+    /*
+    -- testlerin başı 
+    declare @FirmId int
+    declare @DonemTipiId Int 
+    declare @GrupTipiId Int 
+    declare @SubeTipiId Int 
+
+    set @FirmId = 4204
+    set @DonemTipiId = 202601
+    set @GrupTipiId = 1
+    set @SubeTipiId = 1
+    */
+
+    declare @SertifikaTipiId Int 
+    declare @talepTipiId varchar(2)
+
+    Select @SertifikaTipiId = SertifikaTipiId
+    From dbo.SrcGrupSubesi 
+    Where 0 = 0
+    and FirmId = @FirmId
+    and DonemTipiId = @DonemTipiId
+    and GrupTipiId = @GrupTipiId 
+    and SubeTipiId = @SubeTipiId
+
+    --Select @SertifikaTipiId
+    --set @SertifikaTipiId = 15044
+
+    if (@SertifikaTipiId >= 15001 and @SertifikaTipiId <= 15008) Set @talepTipiId = '1' -- Src
+    if  @SertifikaTipiId = 15021 Set @talepTipiId = '2' -- Src5
+    if  @SertifikaTipiId = 15031 Set @talepTipiId = '3' -- Src6
+    if (@SertifikaTipiId >= 15041 and @SertifikaTipiId <= 15047) Set @talepTipiId = '4' -- Ody
+    if (@SertifikaTipiId >= 15061 and @SertifikaTipiId <= 15067) Set @talepTipiId = '5' -- Udy
+
+    declare @Kolon NVARCHAR(50) = ''
+    -- Src'ler
+    if (@SertifikaTipiId = 15001) set @Kolon = 'GrupSaati1234' 
+    if (@SertifikaTipiId = 15002) set @Kolon = 'GrupSaati12' 
+    if (@SertifikaTipiId = 15003) set @Kolon = 'GrupSaati34' 
+    if (@SertifikaTipiId = 15004) set @Kolon = 'GrupSaati24' 
+    if (@SertifikaTipiId = 15005) set @Kolon = 'DersSaati1' 
+    if (@SertifikaTipiId = 15006) set @Kolon = 'DersSaati2' 
+    if (@SertifikaTipiId = 15007) set @Kolon = 'DersSaati3' 
+    if (@SertifikaTipiId = 15008) set @Kolon = 'DersSaati4' 
+    -- Ody'ler
+    if (@SertifikaTipiId = 15041) set @Kolon = 'GrupSaati1234' 
+    if (@SertifikaTipiId = 15042) set @Kolon = 'GrupSaati12' 
+    if (@SertifikaTipiId = 15043) set @Kolon = 'GrupSaati34' 
+    if (@SertifikaTipiId = 15044) set @Kolon = 'DersSaati1' 
+    if (@SertifikaTipiId = 15045) set @Kolon = 'DersSaati2' 
+    if (@SertifikaTipiId = 15046) set @Kolon = 'DersSaati3' 
+    if (@SertifikaTipiId = 15047) set @Kolon = 'DersSaati4' 
+    -- Udy'ler
+    if (@SertifikaTipiId = 15061) set @Kolon = 'GrupSaati1234' 
+    if (@SertifikaTipiId = 15062) set @Kolon = 'GrupSaati12' 
+    if (@SertifikaTipiId = 15063) set @Kolon = 'GrupSaati34' 
+    if (@SertifikaTipiId = 15064) set @Kolon = 'DersSaati1' 
+    if (@SertifikaTipiId = 15065) set @Kolon = 'DersSaati2' 
+    if (@SertifikaTipiId = 15066) set @Kolon = 'DersSaati3' 
+    if (@SertifikaTipiId = 15067) set @Kolon = 'DersSaati4' 
+
+    DECLARE @col sysname = @Kolon;  -- @col = DersSaati1
+    DECLARE @colQ sysname = QUOTENAME(@col);  -- @colQ = [DersSaati1]
+    DECLARE @sql NVARCHAR(MAX);
+
+    -- Select @colQ
+
+SET @sql = N'
+
+declare @FirmId int      = ' + convert(varchar(10), @FirmId) + '
+declare @DonemTipiId Int = ' + convert(varchar(10), @DonemTipiId) + '
+declare @GrupTipiId Int  = ' + convert(varchar(2),  @GrupTipiId) + '
+declare @SubeTipiId Int  = ' + convert(varchar(3),  @SubeTipiId) + '
+
+IF OBJECT_ID(''tempdb..##ExpandedGrubu'') IS NOT NULL DROP TABLE ##ExpandedGrubu;
+
+SELECT 
+  ROW_NUMBER() OVER (ORDER BY sd.Grubu) AS Id
+, sd.Grubu, sum(sd.' + @colQ + ') as DersSayisi
+INTO ##ExpandedGrubu
+FROM Lkp.SrcDersler AS sd
+WHERE 0 = 0 
+and sd.' + @colQ + ' > 0 
+and sd.TalepTipiId = ' + @talepTipiId + '
+Group by sd.Grubu;
+
+-- SELECT * FROM ##ExpandedGrubu;
+
+IF OBJECT_ID(''tempdb..##ExpandedDers'') IS NOT NULL DROP TABLE ##ExpandedDers;
+
+SELECT sd.Id
+, sd.Grubu
+, sd.DersAdi
+, sum(sd.' + @colQ + ') as DersSayisi
+INTO ##ExpandedDers
+FROM Lkp.SrcDersler AS sd
+WHERE 0 = 0 
+and sd.' + @colQ + ' > 0 
+and sd.TalepTipiId = ' + @talepTipiId + '
+Group by sd.Id, sd.Grubu, sd.DersAdi;
+
+--SELECT * FROM ##ExpandedDers;
+
+ Select 
+   d.Id
+ , d.Grubu as DersGrubu 
+ , '''' as Lkp_DersTipi
+ , d.DersSayisi as Lkp_DersSayisi 
+ , count(td.Id) as Lkp_VerilenDersSayisi
+ , d.DersSayisi - count(td.Id) as Lkp_FarkDersSayisi
+ from ##ExpandedGrubu as d with (nolock) 
+     left outer join dbo.SrcTeorikDers as td with (nolock) on ( 
+     d.Grubu = td.DersGrubu
+ and td.FirmId = @FirmId
+ and td.DonemTipiId = @DonemTipiId
+ and td.GrupTipiId = @GrupTipiId 
+ and td.SubeTipiId = @SubeTipiId
+ )
+ Where 0 = 0
+ Group by d.Id, d.Grubu, d.DersSayisi 
+ 
+ union all 
+
+ Select 
+   1000 as Id
+ , null as DersGrubu
+ , null as Lkp_DersTipi
+ , null as Lkp_DersSayisi 
+ , null as Lkp_VerilenDersSayisi
+ , null as Lkp_FarkDersSayisi
+ 
+ union all
+ 
+ Select 
+   d.Id
+ , d.Grubu as DersGrubu
+ , d.DersAdi as Lkp_DersTipi
+ , d.DersSayisi as Lkp_DersSayisi 
+ , count(td.Id) as Lkp_VerilenDersSayisi
+ , d.DersSayisi - count(td.Id) as Lkp_FarkDersSayisi
+ from ##ExpandedDers as d with (nolock) 
+     left outer join dbo.SrcTeorikDers as td with (nolock) on ( 
+     d.Id = td.DersTipiId
+ and td.FirmId = @FirmId
+ and td.DonemTipiId = @DonemTipiId
+ and td.GrupTipiId = @GrupTipiId 
+ and td.SubeTipiId = @SubeTipiId
+ )
+ Where 0 = 0
+ Group by d.Id, d.Grubu, d.DersAdi, d.DersSayisi 
+ Order by d.Id
+'; 
+
+EXEC sp_executesql @sql;
+
+END -- procedure
+
+/*CreateProcedureEnd*/
+

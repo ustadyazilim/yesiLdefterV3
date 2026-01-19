@@ -1,0 +1,210 @@
+﻿
+/*CreateProcedure*/
+
+CREATE PROCEDURE [dbo].[prc_SrcTeorikDersMebbisDatasiniIsle] (
+    @FirmId int, 
+    @DonemTipiId int, 
+    @GrupTipiId smallint, 
+    @SubeTipiId smallint)  
+AS BEGIN
+
+    SET NOCOUNT ON;
+
+    -- --------------------------------------------------------------------
+    -- Mebbisten çekilen SrcTeorikDers planına 
+    -- grubun sertfika türüne göre DersTipiId ve DersSiraNo dolduruluyor
+    -- --------------------------------------------------------------------
+/*
+    declare @FirmId int = 4204
+    declare @DonemTipiId int = 202601 
+    declare @GrupTipiId smallint = 1 
+    declare @SubeTipiId smallint = 1  
+*/
+    declare @SertifikaTipiId int
+    declare @talepTipiId varchar(2)
+    declare @DerslikAdiTipiId smallInt
+    declare @SablonKodu varchar(30)
+
+    Select  
+        @SertifikaTipiId = isnull(SertifikaTipiId,0)
+    From dbo.SrcGrupSubesi
+    Where FirmId = @FirmId
+    and   DonemTipiId = @DonemTipiId
+    and   GrupTipiId = @GrupTipiId
+    and   SubeTipiId = @SubeTipiId
+
+    --  , @DerslikAdiTipiId = isnull(DerslikAdiTipiId,0)
+    --  , @SablonKodu = isnull(SablonKodu,'')
+
+
+    if (@SertifikaTipiId < 15000 or @SertifikaTipiId > 15999) return;
+
+    if (@DerslikAdiTipiId = 0)
+        Set @DerslikAdiTipiId = 1 -- Default 1. derslik olsun
+
+/*  SertifikaTipiId 
+
+15001	SRC 1-2-3-4
+15002	SRC 1-2
+15003	SRC 3-4
+15004	SRC 2-4
+15005	SRC 1
+15006	SRC 2
+15007	SRC 3
+15008	SRC 4
+15021	SRC 5
+15031	SRC 6
+15041	ODY 1-2-3-4
+15042	ODY 1-2
+15043	ODY 3-4
+15044	ODY 1
+15045	ODY 2
+15046	ODY 3
+15047	ODY 4
+15061	ÜDY 1-2-3-4
+15062	ÜDY 1-2
+15063	ÜDY 3-4
+15064	ÜDY 1
+15065	ÜDY 2
+15066	ÜDY 3
+15067	ÜDY 4
+*/
+    if (@SertifikaTipiId >= 15001 and @SertifikaTipiId <= 15008) Set @talepTipiId = '1' -- Src
+    if  @SertifikaTipiId = 15021 Set @talepTipiId = '2' -- Src5
+    if  @SertifikaTipiId = 15031 Set @talepTipiId = '3' -- Src6
+    if (@SertifikaTipiId >= 15041 and @SertifikaTipiId <= 15047) Set @talepTipiId = '4' -- Ody
+    if (@SertifikaTipiId >= 15061 and @SertifikaTipiId <= 15067) Set @talepTipiId = '5' -- Udy
+
+    declare @Kolon NVARCHAR(50) = ''
+    -- Src'ler
+    if (@SertifikaTipiId = 15001) set @Kolon = 'GrupSaati1234' 
+    if (@SertifikaTipiId = 15002) set @Kolon = 'GrupSaati12' 
+    if (@SertifikaTipiId = 15003) set @Kolon = 'GrupSaati34' 
+    if (@SertifikaTipiId = 15004) set @Kolon = 'GrupSaati24' 
+    if (@SertifikaTipiId = 15005) set @Kolon = 'DersSaati1' 
+    if (@SertifikaTipiId = 15006) set @Kolon = 'DersSaati2' 
+    if (@SertifikaTipiId = 15007) set @Kolon = 'DersSaati3' 
+    if (@SertifikaTipiId = 15008) set @Kolon = 'DersSaati4' 
+    -- Ody'ler
+    if (@SertifikaTipiId = 15041) set @Kolon = 'GrupSaati1234' 
+    if (@SertifikaTipiId = 15042) set @Kolon = 'GrupSaati12' 
+    if (@SertifikaTipiId = 15043) set @Kolon = 'GrupSaati34' 
+    if (@SertifikaTipiId = 15044) set @Kolon = 'DersSaati1' 
+    if (@SertifikaTipiId = 15045) set @Kolon = 'DersSaati2' 
+    if (@SertifikaTipiId = 15046) set @Kolon = 'DersSaati3' 
+    if (@SertifikaTipiId = 15047) set @Kolon = 'DersSaati4' 
+    -- Udy'ler
+    if (@SertifikaTipiId = 15061) set @Kolon = 'GrupSaati1234' 
+    if (@SertifikaTipiId = 15062) set @Kolon = 'GrupSaati12' 
+    if (@SertifikaTipiId = 15063) set @Kolon = 'GrupSaati34' 
+    if (@SertifikaTipiId = 15064) set @Kolon = 'DersSaati1' 
+    if (@SertifikaTipiId = 15065) set @Kolon = 'DersSaati2' 
+    if (@SertifikaTipiId = 15066) set @Kolon = 'DersSaati3' 
+    if (@SertifikaTipiId = 15067) set @Kolon = 'DersSaati4' 
+
+
+    IF @Kolon NOT IN (
+        'DersSaati1','DersSaati2','DersSaati3','DersSaati4',
+        'GrupSaati12','GrupSaati34','GrupSaati24','GrupSaati1234'
+    )
+    BEGIN
+        RAISERROR('Geçersiz kolon adı: %s',16,1,@Kolon);
+        RETURN;
+    END;
+
+    DECLARE @col sysname = @Kolon;  -- @col = DersSaati1
+    DECLARE @colQ sysname = QUOTENAME(@col);  -- @colQ = [DersSaati1]
+    DECLARE @sql NVARCHAR(MAX);
+
+    -- Select @colQ
+
+
+    SET @sql = N'
+IF OBJECT_ID(''tempdb..##ExpandedDersMebbis'') IS NOT NULL DROP TABLE ##ExpandedDersMebbis;
+
+SELECT
+  ROW_NUMBER() OVER (ORDER BY sd.Id, n.number) AS RowNumber,
+  sd.Id, sd.FirmId, sd.IsActive, sd.TalepTipiId, sd.Grubu, sd.SiraNo, sd.DersAdi,
+  sd.DersSaati1, sd.DersSaati2, sd.DersSaati3, sd.DersSaati4,
+  sd.GrupSaati12, sd.GrupSaati34, sd.GrupSaati24, sd.GrupSaati1234, sd.MebbisKodu,
+  n.number AS DersSira,
+  CONVERT(varchar(20), n.number) + ''. ders'' AS DersAdiSatiri
+INTO ##ExpandedDersMebbis
+FROM Lkp.SrcDersler AS sd
+CROSS APPLY (SELECT ISNULL(TRY_CONVERT(int, sd.' + @colQ + '), 0) AS Hrs) AS h
+CROSS APPLY (
+  SELECT number
+  FROM master..spt_values
+  WHERE type = ''P''
+    AND number BETWEEN 1 AND h.Hrs
+) AS n
+WHERE 0 = 0
+and sd.TalepTipiId = ' + @talepTipiId + '
+and h.Hrs > 0;
+
+--SELECT COUNT(*) AS RowCount_ FROM ##ExpandedDersSablon;
+--SELECT * FROM ##ExpandedDersSablon;
+';
+
+    EXEC sp_executesql @sql;
+
+    --SELECT * FROM ##ExpandedDersMebbis;
+
+    declare @dersId int
+    declare @dersSiraNo smallint
+    declare @dersAdi varchar(100)
+    declare @dersGrubu varchar(2)
+    declare @curId int
+
+    declare @myRowNum int
+    declare myCursor CURSOR local
+    for 
+    Select RowNumber From ##ExpandedDersMebbis
+      
+    OPEN myCursor;
+  
+    FETCH NEXT
+    FROM myCursor
+    INTO @myRowNum;
+	  
+    While @@FETCH_STATUS = 0
+    begin
+          select  
+              @dersId = ed.Id
+            , @dersSiraNo = ed.DersSira
+            , @dersAdi = ed.DersAdi
+            , @dersGrubu = ed.Grubu
+          from ##ExpandedDersMebbis as ed 
+          Where RowNumber = @myRowNum
+	      
+          print convert(varchar(10), @dersId) + ' ' + convert(varchar(10), @dersSiraNo) + ' ' + @dersAdi 
+
+          Set @curId = 0
+          Select top 1 @curId = Id
+          From dbo.SrcTeorikDers
+          Where FirmId = @FirmId
+          and   DonemTipiId = @DonemTipiId
+          and   GrupTipiId  = @GrupTipiId
+          and   SubeTipiId  = @SubeTipiId
+          and   DersGrubu   = @dersGrubu
+          and   isnull(DersTipiId,0) = 0
+          Order by DersTarihi, DersSaatiTipiId
+
+          if (@curId > 0)
+          begin
+              Update dbo.SrcTeorikDers Set  
+                  DersTipiId = @dersId
+                 ,DersSiraNo = @dersSiraNo
+              Where Id = @curId
+          end --
+
+          FETCH NEXT FROM myCursor INTO @myRowNum;
+    end -- While
+
+    Close myCursor;
+    DealLocate myCursor;
+
+END -- procedure
+
+/*CreateProcedureEnd*/
+

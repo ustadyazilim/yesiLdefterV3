@@ -592,7 +592,7 @@ INSERT INTO [Lkp].[MtskAdayTakipBelgelerTipi] (Id, BelgelerTipi, KonuGrupId, Kon
 
 
 -- ------------------------------------------------------- 
--- SertifikaUcretTipiId ipta
+-- SertifikaUcretTipiId iptal
 -- BorcDurumuTipiId
 -- ------------------------------------------------------- 
 IF EXISTS (Select * From sys.objects WHERE name = 'MtskAdayTakipBorcDurumuTipi')

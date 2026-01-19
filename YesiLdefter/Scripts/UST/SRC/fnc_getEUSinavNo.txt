@@ -4,15 +4,15 @@ CREATE FUNCTION dbo.fnc_getEUSinavNo(@TalepId int, @SinavNoTipi varchar(20))
 RETURNS INT
 AS
 BEGIN
+
   -- YeniESinavNo
   -- GirdigiESinavNo
   -- YeniUSinavNo
   -- GirdigiUSinavNo
+  declare @YeniESinavNo int
 
   if (@SinavNoTipi = 'YeniESinavNo')   
   begin
-      declare @YeniESinavNo int
-
       select top 1 @YeniESinavNo =
       ( case when isnull(s.Id,0) = 0 then 1 -- ilk sinav 
              when isnull(s.DurumuTipiId,0) > 1 and isnull(s.SinavNo,0) < 4  then s.SinavNo + 1
@@ -26,6 +26,23 @@ BEGIN
       order by s.SinavNo desc
 	  return @YeniESinavNo;
   end
+
+  if (@SinavNoTipi = 'YeniESinavNoSrc5')   
+  begin
+      select top 1 @YeniESinavNo =
+      ( case when isnull(s.Id,0) = 0 then 1 -- ilk sinav 
+             when isnull(s.DurumuTipiId,0) > 1 and isnull(s.SinavNo,0) < 4  then s.SinavNo + 1
+             when isnull(s.DurumuTipiId,0) > 1 and isnull(s.SinavNo,0) = 4  then 0
+             when isnull(s.DurumuTipiId,0) = 1 then 0 
+             when isnull(s.DurumuTipiId,0) = 0 then s.SinavNo             
+             end ) -- bir daha sınava girmeyecek
+      from dbo.SrcAdayTalep as t -- >> isnull(s.Id,0) yakalamak için var
+	  left join dbo.Src5SinavETeorik as s on ( t.Id = s.TalepId )
+      where t.Id = @TalepId
+      order by s.SinavNo desc
+	  return @YeniESinavNo;
+  end
+
 
   if (@SinavNoTipi = 'YeniUSinavNo')   
   begin
@@ -43,15 +60,30 @@ BEGIN
      return @YeniUSinavNo;
   end
 
+
+  declare @GirdigiESinavNo int
+
   if (@SinavNoTipi = 'GirdigiESinavNo')   
   begin
-      declare @GirdigiESinavNo int
-
       select top 1 @GirdigiESinavNo =
       ( case when isnull(s.Id,0) = 0 then 0 -- girmedi
              else s.SinavNo end )
       from dbo.SrcAdayTalep as t
 	  left join dbo.SrcSinavETeorik as s on ( t.Id = s.TalepId and s.LineTypeId = 2 )
+      where t.Id = @TalepId
+      and   s.DurumuTipiId > 0 -- sonuçlanmış sınavlar
+      order by s.SinavNo desc
+
+	  return @GirdigiESinavNo;
+  end
+
+  if (@SinavNoTipi = 'GirdigiESinavNoSrc5')   
+  begin
+      select top 1 @GirdigiESinavNo =
+      ( case when isnull(s.Id,0) = 0 then 0 -- girmedi
+             else s.SinavNo end )
+      from dbo.SrcAdayTalep as t
+	  left join dbo.Src5SinavETeorik as s on ( t.Id = s.TalepId )
       where t.Id = @TalepId
       and   s.DurumuTipiId > 0 -- sonuçlanmış sınavlar
       order by s.SinavNo desc

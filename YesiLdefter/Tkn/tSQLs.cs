@@ -1433,6 +1433,13 @@ order by x.DonemTipiId
         {
             return @" Select * from Lkp.IlceTipi order by IlKodu ";
         }
+
+        public string SQL_Settings_UpdateSectorTypeId(int FirmId, Int16 SectorTypeId)
+        {
+            return @" Update dbo.Settings Set DefaultInt = " + SectorTypeId.ToString() 
+                 + @" Where FirmId = " + FirmId.ToString()
+                 + @" and   GroupNoTypeId = 1000 and SettingNo = 100 ";
+        }
         public string SQL_MS_LAYOUT_LIST(string MasterCode, byte MasterItemType)
         {
             string myAnd = "";
@@ -4443,6 +4450,7 @@ INSERT INTO [dbo].[SYS_UPDATES]
             string tableName = "";
 
             string fieldName = "";
+            string fieldName2 = "";
             string joinTableAlias = "";
             string aliasFieldName = "";
             string newLkpFieldName = "";
@@ -4476,16 +4484,29 @@ INSERT INTO [dbo].[SYS_UPDATES]
 
                         //, FNo5.DonemTipi + ' : ' + FNo6.GrupTipi + ' : ' + FNo7.SubeTipi  as  Lkp_DonemTipiGrupTipiSubeTipi
 
-                        if (((fieldName.IndexOf("DonemTipi") > -1) ||
+                        if (((fieldName.IndexOf("MtskDonemTipi") > -1) ||
                              (fieldName.IndexOf("MtskGrupTipi") > -1) ||
-                             (fieldName.IndexOf("SubeTipi") > -1)))
+                             (fieldName.IndexOf("MtskSubeTipi") > -1) ||
+                             (fieldName.IndexOf("SrcDonemTipi") > -1) ||
+                             (fieldName.IndexOf("SrcGrupTipi") > -1) ||
+                             (fieldName.IndexOf("SrcSubeTipi") > -1) ||
+                             (fieldName.IndexOf("DonemTipi") > -1) ||
+                             (fieldName.IndexOf("GrupTipi") > -1) ||
+                             (fieldName.IndexOf("SubeTipi") > -1)
+                             ))
                         {
-
                             t.LookUpFieldNameChecked(ref tableName, ref fieldName, ref idFieldName, fieldType);
 
+                            if (fieldName.IndexOf("SubeTipi") > -1)
+                                fieldName2 = "substring(" + joinTableAlias + "." + fieldName +",1,1)";
+                            else fieldName2 = joinTableAlias + "." + fieldName;
+
+                            //if (aliasFieldName == "")
+                            //    aliasFieldName = " , " + joinTableAlias + "." + fieldName;
+                            //else aliasFieldName += " + ' , ' + " + joinTableAlias + "." + fieldName;
                             if (aliasFieldName == "")
-                                aliasFieldName = " , " + joinTableAlias + "." + fieldName;
-                            else aliasFieldName += " + ' , ' + " + joinTableAlias + "." + fieldName;
+                                aliasFieldName = " , " + fieldName2;
+                            else aliasFieldName += " + ' , ' + " + fieldName2;
 
                             if (newLkpFieldName == "")
                                 newLkpFieldName = "Lkp_" + fieldName.Replace("Tipi", "");

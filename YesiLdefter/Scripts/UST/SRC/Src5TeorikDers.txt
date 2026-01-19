@@ -1,0 +1,476 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+ create table Src5TeorikDers
+ (
+   Id                   Int IDENTITY(1,1) not null, 
+   FirmId               Int       not null,
+   IsActive             Bit       not null, /* default : 1 = active, 0 = not active */  
+   -- 10
+   DonemTipiId          Int           null,
+   GrupTipiId           SmallInt      null,
+
+   -- 20
+   DersTipiId           Int           null, /* Detayı : Lkp.SrcDersler tablosunda */
+   DersSiraNo           SmallInt      null, /* örnek : 3 saatlik bir dersin, 1. saati, 2. saati, 3. saati şeklindeki işareti */
+   DerslikAdiTipiId     SmallInt      null, /* Derslik-1, -2 ... -10 */
+   DersTarihi           Date          null,
+   DersSaatiTipiId      SmallInt      null,
+   AsilPersonelId       Varchar(20)   null, /* sadece : Personel.TcNo */
+   YedekPersonelId      Varchar(20)   null, /* sadece : Personel.TcNo */
+
+   -- 30
+   DersSuresiDakika     SmallInt      null,  
+   BaslamaSaati         Datetime      null, /* Calender and Scheduling için gerekli */
+   BitisSaati           Datetime      null, /* Calender and Scheduling için gerekli */
+   KamuBaslangicSaati   varchar(5)   null, /*  kamu.gov.tr ye bildirilirken gerekli */
+   KamuBitisSaati       varchar(5)   null, /*  kamu.gov.tr ye bildirilirken gerekli */
+
+   -- 40
+   TDersIsUploaded      Bit           null,
+   OzelGunlerId         Int           null, /* OnmOzelGunler.Id */
+   DersHaftasiId        SmallInt      null, /* yılın hangi haftasına denk geldi, bu sayede o haftadaki tüm dersler listeleniyor */  
+
+   constraint		pk_Src5TeorikDers primary key (Id)
+ )
+  
+ grant select, insert, update, delete on Src5TeorikDers to public
+
+commit transaction
+
+/*CreateTableEnd*/
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_Src5TeorikDers] on [dbo].[Src5TeorikDers] 
+AFTER INSERT, UPDATE
+AS BEGIN
+
+    DECLARE myCursor cursor local for select Id from Inserted
+    DECLARE @curId bigint
+
+    OPEN myCursor
+    FETCH NEXT FROM myCursor INTO @curId
+
+    declare @eDersTarihi date = null
+    declare @eDersSaatiTipiId smallInt = -1
+	declare @eBaslamaSaati datetime
+	declare @eBitisSaati datetime
+
+    declare @yFirmId int = 0
+    declare @yDonemTipiId int = 0
+    declare @yGrupTipiId smallInt = 0
+    
+    declare @yDersTarihi date = null
+    declare @yDersSaatiTipiId smallInt = -1
+    declare @yPersonelId varchar(20) = ''
+    declare @yPersonelYedekId varchar(20) = ''
+
+	declare @yDersSuresiDakika smallint
+    declare @yBaslamaSaati datetime
+	declare @yBitisSaati datetime
+    declare @CurrentEnd datetime
+    declare @yBaslamaSaatiChechked varchar(30)
+    declare @yBitisSaatiChechked varchar(30)
+    
+    declare @TcNo varchar(20) = null
+    declare @TDersIsUploaded bit = 0
+
+	declare @insId int = 0
+    declare @mvcId int = 0
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+    	
+      Select
+          @eDersTarihi = dlt.DersTarihi
+         ,@eDersSaatiTipiId = dlt.DersSaatiTipiId
+         ,@eBaslamaSaati = dlt.BaslamaSaati
+         ,@eBitisSaati = dlt.BitisSaati	  
+      From deleted dlt
+      Where dlt.Id = @curId
+
+      Select
+	      @yFirmId = ins.FirmId
+         ,@yDonemTipiId = ins.DonemTipiId
+         ,@yGrupTipiId = ins.GrupTipiId
+      
+         ,@yDersTarihi = ins.DersTarihi
+         ,@yDersSaatiTipiId = ins.DersSaatiTipiId
+         ,@yPersonelId = isnull(ins.AsilPersonelId,'')
+         ,@yPersonelYedekId = isnull(ins.YedekPersonelId,'')
+         ,@TDersIsUploaded = isnull(ins.TDersIsUploaded,0)
+         ,@yDersSuresiDakika = isnull(ins.DersSuresiDakika,50)
+         ,@yBaslamaSaati = ins.BaslamaSaati
+         ,@yBitisSaati = ins.BitisSaati	  
+         ,@yBaslamaSaatiChechked = Convert(varchar(30), ins.BaslamaSaati, 121) -- saati al
+         ,@yBitisSaatiChechked = Convert(varchar(30), ins.BitisSaati, 121) -- saati al
+      From inserted ins
+      Where ins.Id = @curId
+
+
+      -- personelId kontrolu
+      -- Kamudan okuma yapınca alınan ismi alınıyor
+      -- alınan bu ismi TcNoIzinNo ya çeviriyor
+      if (@yPersonelId != '')
+      begin 
+          Set @TcNo = ''
+          Select @TcNo = isnull(TcVkNo,'')
+          From dbo.SrcPersoneli
+          Where TamAdiSoyadi like @yPersonelId+'%'
+      
+          if (@TcNo <> '')
+          begin
+              update dbo.Src5TeorikDers set AsilPersonelId = @TcNo
+              Where Id = @curId
+          end
+      end
+
+      if (@yPersonelYedekId != '')
+      begin 
+          Set @TcNo = ''
+          Select @TcNo = isnull(TcVkNo,'')
+          From dbo.SrcPersoneli
+          Where TamAdiSoyadi like @yPersonelYedekId+'%'
+            
+          if (@TcNo <> '')
+          begin
+              update dbo.Src5TeorikDers set YedekPersonelId = @TcNo
+              Where Id = @curId
+          end
+      end
+      
+      if (@TDersIsUploaded = 1) -- yani Mebbise yüklenmişse, değşişklik olamaz
+      begin
+          update dbo.Src5TeorikDers set 
+			    DersTarihi = @eDersTarihi
+              , BaslamaSaati = @eBaslamaSaati
+              , BitisSaati   = @eBitisSaati
+          Where Id = @curId
+          return
+      end
+
+      if (convert(date,@yDersTarihi,103) <> convert(date,@yBaslamaSaati,103))
+      begin
+          if (convert(date, @eDersTarihi,103) <> convert(date,@yDersTarihi,103))
+          begin
+             print 'tarih değişti' 
+             declare @BasSaat varchar(5) = convert(varchar(5), convert(time,@yBaslamaSaati))
+             Set @yBaslamaSaati = CAST(@yDersTarihi AS DATETIME) + CAST(@BasSaat AS DATETIME);
+          end
+          else begin
+             print 'tarih ve saat değişti'
+             Set @yDersTarihi = convert(date,@yBaslamaSaati,103)
+          end
+      end
+
+      -- DersTarihi değiştiyse
+      if (@eDersTarihi <> @yDersTarihi)
+      begin
+         Update dbo.Src5TeorikDers Set
+             DersTarihi = @yDersTarihi
+         Where Id = @curId
+      end
+      -- Başlangıç saati değiştiyse
+      if (@eBaslamaSaati <> @yBaslamaSaati)
+      begin
+         Update dbo.Src5TeorikDers Set
+             BaslamaSaati = @yBaslamaSaati
+         Where Id = @curId
+      end
+      -- Bitiş saati değiştiyse
+      Set @CurrentEnd = DATEADD(MINUTE, @yDersSuresiDakika, @yBaslamaSaati);
+      if (@CurrentEnd <> @yBitisSaati)
+      begin
+         Set @yBitisSaati = @CurrentEnd
+         Update dbo.Src5TeorikDers Set
+             BitisSaati = @yBitisSaati
+         Where Id = @curId
+      end
+
+      Update dbo.Src5TeorikDers Set
+           KamuBaslangicSaati = substring(Convert(varchar(30), @yBaslamaSaati, 121),12,5) -- saati al
+         , KamuBitisSaati = substring(Convert(varchar(30), @yBitisSaati, 121),12,5) -- saati al
+         , DersHaftasiId = DatePart(ww, @yBaslamaSaati)
+      Where Id = @curId
+
+      --Execute [dbo].[prc_SrcTeorikDersIhlalleriSaatler] @eFirmId, @eDonemTipiId
+      --Execute [dbo].[prc_SrcTeorikDersIhlalleriCakismalar] @eFirmId, @eDonemTipiId
+      --Execute [dbo].[prc_SrcDersIhlalleriPersonel] @curId, @eFirmId, @eDonemTipiId, @ePersonelId
+
+      FETCH NEXT FROM myCursor INTO @curId
+    END
+
+    --Execute [dbo].[prc_SrcGrupSubesiTeorikDersToplami] @eFirmId, @eDonemTipiId, @eGrupTipiId, @eSubeTipiId
+    --Execute [dbo].[prc_SrcGrupSubesiTakipSet] @eFirmId, @eDonemTipiId, @eGrupTipiId, @eSubeTipiId
+
+    CLOSE myCursor
+    DEALLOCATE myCursor   
+
+
+END -- create trigger
+
+/*CreateTriggerEnd*/
+
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_Src5TeorikDersDelete] on [dbo].[Src5TeorikDers]
+AFTER DELETE
+AS BEGIN
+
+    declare teoCursorDlt cursor local for select Id from deleted
+	declare @curId bigint
+
+	OPEN teoCursorDlt
+    FETCH NEXT FROM teoCursorDlt INTO @curId
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+
+	    Delete From dbo.SrcKIhlalTeorikD 
+		Where InsertedId = @curId 
+		or    MevcutId   = @curId
+
+      FETCH NEXT FROM teoCursorDlt INTO @curId
+    END
+
+    CLOSE teoCursorDlt
+    DEALLOCATE teoCursorDlt
+
+END
+
+ /*CreateTriggerEnd*/
+
+
+/*CreateTrigger*/
+
+CREATE TRIGGER [dbo].[trg_Src5TeorikDersDeleteIsLock] on [dbo].[Src5TeorikDers]
+INSTEAD of DELETE
+AS BEGIN
+
+    declare isLockCursorDlt cursor local for select Id from deleted
+    declare @curId bigint
+
+	declare @FirmId int
+	declare @DonemTipiId int
+	declare @GrupTipiId int
+	declare @PersonelId varchar(30)
+
+    OPEN isLockCursorDlt
+
+    FETCH NEXT FROM isLockCursorDlt INTO @curId
+	   
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+	    IF EXISTS (SELECT 1 FROM deleted WHERE isnull(TDersIsUploaded,0) = 1 and Id = @curId)
+        BEGIN
+            PRINT 'Bu kayıt silinemez!'
+            RETURN
+        END
+
+        Select @FirmId = FirmId
+		, @DonemTipiId = DonemTipiId 
+		, @GrupTipiId = GrupTipiId 
+        , @PersonelId = AsilPersonelId
+		from dbo.Src5TeorikDers Where Id = @curId
+
+        Delete from dbo.Src5TeorikDers  Where Id = @curId and isnull(TDersIsUploaded,0) = 0
+
+        --Execute [dbo].[prc_SrcTeorikDersIhlalleriSaatler] @FirmId, @DonemTipiId
+        --Execute [dbo].[prc_SrcTeorikDersIhlalleriCakismalar] @FirmId, @DonemTipiId
+        --Execute [dbo].[prc_SrcDersIhlalleriPersonel] @curId, @FirmId, @DonemTipiId, @PersonelId
+
+      FETCH NEXT FROM isLockCursorDlt INTO @curId
+    END
+
+    --Execute [dbo].[prc_SrcGrupSubesiTeorikDersToplami] @FirmId, @DonemTipiId, @GrupTipiId, @SubeTipiId
+    --Execute [dbo].[prc_SrcGrupSubesiTakipSet] @FirmId, @DonemTipiId, @GrupTipiId, @SubeTipiId
+
+    CLOSE isLockCursorDlt
+    DEALLOCATE isLockCursorDlt
+
+END
+
+ /*CreateTriggerEnd*/
+
+
+/*CreateLkpTable*/
+
+begin transaction
+
+-- ------------------------------------------------------- 
+-- GrupTipiId  /* Detayı : Lkp.Src5GrupTipi tablosunda */
+-- ------------------------------------------------------- 
+if EXISTS (Select * From sys.objects WHERE name = 'Src5TeorikDersGrupTipi')
+drop table [Lkp].[Src5TeorikDersGrupTipi]
+create table Lkp.Src5TeorikDersGrupTipi
+(
+   Id              SmallInt Unique Not Null,
+   GrupTipi       nVarchar(50)   null,
+   
+   constraint  pk_Src5TeorikDersGrupTipi primary key (Id)
+)
+
+Delete From Lkp.Src5TeorikDersGrupTipi
+INSERT INTO [Lkp].[Src5TeorikDersGrupTipi] (Id, GrupTipi)
+ VALUES 
+  ( 0,     N'0.Tanımsız'),
+  ( 1,     N'Grup 1'),
+  ( 2,     N'Grup 2'),
+  ( 3,     N'Grup 3'),
+  ( 4,     N'Grup 4'),
+  ( 5,     N'Grup 5'),
+  ( 6,     N'Grup 6'),
+  ( 7,     N'Grup 7'),
+  ( 8,     N'Grup 8'),
+  ( 9,     N'Grup 9'),
+  (10,     N'Grup 10')
+
+
+-- ------------------------------------------------------- 
+-- DersTipiId  /* Detayı : Lkp.SrcDersler tablosunda */
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'Src5TeorikDersDersTipi')
+drop table [Lkp].[Src5TeorikDersDersTipi]
+
+create table Lkp.Src5TeorikDersDersTipi
+(
+   Id              Int Unique Not Null,
+   DersTipi        nVarchar(50)   null,
+   KamuKodu        Varchar(20)    null,
+   
+   constraint  pk_Src5TeorikDersDersTipi primary key (Id)
+)
+Delete From Lkp.Src5TeorikDersDersTipi
+INSERT INTO Lkp.Src5TeorikDersDersTipi (Id, DersTipi, KamuKodu)
+ VALUES 
+  ( 0,    N'Tanımsız',''), 
+  ( 2010, N'ADR Tehlikeli Madde Taşımacılığı','89'),
+  ( 2020, N'ADR Temel Uygulama Eğitimi','87'),
+  ( 2030, N'TANKER-Tehlikeli Madde Taşımacılığı','86'),
+  ( 2040, N'TANKER-Uygulama Eğitimi','88'),
+  ( 2050, N'SINIF1-Tehlikeli Madde Taşımacılığı','90'),
+  ( 2060, N'SINIF7-Tehlikeli Madde Taşımacılığı','91'),
+  ( 2110, N'YENİLEME-ADR Temel Eğitimi','92'),
+  ( 2120, N'YENİLEME-Sınıf 1 Eğitimi','94'),
+  ( 2130, N'YENİLEME-Sınıf 7 Eğitimi','95'),
+  ( 2140, N'YENİLEME-Tanker Eğitimi','93')
+
+
+
+-- ------------------------------------------------------- 
+-- DerslikAdiTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'Src5TeorikDersDerslikAdiTipi')
+drop table [Lkp].[Src5TeorikDersDerslikAdiTipi]
+
+create table Lkp.Src5TeorikDersDerslikAdiTipi
+(
+   Id              Int Unique Not Null,
+   DerslikAdiTipi  nVarchar(50)   null,
+   DerslikKamuAdi  nVarchar(50)   null,
+   DerslikKamuKodu nVarchar(20)   null,
+   
+   constraint  pk_Src5TeorikDersDerslikAdiTipi primary key (Id)
+)
+
+Delete From Lkp.Src5TeorikDersDerslikAdiTipi
+INSERT INTO Lkp.Src5TeorikDersDerslikAdiTipi (Id, DerslikAdiTipi)
+ VALUES 
+  ( 0, N'Tanımsız'),
+  ( 1, N'Derslik-1'),
+  ( 2, N'Derslik-2'),
+  ( 3, N'Derslik-3'),
+  ( 4, N'Derslik-4'),
+  ( 5, N'Derslik-5'),
+  ( 6, N'Derslik-6'),
+  ( 7, N'Derslik-7'),
+  ( 8, N'Derslik-8'),
+  ( 9, N'Derslik-9'),
+  (10, N'Derslik-10')
+ 
+
+-- ------------------------------------------------------- 
+-- DersSaatiTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'Src5TeorikDersDersSaatiTipi')
+drop table [Lkp].[Src5TeorikDersDersSaatiTipi]
+
+create table Lkp.Src5TeorikDersDersSaatiTipi
+(
+   Id              Int Unique Not Null,
+   DersSaatiTipi   nVarchar(50)   null
+
+   constraint  pk_Src5TeorikDersDersSaatiTipi primary key (Id)
+)
+
+Delete From Lkp.Src5TeorikDersDersSaatiTipi
+INSERT INTO Lkp.Src5TeorikDersDersSaatiTipi (Id, DersSaatiTipi)
+ VALUES 
+  (-7, N'00:00 - 00:50'),
+  (-6, N'01:00 - 01:50'),
+  (-5, N'02:00 - 02:50'),
+  (-4, N'03:00 - 03:50'),
+  (-3, N'04:00 - 04:50'),
+  (-2, N'05:00 - 05:50'),
+  (-1, N'06:00 - 06:50'),
+  ( 0, N'07:00 - 07:50'),
+  ( 1, N'08:00 - 08:50'),
+  ( 2, N'09:00 - 09:50'),
+  ( 3, N'10:00 - 10:50'),
+  ( 4, N'11:00 - 11:50'),
+  ( 5, N'12:00 - 12:50'),
+  ( 6, N'13:00 - 13:50'),
+  ( 7, N'14:00 - 14:50'),
+  ( 8, N'15:00 - 15:50'),
+  ( 9, N'16:00 - 16:50'),
+  (10, N'17:00 - 17:50'),
+  (11, N'18:00 - 18:50'),
+  (12, N'19:00 - 19:50'),
+  (13, N'20:00 - 20:50'),
+  (14, N'21:00 - 21:50'),
+  (15, N'22:00 - 22:50'),
+  (100,N'00:00 - 23:59'), -- TAM GÜN İZİN
+  (113,N'13:00 - 23:59')  -- YARIM GÜN İZİN - AREFE GÜNÜ
+
+commit transaction
+ 
+/*CreateLkpTableEnd*/
+
+/*CreateData*/
+
+
+
+/*CreateDataEnd*/
+
+
+/*
+
+<select  name="ders" required="required" aria-required="true" id="ders" class="comboBox"> 
+		<option value="" selected="selected">Seçiniz</option> 
+        <option value="89">Sürücü Eğitimi Dersleri - ADR Tehlikeli Madde Taşımacılığı</option> 
+        <option value="87">Sürücü Eğitimi Dersleri - ADR Temel Uygulama Eğitimi</option>
+        <option value="90">Sürücü Eğitimi Dersleri - SINIF1-Tehlikeli Madde Taşımacılığı</option>
+        <option value="91">Sürücü Eğitimi Dersleri - SINIF7-Tehlikeli Madde Taşımacılığı</option>
+        <option value="86">Sürücü Eğitimi Dersleri - TANKER-Tehlikeli Madde Taşımacılığı</option>
+        <option value="88">Sürücü Eğitimi Dersleri - TANKER-Uygulama Eğitimi</option>
+        <option value="92">Sürücü Eğitimi Dersleri - YENİLEME-ADR Temel Eğitimi</option>
+        <option value="94">Sürücü Eğitimi Dersleri - YENİLEME-Sınıf 1 Eğitimi</option>
+        <option value="95">Sürücü Eğitimi Dersleri - YENİLEME-Sınıf 7 Eğitimi</option>
+        <option value="93">Sürücü Eğitimi Dersleri - YENİLEME-Tanker Eğitimi</option> 
+	</select> 
+
+
+
+*/
+
+
+
+
+
+
+

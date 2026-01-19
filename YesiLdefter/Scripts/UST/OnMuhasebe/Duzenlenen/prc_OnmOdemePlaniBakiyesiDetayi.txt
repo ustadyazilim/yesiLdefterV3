@@ -6,7 +6,7 @@ AS BEGIN
     --declare @FirmId int = 35
     --declare @DonemTipiId int = 202312
 
-  declare @SectorTypeId smallint = 0 -- 201. Mtsk, 202. İşmak, 203. Src
+  declare @SectorTypeId smallint = 0 -- 201. Mtsk, 202. İşmak, 203. Src, 204. Src5
 
   Set @SectorTypeId = dbo.fnc_getSectorTypeId(@FirmId)
 

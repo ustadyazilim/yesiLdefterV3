@@ -106,7 +106,8 @@ namespace YesiLdefter
         string buttonTablesTransfer = "TABLES_TRANSFER";
 
         string startTarih = "";
-        
+        string selectedPath = v.EXE_PATH;//  @"C:\"; 
+
         #endregion
         public ms_ProjectTables()
         {
@@ -235,8 +236,9 @@ namespace YesiLdefter
             string vHasATrigger = "";
 
             v.active_DB.runDBaseNo = v.dBaseNo.UstadCrm;
-
-            v.EXE_ScriptsPath = getPathName();
+            
+            v.EXE_ScriptsPath = getPathName(this.selectedPath);
+            this.selectedPath = v.EXE_ScriptsPath;
 
             /// tables
             if (pageIndex == 1)
@@ -284,7 +286,7 @@ namespace YesiLdefter
             }
         }
 
-        private string getPathName()
+        private string getPathName(string selectedPath)
         {
             string pathName = "";
 
@@ -294,7 +296,7 @@ namespace YesiLdefter
                 folderBrowserDialog.Description = "Dosyaların bulunduğu klasör seçin";
 
                 // Varsayılan klasörü ayarlayabilirsiniz (opsiyonel).
-                folderBrowserDialog.SelectedPath = v.EXE_PATH;//  @"C:\";
+                folderBrowserDialog.SelectedPath = selectedPath;  
 
                 // Kullanıcı bir klasör seçerse işlemi onaylar.
                 if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
@@ -364,7 +366,8 @@ namespace YesiLdefter
                 DialogResult cevap = t.mySoru(soru);
                 if (DialogResult.Yes == cevap)
                 {
-                    v.EXE_ScriptsPath = getPathName();
+                    v.EXE_ScriptsPath = getPathName(this.selectedPath);
+                    this.selectedPath = v.EXE_ScriptsPath;
 
                     int length = ds.Tables[0].Rows.Count;
                     for (int i = 0; i < length; i++)

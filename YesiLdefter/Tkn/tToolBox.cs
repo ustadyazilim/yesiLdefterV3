@@ -8685,7 +8685,8 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
                 tableName = "MtskDonemTipi";
                 Sql = " Select * from [Lkp].[" + tableName + "] order by Id desc ";
             }
-            else if (v.tMainFirm.SectorTypeId == (Int16)v.msSectorType.UstadSrc)
+            else if (v.tMainFirm.SectorTypeId == (Int16)v.msSectorType.UstadSrc ||
+                     v.tMainFirm.SectorTypeId == (Int16)v.msSectorType.UstadSrc5) 
             {
                 tableName = "SrcDonemTipi";
                 Sql = " Select * from [Lkp].[" + tableName + "] order by Id desc ";
@@ -9206,6 +9207,18 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
 
             if (IsNotNull(Sql))
                 SQL_Read_Execute(v.dBaseNo.Project, v.ds_IlceList, ref Sql, "ILCEList", "");
+        }
+
+        public void SettingsUpdateSectorTypeId()
+        {
+            tSQLs sql = new tSQLs();
+            string Sql = sql.SQL_Settings_UpdateSectorTypeId(v.tMainFirm.FirmId, v.tMainFirm.SectorTypeId);
+            if (IsNotNull(Sql))
+            {
+                DataSet ds = new DataSet();
+                SQL_Read_Execute(v.dBaseNo.Project, ds, ref Sql, "", "");
+                ds.Dispose();
+            }
         }
 
         public void CrsTakvimiAyarla()
@@ -16518,7 +16531,8 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
                 }
             }
 
-            if (v.tMainFirm.SectorTypeId == (Int16)v.msSectorType.UstadSrc)
+            if (v.tMainFirm.SectorTypeId == (Int16)v.msSectorType.UstadSrc ||
+                v.tMainFirm.SectorTypeId == (Int16)v.msSectorType.UstadSrc5)
             {
                 if (orjinalFieldName.IndexOf("MevcutEhliyetTipi") > -1)
                 {
@@ -16550,7 +16564,10 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
                 {
                     idFieldName = "Id";
                     fieldName = "GrupTipi";
-                    tableName = "SrcGrupTipi";
+                    if (v.tMainFirm.SectorTypeId == (Int16)v.msSectorType.UstadSrc)
+                        tableName = "SrcGrupTipi";
+                    if (v.tMainFirm.SectorTypeId == (Int16)v.msSectorType.UstadSrc5)
+                        tableName = "Src5GrupTipi";
                     return;
                 }
                 if (orjinalFieldName.IndexOf("SubeTipi") > -1)
@@ -16560,11 +16577,6 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
                     tableName = "SrcSubeTipi";
                     return;
                 }
-
-
-
-
-
             }
 
 

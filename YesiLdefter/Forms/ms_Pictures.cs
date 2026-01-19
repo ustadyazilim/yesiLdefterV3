@@ -272,6 +272,22 @@ namespace YesiLdefter
             {
                 tLayout l = new tLayout();
                 l.Create_Layout(this, tResimEditor.formCode, groupControlList);
+
+                if (tResimEditor.formWidth == 0 && tResimEditor.formHeight == 0)
+                {
+                    this.groupControlList.Dock = System.Windows.Forms.DockStyle.Left;
+                    this.groupControlList.Width = 400;
+                }
+                if (tResimEditor.formWidth > 0)
+                {
+                    this.groupControlList.Dock = System.Windows.Forms.DockStyle.Left;
+                    this.groupControlList.Width = tResimEditor.formWidth;
+                }
+                if (tResimEditor.formHeight > 0)
+                {
+                    this.groupControlList.Dock = System.Windows.Forms.DockStyle.Top;
+                    this.groupControlList.Height = tResimEditor.formHeight;
+                }
             }
             else groupControlList.Visible = false;
 

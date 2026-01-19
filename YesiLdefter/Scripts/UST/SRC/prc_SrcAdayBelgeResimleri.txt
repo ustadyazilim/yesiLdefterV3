@@ -67,7 +67,7 @@ AS BEGIN
   , @TamAdiSoyadi as TamAdiSoyadi
   , @TcNo as TcNo
   , 'KiloByteKontrollu' as LkpImageType
-  , 'Kimlik 1' as LkpBelgeAdi
+  , 'Kimlik Ön' as LkpBelgeAdi
   , 'SrcAdayKimlik' as LkpTableName
   , 'Kimlik1Resim' as LkpFieldName
   , 'Kimlik1ResimSmall' as LkpSmallFieldName
@@ -90,7 +90,7 @@ AS BEGIN
   , @TamAdiSoyadi as TamAdiSoyadi
   , @TcNo as TcNo
   , 'KiloByteKontrollu' as LkpImageType
-  , 'Kimlik 2' as LkpBelgeAdi
+  , 'Kimlik Arka' as LkpBelgeAdi
   , 'SrcAdayKimlik' as LkpTableName
   , 'Kimlik2Resim' as LkpFieldName
   , 'Kimlik2ResimSmall' as LkpSmallFieldName
@@ -113,7 +113,7 @@ AS BEGIN
   , @TamAdiSoyadi as TamAdiSoyadi
   , @TcNo as TcNo
   , 'KiloByteKontrollu' as LkpImageType
-  , 'Ehliyet 1' as LkpBelgeAdi
+  , 'Ehliyet Ön' as LkpBelgeAdi
   , 'SrcAdayEhliyet' as LkpTableName
   , 'Ehliyet1Resim' as LkpFieldName
   , 'Ehliyet1ResimSmall' as LkpSmallFieldName
@@ -136,7 +136,7 @@ AS BEGIN
   , @TamAdiSoyadi as TamAdiSoyadi
   , @TcNo as TcNo
   , 'KiloByteKontrollu' as LkpImageType
-  , 'Ehliyet 2' as LkpBelgeAdi
+  , 'Ehliyet Arka' as LkpBelgeAdi
   , 'SrcAdayEhliyet' as LkpTableName
   , 'Ehliyet2Resim' as LkpFieldName
   , 'Ehliyet2ResimSmall' as LkpSmallFieldName

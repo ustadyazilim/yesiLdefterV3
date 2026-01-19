@@ -2204,6 +2204,9 @@ namespace Tkn_Events
                         v.tResimEditor.imagesSourceTableIPCode = tableIPCode;
                         v.tResimEditor.imagesSourceFieldName = "";
                         v.tResimEditor.formCode = prop_.FORMCODE; // kaynak kişilerin olduğu formCode
+                        v.tResimEditor.formWidth = t.myInt32(prop_.FORM_WIDTH);
+                        v.tResimEditor.formHeight = t.myInt32(prop_.FORM_HEIGHT);
+
                         /// listeli işlem mi geldi kontrol et
                         if (t.IsNotNull(v.tResimEditor.imagesMasterTableIPCode) == false)
                         {

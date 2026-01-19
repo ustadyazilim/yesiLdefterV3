@@ -1,7 +1,9 @@
 ﻿/*CreateProcedure*/
 
 CREATE PROCEDURE [dbo].[prc_SrcTeorikDersPlaniElemanaOzel] (
-   @DonemTipiId int
+
+   @FirmId int 
+  ,@DonemTipiId int
   ,@GrupTipiId int 
   ,@SubeTipiId int
   ,@DerslikAdiTipiId int 
@@ -44,8 +46,9 @@ AS BEGIN
   
  
  Select @EgitimBaslangicTarihi = isnull(min(GrupBaslamaTarihi), getdate())
- From SrcDonemi
- Where DonemTipiId = @DonemTipiId
+ From  dbo.SrcDonemi
+ Where FirmId = @FirmId
+ and   DonemTipiId = @DonemTipiId
 
  set @EgitimBaslangicTarihi_ = 'Convert(datetime, ''' + CONVERT(varchar(10), @EgitimBaslangicTarihi, 103) + ''', 103) '
 
@@ -77,7 +80,6 @@ AS BEGIN
  , td.[BaslamaSaati]
  , td.[BitisSaati]
  , td.[TDersIsUploaded]
- , td.[SablonTeorikBId]
  , td.[OzelGunlerId]
  , td.[DersHaftasiId]
 
@@ -120,8 +122,8 @@ AS BEGIN
    left outer join Lkp.SrcTeorikDersDerslikAdiTipi as FNo9 with (nolock) on ( td.DerslikAdiTipiId = FNo9.Id ) 
    left outer join Lkp.SrcTeorikDersDersSaatiTipi as FNo11 with (nolock) on ( td.DersSaatiTipiId = FNo11.Id ) 
 
- Where 0 = 0
- '
+ Where td.FirmId = ' + convert(varchar(10),@FirmId) + ' '
+
  set @sqlOrderBy = '
    or (    td.OzelGunlerId > 0 
        and td.BaslamaSaati > DATEADD( mm, -1, ' + @EgitimBaslangicTarihi_ + ') 
