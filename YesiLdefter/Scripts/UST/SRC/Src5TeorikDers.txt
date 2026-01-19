@@ -258,7 +258,6 @@ AS BEGIN
 	declare @FirmId int
 	declare @DonemTipiId int
 	declare @GrupTipiId int
-	declare @SubeTipiId int
 	declare @PersonelId varchar(30)
 
     OPEN isLockCursorDlt
@@ -276,8 +275,7 @@ AS BEGIN
         Select @FirmId = FirmId
 		, @DonemTipiId = DonemTipiId 
 		, @GrupTipiId = GrupTipiId 
-		, @SubeTipiId = SubeTipiId 
-        , @PersonelId = PersonelId
+        , @PersonelId = AsilPersonelId
 		from dbo.Src5TeorikDers Where Id = @curId
 
         Delete from dbo.Src5TeorikDers  Where Id = @curId and isnull(TDersIsUploaded,0) = 0

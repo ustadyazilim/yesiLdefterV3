@@ -575,10 +575,11 @@ create table [Lkp].[SrcAdayTakipeSinavSonrasiTipi]
 Delete from [Lkp].[SrcAdayTakipeSinavSonrasiTipi]
 INSERT INTO [Lkp].[SrcAdayTakipeSinavSonrasiTipi] (Id, eSinavSonrasiTipi, KonuGrupId, KonuId, KonuCaption, ChartCaption, FormCaption) --, ChartCaption, FormCaption)
  VALUES 
-  ( 0,    N'Tanımsız',                      3, 2140, 'Sınav sonrası', '', '' ),
-  ( 1,    N'Tekrar sınava girecek',         3, 2141, 'Sınav sonrası', 'Tekrar sınav', '' ),
-  ( 2,    N'Uygulama aşamasına geçti',      3, 2142, 'Sınav sonrası', 'Uyg. aşama. geçti', '' ),
-  ( 3,    N'Tüm teorik sınav hakkı bitti',  3, 2143, 'Sınav sonrası', 'Sınav hakkı bitti', '' )
+  ( 0,    N'Tanımsız',                            3, 2140, 'Sınav sonrası', '', '' ),
+  ( 1,    N'Tekrar sınava girecek',               3, 2141, 'Sınav sonrası', 'Tekrar sınav', '' ),
+  ( 2,    N'Uygulama aşamasına geçti',            3, 2142, 'Sınav sonrası', 'Uyg. aşama. geçti', '' ),
+  ( 3,    N'Tüm teorik sınav hakkı bitti',        3, 2143, 'Sınav sonrası', 'Sınav hakkı bitti', '' ),
+  ( 4,    N'Başarılı, Sertifika aşamasına geçti', 3, 2144, 'Sınav sonrası', '', '' )
 
 -- ------------------------------------------------------- 
 -- eSinavUcretTipiId

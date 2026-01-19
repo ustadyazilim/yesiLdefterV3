@@ -17,7 +17,7 @@ begin transaction
    TamAdiSoyadi          nVarchar(100)    null, 
    Adi                   nVarchar(50)     null,
    Soyadi                nVarchar(50)     null,
-   DogumYeri             nVarchar(50)  null,
+   DogumYeri             nVarchar(50)     null,
    DogumTarihi           Date             null,
    BabaAdi               nVarchar(50)     null,
    AnneAdi               nVarchar(50)     null,

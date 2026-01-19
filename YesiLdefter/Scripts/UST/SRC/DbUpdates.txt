@@ -57,14 +57,14 @@ commit transaction
             NewDatabase = 6,
             publishManager = 7,
             aktrilacakDb = 8,
-/*
+*/
 
 /*CreateData*/
 
 if ( Select count(*) ADET from [dbo].[DbUpdates] 
      where [MsDbUpdateId] = -1
      and   [UpdateTypeId] = 13 
-     and   [DBaseNoTypeId] = 
+     and   [DBaseNoTypeId] = 6
 ) = 0 
 begin
 INSERT INTO [dbo].[DbUpdates]

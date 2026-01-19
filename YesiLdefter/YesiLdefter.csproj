@@ -485,6 +485,12 @@
     <Compile Include="Forms\ms_Webbrowser.Designer.cs">
       <DependentUpon>ms_Webbrowser.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\ms_WhatsApp.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ms_WhatsApp.Designer.cs">
+      <DependentUpon>ms_WhatsApp.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\ms_XMLRead.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -1023,7 +1029,7 @@
     <Content Include="Scripts\UST\Mtsk\prc_MtskUygulamaDersPlanHazirlaManuel.txt" />
     <Content Include="Scripts\UST\Mtsk\prc_MtskUygulamaDersPlaniListele.txt" />
     <Content Include="Scripts\UST\Mtsk\prc_MtskUygulamaDersBorclandir.txt" />
-    <Content Include="Scripts\UST\Mtsk\prc_setIsDbUpdateActive.txt" />
+    <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\prc_setIsDbUpdateActive.txt" />
     <Content Include="Scripts\UST\Mtsk\prc_MtskAdayNoVer.txt" />
     <Content Include="Scripts\UST\Mtsk\fnc_getHaftaBasiSonu.txt" />
     <Content Include="Scripts\UST\OnMuhasebe\Duzenlenen\CrsBildirimB.txt" />
@@ -1232,6 +1238,7 @@
     <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersPlaniGruplari.txt" />
     <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersPlaniOlustur.txt" />
     <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersToplamlari.txt" />
+    <Content Include="Scripts\UST\SRC\prc_Src5AdayTakip.txt" />
     <Content Include="Scripts\UST\SRC\Src5SablonTeorikF.txt" />
     <Content Include="Scripts\UST\SRC\prc_MonthName.txt" />
     <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersListesi.txt" />

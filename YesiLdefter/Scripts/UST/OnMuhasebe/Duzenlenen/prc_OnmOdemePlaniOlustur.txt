@@ -8,7 +8,7 @@ AS BEGIN
 
   declare @SP_Message nvarchar(100) = ''
   declare @TahsilatAdedi int = 0
-  declare @SectorTypeId smallint = 0 -- 201. Mtsk, 202. İşmak, 203. Src
+  declare @SectorTypeId smallint = 0 -- 201. Mtsk, 202. İşmak, 203. Src, 204. Src5
 
   Set @SectorTypeId = dbo.fnc_getSectorTypeId(@FirmId)
 

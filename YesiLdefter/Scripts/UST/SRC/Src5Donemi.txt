@@ -25,6 +25,9 @@ begin transaction
    TeorikDersSayisi     SmallInt      null,
    UygulamaDersSayisi   SmallInt      null,
    KurumOnayTipiId      SmallInt      null, /* 0. Onay bekliyor, 1-Onaylandı  tablo = ?   */		
+   KapasiteTipiId       SmallInt      null,  /* şubenin doluluk durumu hakkında */ 
+   TakipTipiId          SmallInt      null,
+
    VeriKaynakId         Int           null,
    
    constraint		pk_Src5Donemi primary key (Id)
@@ -45,7 +48,7 @@ CREATE TRIGGER [dbo].[trg_Src5Donemi] on [dbo].[Src5Donemi]
 AFTER INSERT, UPDATE
 AS BEGIN
 
-    DECLARE cursorSrcDonemi cursor local for select Id from Inserted
+    DECLARE cursorSrc5Donemi cursor local for select Id from Inserted
     DECLARE @curId bigint
 
     OPEN cursorSrc5Donemi
@@ -56,23 +59,52 @@ AS BEGIN
     declare @DonemTipiId int = 0
     declare @GrupTipiId int = 0
     declare @SertifikaTipiId smallint = 0
+    declare @SertifikaSinifTipiId smallInt = 0
+    declare @GrupSiraNo smallInt = 0
+    declare @DonemAdi nvarchar(100)
+
+    declare @DonemYilAy varchar(10)
+    declare @GrupTipi varchar(4)
+    declare @SertifikaSinifAdi varchar(50)
+    declare @GrupSiraNoAdi varchar(10)
 
     WHILE @@FETCH_STATUS = 0
     BEGIN
+
        Select @FirmId = ins.FirmId
          , @DonemTipiId = DonemTipiId
          , @GrupTipiId  = GrupTipiId
          , @SertifikaTipiId = SertifikaTipiId
+         , @SertifikaSinifTipiId = SertifikaSinifTipiId
+         , @GrupSiraNo = GrupSiraNo
 
        From inserted as ins
        Where Id = @curId
 
+       Select @SertifikaSinifAdi = SertifikaSinifTipi
+       From  Lkp.Src5DonemiSertifikaSinifTipi
+       Where Id = @SertifikaSinifTipiId
 
+       set @DonemYilAy = substring(convert(varchar(10), @DonemTipiId),1,4) + '.' + substring(convert(varchar(10), @DonemTipiId),5,2)
+       set @GrupTipi = 'G' + RIGHT(REPLICATE('0', 2) + CAST(@GrupTipiId AS VARCHAR(5)), 2) 
+       
+       set @GrupSiraNoAdi = '';
+       if (@GrupSiraNo > 0)
+           set @GrupSiraNoAdi = '  [' + RIGHT(REPLICATE('0', 4) + CAST(@GrupSiraNo AS VARCHAR(5)), 4) + ']'
+
+       Set @DonemAdi = @DonemYilAy +'/'+ @GrupTipi + ': ' + @SertifikaSinifAdi + @GrupSiraNoAdi
+       -- select @DonemAdi
+
+       Update dbo.Src5Donemi set DonemAdi = @DonemAdi
+       Where Id = @curId
+
+       
        FETCH NEXT FROM cursorSrc5Donemi INTO @curId
     END -- While
 
     CLOSE cursorSrc5Donemi
     DEALLOCATE cursorSrc5Donemi   
+
 
 END -- create trigger
 
@@ -157,6 +189,65 @@ INSERT INTO Lkp.Src5DonemiSertifikaSinifTipi (Id, SertifikaSinifTipi)
   ( 15,  N'Y.Temel + Tanker'),
   ( 16,  N'Y.Temel + Sınıf1'),
   ( 17,  N'Y.Temel + Sınıf7')
+
+
+-- ------------------------------------------------------- 
+-- TakipTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'Src5DonemiTakipTipi')
+drop table [Lkp].[Src5DonemiTakipTipi]
+
+create table Lkp.Src5DonemiTakipTipi
+(
+   Id          Int Unique Not Null,
+   TakipTipi   nVarchar(50)   null
+   
+   constraint  pk_Src5DonemiTakipTipi primary key (Id)
+)
+
+DELETE Lkp.Src5DonemiTakipTipi
+INSERT INTO Lkp.Src5DonemiTakipTipi (Id, TakipTipi)
+ VALUES 
+  ( 0,  N'Tanımsız'),
+  ( 1,  N'Teorik ders planı yok'),
+  ( 2,  N'Teorik ders planı eksik'),
+  ( 3,  N'Teorik ders planı mevcut'),
+
+  ( 11, N'Grup başlangıç tarihi belli değil'),
+  ( 12, N'Teorik dersler planlanacak'),
+  ( 13, N'Teorik dersler planlandı, Mebbise aktarılacak'),
+  ( 14, N'Teorik dersler Mebbise aktarıldı'),
+  ( 15, N'Teorik dersler başlamadı'),
+  ( 16, N'Teorik dersler başladı'),
+  ( 17, N'Teorik dersler tamamlandı')
+
+-- ------------------------------------------------------- 
+-- KapasiteTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'Src5DonemiKapasiteTipi')
+drop table [Lkp].[Src5DonemiKapasiteTipi]
+
+create table Lkp.Src5DonemiKapasiteTipi
+(
+   Id                 Int Unique Not Null,
+   KapasiteTipi       nVarchar(50)   null
+   
+   constraint  pk_Src5DonemiKapasiteTipi primary key (Id)
+)
+
+DELETE Lkp.Src5DonemiKapasiteTipi
+INSERT INTO Lkp.Src5DonemiKapasiteTipi (Id, KapasiteTipi)
+ VALUES 
+  ( -6,  N''),
+  ( -5,  N'Son 5 aday'),
+  ( -4,  N'Son 4 aday'),
+  ( -3,  N'Son 3 aday'),
+  ( -2,  N'Son 2 aday'),
+  ( -1,  N'Son 1 aday'),
+  (  0,  N'Kapasite tam dolu'),
+  (  1,  N'Sorun : Kapasite fazlası var')
+
+
 
 commit transaction
 

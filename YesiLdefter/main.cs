@@ -342,6 +342,7 @@ namespace YesiLdefter
                         t.WaitFormOpen(v.mainForm, "İl ve İlçe listesi okunuyor...");
                         t.SYS_IL_Read();
                         t.SYS_Ilce_Read();
+                        t.SettingsUpdateSectorTypeId();
                         // Frmanın Il ve Ilçe adı atanıyor
                         t.preparing_FirmILAdi_IlceAdi();
 
@@ -482,6 +483,11 @@ namespace YesiLdefter
                     ((v.SP_Firm_SectorTypeId == (Int16)v.msSectorType.UstadSrc) ||
                     (v.SP_Firm_SectorTypeId == (Int16)v.msSectorType.TabimSrc)))
                     autoOpenForm("UST/MEB/SRC/YHSrcYasamDongusu", "");
+
+                if ((v.SP_TabimParamsKurumTipi == "") &&
+                    (v.SP_Firm_SectorTypeId == (Int16)v.msSectorType.UstadSrc5))
+                    autoOpenForm("UST/MEB/SRC/YHSrc5YasamDongusu", "");
+
 
                 ///// şimdilik geçici burada. Daha sonra günde bir defa çalışacak şekilde ayarlamak gerekiyor
                 ///// 

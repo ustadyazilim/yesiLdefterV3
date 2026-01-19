@@ -227,6 +227,9 @@ AS BEGIN
   declare @DbUpdatesIsActive Bit = 0
   set @DbUpdatesIsActive = [dbo].[fnc_getIsDbUpdate] (0)
 
+  declare @SectorTypeId smallint = 0 -- 201. Mtsk, 202. İşmak, 203. Src, 204. Src5
+  
+
   WHILE @@FETCH_STATUS = 0
   BEGIN
       print '  talep while begin '
@@ -298,6 +301,8 @@ AS BEGIN
 
       From inserted as ins
       Where ins.Id = @TalepId
+
+      Set @SectorTypeId = dbo.fnc_getSectorTypeId(@yFirmId)
 
       -- TamAdiSoyadi var ise Adi ve Soyadi tespit ediliyor 
       if ((@yTamAdiSoyadi <> '') and (@yAdi = '') and (@ySoyadi = ''))
@@ -413,9 +418,6 @@ AS BEGIN
           (@yEhliyetGeldi = 1) and
           (@yOgrenimGeldi = 1) and
           (@yAdliSicilGeldi = 1) and
-          --(@ySaglikGeldi = 1) and
-          --(@yImzaAlindi = 1) and
-          --(@ySozlesmeYapildi = 1) and
           (@yAdresAlindi = 1)) 
            set @yBelgelerGeldi = 1
       else set @yBelgelerGeldi = 0
@@ -465,130 +467,211 @@ AS BEGIN
 
       if (@DbUpdatesIsActive = 0)
       begin 
-          if ( Select Count(Id) as ADET
+          -----------------------------------------------------------
+          -- Src ise 
+          -----------------------------------------------------------
+          if (@SectorTypeId = 203)    
+          begin
+               -- Tanımlı olmayan Donem kayıt edilirse 
+               -- (tarnsferler sırasında oluyor)
+               if ( Select Count(Id) as ADET
                From [dbo].[SrcDonemi]
                Where DonemTipiId = @yDonemTipiId
                and   GrupTipiId = @yGrupTipiId ) = 0 
                and @yGrupTipiId > 1
-          begin
-              INSERT INTO [dbo].[SrcDonemi]
-                   ([ParentId]
-                   ,[FirmId]
-                   ,[IsActive]
-                   ,[DonemTipiId]
-                   ,[GrupTipiId]
-                   ,[KurumOnayTipiId])
-              VALUES
-                   (0 --ParentId
-                   ,@yFirmId
-                   ,1 --IsActive
-                   ,@yDonemTipiId
-                   ,@yGrupTipiId
-                   ,0 -- KurumOnayTipiId
-				   )
-          end
+               begin
+                   INSERT INTO [dbo].[SrcDonemi]
+                        ([ParentId]
+                        ,[FirmId]
+                        ,[IsActive]
+                        ,[DonemTipiId]
+                        ,[GrupTipiId]
+                        ,[KurumOnayTipiId])
+                   VALUES
+                        (0 --ParentId
+                        ,@yFirmId
+                        ,1 --IsActive
+                        ,@yDonemTipiId
+                        ,@yGrupTipiId
+                        ,0 -- KurumOnayTipiId
+			     	   )
+               end
 
-          if ( Select Count(Id) as ADET
+               -- Tanımlı olmayan Grup kayıt edilirse 
+               if ( Select Count(Id) as ADET
                From [dbo].[SrcGrupSubesi]
                Where DonemTipiId = @yDonemTipiId
                and   GrupTipiId = @yGrupTipiId 
                and   SubeTipiId = @ySubeTipiId ) = 0 
                and   @yGrupTipiId > 0
                and   @ySubeTipiId > 0
-          begin
-              INSERT INTO [dbo].[SrcGrupSubesi]
-                  ([ParentId]
-                  ,[FirmId]
-                  ,[IsActive]
-                  ,[DonemTipiId]
-                  ,[GrupTipiId]
-                  ,[SubeTipiId]
-                  ,[KurumOnayTipiId]
-                  ,[TDersIsUploaded]
-                  )
-              VALUES
-                  (0 --ParentId
-                  ,@yFirmId
-                  ,1 --IsActive
-                  ,@yDonemTipiId
-                  ,@yGrupTipiId
-                  ,@ySubeTipiId
-                  ,0 --KurumOnayTipiId
-                  ,0 --TDersIsUploaded
-                  )
-          end
+               begin
+                   INSERT INTO [dbo].[SrcGrupSubesi]
+                       ([ParentId]
+                       ,[FirmId]
+                       ,[IsActive]
+                       ,[DonemTipiId]
+                       ,[GrupTipiId]
+                       ,[SubeTipiId]
+                       ,[KurumOnayTipiId]
+                       ,[TDersIsUploaded]
+                       )
+                   VALUES
+                       (0 --ParentId
+                       ,@yFirmId
+                       ,1 --IsActive
+                       ,@yDonemTipiId
+                       ,@yGrupTipiId
+                       ,@ySubeTipiId
+                       ,0 --KurumOnayTipiId
+                       ,0 --TDersIsUploaded
+                       )
+               end
 
+               -- Donem, grup veya şube değiştiyse
+               if (@eDonemTipiId <> @yDonemTipiId
+               or  @eGrupTipiId <> @yGrupTipiId
+               or  @eSubeTipiId <> @ySubeTipiId
+               ) and (@eGrupSubeId = @yGrupSubeId)
+               begin
+               
+                   Select @kontrol1GrupSubeId = isnull(Id,0)
+                   From dbo.SrcGrupSubesi
+                   Where FirmId = @yFirmId 
+                   and   DonemTipiId = @yDonemTipiId
+                   and   GrupTipiId = @yGrupTipiId
+                   and   SubeTipiId = @ySubeTipiId
+               
+                   --Select @kontrol1GrupSubeId
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @yDonemTipiId
+                      ,GrupTipiId = @yGrupTipiId
+                      ,SubeTipiId = @ySubeTipiId
+                      ,GrupSubeId = @kontrol1GrupSubeId
+                   Where Id = @TalepId 
+               
+                   Set @eGrupSubeId = @kontrol1GrupSubeId
+                   Set @yGrupSubeId = @kontrol1GrupSubeId
+               end
+               
+               -- GrupSubeId değiştiyse
+               if (@eDonemTipiId = @yDonemTipiId
+               and @eGrupTipiId = @yGrupTipiId
+               and @eSubeTipiId = @ySubeTipiId
+               ) and (@eGrupSubeId <> @yGrupSubeId)
+               begin
+                   Select 
+                       @kontrol2DonemTipiId = isnull(DonemTipiId,0)
+                      ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
+                      ,@kontrol2SubeTipiId = isnull(SubeTipiId,0)
+                   From dbo.SrcGrupSubesi
+                   Where FirmId = @yFirmId 
+                   and   Id = @yGrupSubeId
+               
+                   --Select @kontrol2DonemTipiId,@kontrol2GrupTipiId,@kontrol2SubeTipiId,'yy'
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @kontrol2DonemTipiId
+                      ,GrupTipiId = @kontrol2GrupTipiId
+                      ,SubeTipiId = @kontrol2SubeTipiId
+                   Where Id = @TalepId 
+               end 
+               
+               -- Donem veya Grup veya Şube ve hatta GrupSubeId değiştiyse
+               -- GrupSubeId baz alınıyor
+               if (@eDonemTipiId <> @yDonemTipiId
+               or @eGrupTipiId <> @yGrupTipiId
+               or @eSubeTipiId <> @ySubeTipiId
+               ) and (@eGrupSubeId <> @yGrupSubeId)
+               begin
+                   Select 
+                       @kontrol2DonemTipiId = isnull(DonemTipiId,0)
+                      ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
+                      ,@kontrol2SubeTipiId = isnull(SubeTipiId,0)
+                   From dbo.SrcGrupSubesi
+                   Where FirmId = @yFirmId 
+                   and   Id = @yGrupSubeId
+               
+                   --Select @kontrol2DonemTipiId,@kontrol2GrupTipiId,@kontrol2SubeTipiId,'xx'
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @kontrol2DonemTipiId
+                      ,GrupTipiId = @kontrol2GrupTipiId
+                      ,SubeTipiId = @kontrol2SubeTipiId
+                   Where Id = @TalepId 
+               end 
 
-          -- Donem, grup veya şube değiştiyse
-          if (@eDonemTipiId <> @yDonemTipiId
-          or  @eGrupTipiId <> @yGrupTipiId
-          or  @eSubeTipiId <> @ySubeTipiId
-          ) and (@eGrupSubeId = @yGrupSubeId)
-          begin
-
-              Select @kontrol1GrupSubeId = isnull(Id,0)
-              From dbo.SrcGrupSubesi
-              Where FirmId = @yFirmId 
-              and   DonemTipiId = @yDonemTipiId
-              and   GrupTipiId = @yGrupTipiId
-              and   SubeTipiId = @ySubeTipiId
-    
-              --Select @kontrol1GrupSubeId
-              Update dbo.SrcAdayTalep Set
-                  DonemTipiId = @yDonemTipiId
-                 ,GrupTipiId = @yGrupTipiId
-                 ,SubeTipiId = @ySubeTipiId
-                 ,GrupSubeId = @kontrol1GrupSubeId
-              Where Id = @TalepId 
-
-              Set @eGrupSubeId = @kontrol1GrupSubeId
-              Set @yGrupSubeId = @kontrol1GrupSubeId
-          end
-
-          -- GrupSubeId değiştiyse
-          if (@eDonemTipiId = @yDonemTipiId
-          and @eGrupTipiId = @yGrupTipiId
-          and @eSubeTipiId = @ySubeTipiId
-          ) and (@eGrupSubeId <> @yGrupSubeId)
-          begin
-              Select 
-                  @kontrol2DonemTipiId = isnull(DonemTipiId,0)
-                 ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
-                 ,@kontrol2SubeTipiId = isnull(SubeTipiId,0)
-              From dbo.SrcGrupSubesi
-              Where FirmId = @yFirmId 
-              and   Id = @yGrupSubeId
-
-              --Select @kontrol2DonemTipiId,@kontrol2GrupTipiId,@kontrol2SubeTipiId,'yy'
-              Update dbo.SrcAdayTalep Set
-                  DonemTipiId = @kontrol2DonemTipiId
-                 ,GrupTipiId = @kontrol2GrupTipiId
-                 ,SubeTipiId = @kontrol2SubeTipiId
-              Where Id = @TalepId 
           end 
+          -----------------------------------------------------------
+          -- Src ise END
+          -----------------------------------------------------------
 
-          -- Donem veya Grup veya Şube ve hatta GrupSubeId değiştiyse
-          -- GrupSubeId baz alınıyor
-          if (@eDonemTipiId <> @yDonemTipiId
-          or @eGrupTipiId <> @yGrupTipiId
-          or @eSubeTipiId <> @ySubeTipiId
-          ) and (@eGrupSubeId <> @yGrupSubeId)
+          -----------------------------------------------------------
+          -- Src5 ise 
+          -----------------------------------------------------------
+          if (@SectorTypeId = 204)    
           begin
-              Select 
-                  @kontrol2DonemTipiId = isnull(DonemTipiId,0)
-                 ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
-                 ,@kontrol2SubeTipiId = isnull(SubeTipiId,0)
-              From dbo.SrcGrupSubesi
-              Where FirmId = @yFirmId 
-              and   Id = @yGrupSubeId
-
-              --Select @kontrol2DonemTipiId,@kontrol2GrupTipiId,@kontrol2SubeTipiId,'xx'
-              Update dbo.SrcAdayTalep Set
-                  DonemTipiId = @kontrol2DonemTipiId
-                 ,GrupTipiId = @kontrol2GrupTipiId
-                 ,SubeTipiId = @kontrol2SubeTipiId
-              Where Id = @TalepId 
+               -- Donem, grup değiştiyse
+               if (@eDonemTipiId <> @yDonemTipiId
+               or  @eGrupTipiId <> @yGrupTipiId
+               ) and (@eGrupSubeId = @yGrupSubeId)
+               begin
+               
+                   Select @kontrol1GrupSubeId = isnull(Id,0)
+                   From dbo.Src5Donemi
+                   Where FirmId = @yFirmId 
+                   and   DonemTipiId = @yDonemTipiId
+                   and   GrupTipiId = @yGrupTipiId
+               
+                   --Select @kontrol1GrupSubeId
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @yDonemTipiId
+                      ,GrupTipiId = @yGrupTipiId
+                      ,GrupSubeId = @kontrol1GrupSubeId
+                   Where Id = @TalepId 
+               
+                   Set @eGrupSubeId = @kontrol1GrupSubeId
+                   Set @yGrupSubeId = @kontrol1GrupSubeId
+               end
+               
+               -- GrupSubeId değiştiyse
+               if (@eDonemTipiId = @yDonemTipiId
+               and @eGrupTipiId = @yGrupTipiId
+               ) and (@eGrupSubeId <> @yGrupSubeId)
+               begin
+                   Select 
+                       @kontrol2DonemTipiId = isnull(DonemTipiId,0)
+                      ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
+                   From dbo.Src5Donemi
+                   Where FirmId = @yFirmId 
+                   and   Id = @yGrupSubeId
+               
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @kontrol2DonemTipiId
+                      ,GrupTipiId = @kontrol2GrupTipiId
+                   Where Id = @TalepId 
+               end 
+               
+               -- Donem veya Grup ve hatta GrupSubeId değiştiyse
+               -- GrupSubeId baz alınıyor
+               if (@eDonemTipiId <> @yDonemTipiId
+               or @eGrupTipiId <> @yGrupTipiId
+               ) and (@eGrupSubeId <> @yGrupSubeId)
+               begin
+                   Select 
+                       @kontrol2DonemTipiId = isnull(DonemTipiId,0)
+                      ,@kontrol2GrupTipiId = isnull(GrupTipiId,0)
+                   From dbo.Src5Donemi
+                   Where FirmId = @yFirmId 
+                   and   Id = @yGrupSubeId
+               
+                   Update dbo.SrcAdayTalep Set
+                       DonemTipiId = @kontrol2DonemTipiId
+                      ,GrupTipiId = @kontrol2GrupTipiId
+                   Where Id = @TalepId 
+               end 
           end 
+          -----------------------------------------------------------
+          -- Src5 ise END
+          -----------------------------------------------------------
 
           -- Eğer bu belge (Artı/2. Belge) ise
           if (@yArtiBelgeTipiId = 2)
@@ -621,14 +704,16 @@ AS BEGIN
               Where Id = @TalepId
           end
 
-	      --Execute [dbo].[prc_SrcAdayTalepYasiniHesapla] @TalepId
           
           -- Veri transferi yapılmıyorsa 
           if (@DbUpdatesIsActive = 0)
           begin
               Execute [dbo].[prc_SrcAdayTablesInsert] @TalepId  -- Data transferi sırasında oluşturuluyor zaten insert oluyor
               Execute [dbo].[prc_SrcAdayTakipTalepKaydiSingleSet] @TalepId
-              Execute [dbo].[prc_SrcAdayTakip] @yFirmId, @TalepId, 0, 'SrcAdayTakipKayit'
+              if (@SectorTypeId = 203) -- Src 
+                  Execute [dbo].[prc_SrcAdayTakip] @yFirmId, @TalepId, 0, 'SrcAdayTakipKayit'
+              if (@SectorTypeId = 204) -- Src5
+                  Execute [dbo].[prc_Src5AdayTakip] @yFirmId, @TalepId, 0, 'SrcAdayTakipKayit'
           end
 		  
           -- SrcAdayBelgeler tablosu

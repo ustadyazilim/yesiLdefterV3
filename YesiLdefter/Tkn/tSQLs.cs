@@ -1433,6 +1433,13 @@ order by x.DonemTipiId
         {
             return @" Select * from Lkp.IlceTipi order by IlKodu ";
         }
+
+        public string SQL_Settings_UpdateSectorTypeId(int FirmId, Int16 SectorTypeId)
+        {
+            return @" Update dbo.Settings Set DefaultInt = " + SectorTypeId.ToString() 
+                 + @" Where FirmId = " + FirmId.ToString()
+                 + @" and   GroupNoTypeId = 1000 and SettingNo = 100 ";
+        }
         public string SQL_MS_LAYOUT_LIST(string MasterCode, byte MasterItemType)
         {
             string myAnd = "";

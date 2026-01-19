@@ -48,7 +48,7 @@ create table Lkp.Src5SablonTeorikFDersTipi
 INSERT INTO Lkp.Src5SablonTeorikFDersTipi (Id, DersTipi)
  VALUES 
     (   0, N'Gruba ait tüm dersler')
-  , (2010, N'ADR Tehlikeli Madde Taşımacılığı'),
+  , (2010, N'ADR Tehlikeli Madde Taşımacılığı')
   , (2020, N'ADR Temel Uygulama Eğitimi')
   , (2030, N'TANKER-Tehlikeli Madde Taşımacılığı')
   , (2040, N'TANKER-Uygulama Eğitimi')
