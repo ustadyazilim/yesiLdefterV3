@@ -2186,13 +2186,39 @@ namespace Tkn_ToolBox
 
             string sqlM = msMenuItemsList_SQL(masterCode);
 
-            SqlDataAdapter msSqlAdapter6 = null;
-            if (sqlM != string.Empty)
+            // Guard: connection must be properly initialized before attempting to load menu items
+            if (v.active_DB.managerMSSQLConn == null ||
+                string.IsNullOrWhiteSpace(v.active_DB.managerMSSQLConn.ConnectionString))
             {
-                msSqlAdapter6 = new SqlDataAdapter(sqlM, v.active_DB.managerMSSQLConn);
-                msSqlAdapter6.Fill(v.ds_MsMenuItems, masterCode);
+                System.Diagnostics.Debug.WriteLine(
+                    "[tToolBox.readMenuItemsList_] ManagerDB connection is null or has empty ConnectionString. " +
+                    "Menu items cannot be loaded.");
+
+                try
+                {
+                    MessageBox.Show(
+                        "Menü bilgileri yüklenemedi çünkü veritabanı bağlantısı hazırlanmadı.\r\n\r\n" +
+                        "Lütfen uygulamayı kapatıp tekrar açın veya bağlantı ayarlarını kontrol edin.",
+                        "Veritabanı Bağlantı Hatası",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+                catch
+                {
+                    // UI mesajı gösterilemese bile uygulama çökmemeli
+                }
+
+                return;
             }
-            msSqlAdapter6.Dispose();
+
+            if (!string.IsNullOrEmpty(sqlM))
+            {
+                using (var msSqlAdapter6 = new SqlDataAdapter(sqlM, v.active_DB.managerMSSQLConn))
+                {
+                    msSqlAdapter6.Fill(v.ds_MsMenuItems, masterCode);
+                }
+            }
+            // msSqlAdapter6.Dispose();
         }
         public void preparing_DataCopyList(string DC_Code)
         {

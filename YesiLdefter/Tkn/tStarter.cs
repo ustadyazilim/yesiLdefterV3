@@ -170,14 +170,18 @@ namespace Tkn_Starter
                 System.Diagnostics.Debug.WriteLine("[tStarter.InitStart] Calling InitPreparingConnectionFromApi()...");
                 bool dbConnectionsEstablished = InitPreparingConnectionFromApi();
                 System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] InitPreparingConnectionFromApi() returned: {dbConnectionsEstablished}");
+                
                 if (!dbConnectionsEstablished)
                 {
-                    MessageBox.Show("Database bağlantı bilgileri alınamadı. Lütfen sistem yöneticinize başvurun.",
-                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    v.SP_ApplicationExit = true;
-                    return;
+                    System.Diagnostics.Debug.WriteLine("[tStarter.InitStart] API connection failed, falling back to INI-based connection.");
+                    if (v.active_DB.managerMSSQLConn == null || string.IsNullOrWhiteSpace(v.active_DB.managerMSSQLConn.ConnectionString))
+                    {
+                        System.Diagnostics.Debug.WriteLine("[tStarter.InitStart] INI-based connection is also missing, re-initializing...");
+                        InitPreparingConnection();
+                    }
                 }
-                if (v.active_DB.managerMSSQLConn != null)
+                
+                if (v.active_DB.managerMSSQLConn != null && !string.IsNullOrWhiteSpace(v.active_DB.managerMSSQLConn.ConnectionString))
                 {
                     System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] managerMSSQLConn exists, State={v.active_DB.managerMSSQLConn.State}, ConnectionString length={v.active_DB.managerMSSQLConn.ConnectionString?.Length ?? 0}");
                     t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
@@ -193,7 +197,7 @@ namespace Tkn_Starter
                 }
                 else
                 {
-                    MessageBox.Show("ManagerDB bağlantı nesnesi oluşturulamadı. API'den bağlantı bilgileri alınamadı.",
+                    MessageBox.Show("ManagerDB bağlantı nesnesi oluşturulamadı. Hem API hem de INI tabanlı bağlantı başarısız oldu.",
                         "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     v.SP_ApplicationExit = true;
                     return;
@@ -306,13 +310,18 @@ namespace Tkn_Starter
         /// <returns>True if connections were successfully established, false otherwise</returns>
         bool InitPreparingConnectionFromApi()
         {
+            // CRITICAL FIX: Store old connections BEFORE disposing, so we can restore them if API fails
+            SqlConnection oldManagerConn = v.active_DB.managerMSSQLConn;
+            SqlConnection oldCrmConn = v.active_DB.ustadCrmMSSQLConn;
+            string oldManagerConnString = oldManagerConn?.ConnectionString;
+            string oldCrmConnString = oldCrmConn?.ConnectionString;
+            
             try
             {
                 suppressManagerConnWarning = true;
                 v.SP_ConnBool_Manager = false;
                 v.SP_ConnBool_Manager_Old = false;
-                try { v.active_DB.managerMSSQLConn?.Dispose(); } catch { }
-                try { v.active_DB.ustadCrmMSSQLConn?.Dispose(); } catch { }
+                
                 string apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
                 string jwtKey = Tkn_UstadAPI.tApiConfig.GetJwtKey();
                 using (var apiClient = new Tkn_UstadAPI.UstadApiClient(apiBaseUrl))
@@ -321,7 +330,7 @@ namespace Tkn_Starter
                     string authToken = GetStoredAuthToken();
                     if (string.IsNullOrEmpty(authToken))
                     {
-                        System.Diagnostics.Debug.WriteLine("No authentication token found. User must login first.");
+                        System.Diagnostics.Debug.WriteLine("No authentication token found. User must login first. Keeping INI-based connection.");
                         return false;
                     }
                     apiClient.SetAuthToken(authToken);
@@ -333,16 +342,22 @@ namespace Tkn_Starter
                     
                     if (dbInfo == null)
                     {
-                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: dbInfo is null.");
+                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: dbInfo is null. Keeping INI-based connection.");
                         return false;
                     }
                     bool hasCrm = !string.IsNullOrWhiteSpace(dbInfo.UstadCrmConnectionString);
                     bool hasMgr = !string.IsNullOrWhiteSpace(dbInfo.ManagerConnectionString);
                     if (!hasCrm || !hasMgr)
                     {
-                        System.Diagnostics.Debug.WriteLine($"InitPreparingConnectionFromApi: Missing decrypted strings. EncryptedCRM len: {dbInfo.EncryptedUstadCrmConnectionString?.Length ?? 0}, EncryptedMgr len: {dbInfo.EncryptedManagerConnectionString?.Length ?? 0}");
+                        System.Diagnostics.Debug.WriteLine($"InitPreparingConnectionFromApi: Missing decrypted strings. EncryptedCRM len: {dbInfo.EncryptedUstadCrmConnectionString?.Length ?? 0}, EncryptedMgr len: {dbInfo.EncryptedManagerConnectionString?.Length ?? 0}. Keeping INI-based connection.");
                         return false;
                     }
+                    
+                    // TODO(@Janberk): TO BE REVIEWED
+                    // Only NOW that we have valid connection strings from API, dispose old connections
+                    try { oldManagerConn?.Dispose(); } catch { }
+                    try { oldCrmConn?.Dispose(); } catch { }
+                    
                     v.active_DB.managerDBType = v.dBaseType.MSSQL;
                     v.active_DB.ustadCrmDBType = v.dBaseType.MSSQL;
                     v.active_DB.projectDBType = v.dBaseType.MSSQL;
@@ -350,7 +365,17 @@ namespace Tkn_Starter
                     ParseConnectionStringFromApi(dbInfo.ManagerConnectionString, false); 
                     if (v.active_DB.managerMSSQLConn == null || v.active_DB.ustadCrmMSSQLConn == null)
                     {
-                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: Connection objects were not created after parsing connection strings.");
+                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: Connection objects were not created after parsing connection strings. Restoring INI-based connection.");
+                        if (!string.IsNullOrWhiteSpace(oldManagerConnString))
+                        {
+                            v.active_DB.managerMSSQLConn = new SqlConnection(oldManagerConnString);
+                            v.active_DB.managerMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                        }
+                        if (!string.IsNullOrWhiteSpace(oldCrmConnString))
+                        {
+                            v.active_DB.ustadCrmMSSQLConn = new SqlConnection(oldCrmConnString);
+                            v.active_DB.ustadCrmMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                        }
                         return false;
                     }
                     
@@ -371,8 +396,20 @@ namespace Tkn_Starter
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting DB connection info from API: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error getting DB connection info from API: {ex.Message}. Restoring INI-based connection.");
                 System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                if (!string.IsNullOrWhiteSpace(oldManagerConnString) && v.active_DB.managerMSSQLConn == null)
+                {
+                    v.active_DB.managerMSSQLConn = new SqlConnection(oldManagerConnString);
+                    v.active_DB.managerMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                }
+                if (!string.IsNullOrWhiteSpace(oldCrmConnString) && v.active_DB.ustadCrmMSSQLConn == null)
+                {
+                    v.active_DB.ustadCrmMSSQLConn = new SqlConnection(oldCrmConnString);
+                    v.active_DB.ustadCrmMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                }
+                
                 return false;
             }
             finally
