@@ -44,6 +44,7 @@ namespace YesiLdefter
         DevExpress.XtraBars.BarStaticItem barMesajlar = null;
         DevExpress.XtraBars.BarButtonItem barButtonGuncelleme = null;
         DevExpress.XtraBars.BarButtonItem barButtonServiceTool = null;
+        DevExpress.XtraBars.BarButtonItem barButtonWhatsApp = null;
         DevExpress.XtraBars.BarEditItem mainProgressBar = null;
         DevExpress.XtraBars.BarEditItem barEditItemCari = null;
 
@@ -145,14 +146,16 @@ namespace YesiLdefter
 
             // ana ekranının hazırlanması
             // yani menuler burada hazırlanıyor
+            System.Diagnostics.Debug.WriteLine($"[main.constructor] Before preparingMainForm: this.IsMdiContainer={this.IsMdiContainer}, this.Name={this.Name}");
             using (tMainForm f = new tMainForm())
             {
                 f.preparingMainForm(this);
                 //f.preparingDockPanel(this, "SEK/CEV/prcCihazLogGetIcmal.Icmal_L01");
                 v.timer_Kullaniciya_Mesaj_Var_ = timer_Kullaniciya_Mesaj_Var;
             }
+            System.Diagnostics.Debug.WriteLine($"[main.constructor] After preparingMainForm: this.IsMdiContainer={this.IsMdiContainer}, this.Name={this.Name}, Application.OpenForms.Count={Application.OpenForms.Count}");
 
-                        // Mouse'un ekranına göre konumlandır
+            // Mouse'un ekranına göre konumlandır
             var mouseScreen = Screen.FromPoint(Cursor.Position);
             this.StartPosition = FormStartPosition.Manual;
             this.Location = new Point(
@@ -190,13 +193,16 @@ namespace YesiLdefter
 
             #region UserLOGIN
 
+            System.Diagnostics.Debug.WriteLine($"[main.constructor] After InitStart: v.SP_UserLOGIN={v.SP_UserLOGIN}, this.IsMdiContainer={this.IsMdiContainer}, Application.OpenForms.Count={Application.OpenForms.Count}");
             if (v.SP_UserLOGIN)
             {
                 // application set skins
                 t.getUserLookAndFeelSkins();
 
                 // login işlemleri
+                System.Diagnostics.Debug.WriteLine($"[main.constructor] Calling Login()...");
                 Login();
+                System.Diagnostics.Debug.WriteLine($"[main.constructor] After Login(): this.IsMdiContainer={this.IsMdiContainer}, Application.OpenForms.Count={Application.OpenForms.Count}");
 
                 if (v.active_DB.localDbUses == false)
                     t.DBUpdatesDataTransferOff();
@@ -236,7 +242,8 @@ namespace YesiLdefter
 
             #region -- açılışın sonu
 
-            v.SP_OpenApplication = false;
+            // Close splash screen and mark application as fully initialized
+            v.SP_OpenApplication = true; // Now set to true after initialization completes
             v.IsWaitOpen = false;
             t.WaitFormClose();
 
@@ -282,8 +289,11 @@ namespace YesiLdefter
 
             v.con_Search_NullText = "Arama listesi için  " + v.Key_SearchEngine + "  basın ...";
 
+            // NOTE: SP_OpenApplication should remain false during initialization
+            // so that WaitFormOpen can show status messages via SplashScreenManager
+            // It will be set to true after initialization completes (see line 239)
             t.WaitFormOpen(v.mainForm, "yesiLdefter hazırlanıyor ...");
-            v.SP_OpenApplication = true;
+            // v.SP_OpenApplication = true; // Moved to after initialization completes
 
         }
 
@@ -295,13 +305,53 @@ namespace YesiLdefter
             {
                 setMenuItems();
                 
-                t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-                t.Db_Open(v.active_DB.managerMSSQLConn);
+                // Ensure ManagerDB connection is open (it should already be open from tStarter.InitStart())
+                if (v.active_DB.managerMSSQLConn != null)
+                {
+                    // Check if connection is already open
+                    if (v.active_DB.managerMSSQLConn.State != System.Data.ConnectionState.Open)
+                    {
+                        t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
+                        t.Db_Open(v.active_DB.managerMSSQLConn);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[main.Login] ManagerDB connection already open, skipping Db_Open");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[main.Login] WARNING: managerMSSQLConn is null! Database connection was not established properly.");
+                    MessageBox.Show("Veritabanı bağlantısı kurulamadı. Lütfen uygulamayı yeniden başlatın.", 
+                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
 
                 if (v.active_DB.projectDBType == v.dBaseType.MSSQL)
                 {
-                    t.WaitFormOpen(v.mainForm, "ProjectDB bağlantısı gerçekleşiyor...");
-                    //t.Db_Open(v.active_DB.projectMSSQLConn);
+                    if (v.active_DB.projectMSSQLConn != null)
+                    {
+                        // Check if connection is already open
+                        if (v.active_DB.projectMSSQLConn.State != System.Data.ConnectionState.Open)
+                        {
+                            t.WaitFormOpen(v.mainForm, "ProjectDB bağlantısı gerçekleşiyor...");
+                            bool projectDbOpened = t.Db_Open(v.active_DB.projectMSSQLConn);
+                            if (!projectDbOpened)
+                            {
+                                System.Diagnostics.Debug.WriteLine("[main.Login] WARNING: ProjectDB connection failed to open. State=" + v.active_DB.projectMSSQLConn?.State);
+                                MessageBox.Show($"Proje veritabanı bağlantısı açılamadı.\n\nVeritabanı: {v.active_DB.projectDBName}\nSunucu: {v.active_DB.projectServerName}\n\nLütfen bağlantı bilgilerini kontrol edin.",
+                                    "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            }
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine("[main.Login] ProjectDB connection already open, skipping Db_Open");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[main.Login] WARNING: projectMSSQLConn is null! Project database connection was not established. Firm selection may not have completed properly.");
+                    }
                 }
                 
                 t.WaitFormOpen(v.mainForm, "SysTypes tanımları okunuyor...");
@@ -356,6 +406,7 @@ namespace YesiLdefter
                 }
 
                 setMainFormCaption();
+                
             }
         }
 
@@ -571,24 +622,29 @@ namespace YesiLdefter
 
                 if (item.GetType().ToString() == "DevExpress.XtraBars.BarButtonItem")
                 {
-                    if ((((DevExpress.XtraBars.BarButtonItem)item).Name.ToString() == "barButtonGuncelleme") &&
-                        (barButtonGuncelleme == null))
+                    var btn = (DevExpress.XtraBars.BarButtonItem)item;
+
+                    if ((btn.Name == "barButtonGuncelleme") && (barButtonGuncelleme == null))
                     {
-                        barButtonGuncelleme = (DevExpress.XtraBars.BarButtonItem)item;
+                        barButtonGuncelleme = btn;
                         barButtonGuncelleme.ItemClick +=
                             new DevExpress.XtraBars.ItemClickEventHandler(this.barButtonGuncelleme_ItemClick);
                     }
-                }
 
-                //barButtonServiceTool
-                if (item.GetType().ToString() == "DevExpress.XtraBars.BarButtonItem")
-                {
-                    if ((((DevExpress.XtraBars.BarButtonItem)item).Name.ToString() == "barButtonServiceTool") &&
-                        (barButtonServiceTool == null))
+                    //barButtonServiceTool
+                    if ((btn.Name == "barButtonServiceTool") && (barButtonServiceTool == null))
                     {
-                        barButtonServiceTool = (DevExpress.XtraBars.BarButtonItem)item;
+                        barButtonServiceTool = btn;
                         barButtonServiceTool.ItemClick +=
                             new DevExpress.XtraBars.ItemClickEventHandler(this.barButtonServiceTool_ItemClick);
+                    }
+
+                    // WhatsApp status / navigation button in main status bar
+                    if ((btn.Name == "barButtonWhatsApp") && (barButtonWhatsApp == null))
+                    {
+                        barButtonWhatsApp = btn;
+                        barButtonWhatsApp.ItemClick +=
+                            new DevExpress.XtraBars.ItemClickEventHandler(this.barButtonWhatsApp_ItemClick);
                     }
                 }
 
@@ -768,7 +824,20 @@ namespace YesiLdefter
             /// işin bitince yazdıklarını silersen iyi olur
             ///
 
+            // Quick test: Open ms_Donemler form (for WhatsApp testing)
+            tToolBox t = new tToolBox();
+            string FormName = "ms_Donemler";
+            string FormCode = "UST/MEB/SRC/Donemler";
+            t.OpenFormPreparing(FormName, FormCode, v.formType.Child);
+            
+            // Original test code (commented out):
             //MessageBox.Show(UserLookAndFeel.Default.SkinName.ToString());
+            //MessageBox.Show(
+            //    " SkinName : " + UserLookAndFeel.Default.SkinName.ToString() + " // " + v.ENTER +
+            //    " ActiveSkinName : " + UserLookAndFeel.Default.ActiveSkinName.ToString() + " // " + v.ENTER +
+            //    " ActiveStyle : " + UserLookAndFeel.Default.ActiveStyle.ToString() + " // " + v.ENTER +
+            //    " ActiveSvgPaletteName : " + UserLookAndFeel.Default.ActiveSvgPaletteName.ToString()
+            //    );
             MessageBox.Show(
                 " SkinName : " + UserLookAndFeel.Default.SkinName.ToString() + " // " + v.ENTER +
                 " ActiveSkinName : " + UserLookAndFeel.Default.ActiveSkinName.ToString() + " // " + v.ENTER +
@@ -869,6 +938,47 @@ namespace YesiLdefter
                 }
             }
 
+        }
+
+        // WhatsApp main status bar button: open external WhatsApp form
+        private void barButtonWhatsApp_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            try
+            {
+                // Basic validation similar to OpenWhatsAppForm in ms_Donemler
+                if (string.IsNullOrEmpty(v.tUser.JwtToken))
+                {
+                    XtraMessageBox.Show(
+                        "JWT token bulunamadı. Lütfen tekrar giriş yapın.",
+                        "Kimlik Doğrulama Hatası",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(v.tMainFirm.FirmGuid))
+                {
+                    XtraMessageBox.Show(
+                        "Firma bilgisi bulunamadı. Lütfen tekrar giriş yapın.",
+                        "Firma Bilgisi Hatası",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return;
+                }
+
+                // Open WhatsApp form as external child window
+                string FormName = "ms_WhatsApp";
+                string FormCode = "UST/PMS/PMS/WhatsApp";
+                t.OpenFormPreparing(FormName, FormCode, v.formType.Child);
+            }
+            catch (Exception ex)
+            {
+                XtraMessageBox.Show(
+                    $"WhatsApp penceresi açılırken hata oluştu:\r\n{ex.Message}",
+                    "WhatsApp Hatası",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
         }
         #endregion
 

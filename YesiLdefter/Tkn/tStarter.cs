@@ -1,4 +1,4 @@
-﻿using DevExpress.LookAndFeel;
+using DevExpress.LookAndFeel;
 using DevExpress.XtraEditors;
 using System;
 using System.Data;
@@ -112,16 +112,19 @@ namespace Tkn_Starter
             
             // 1. SECURE AUTHENTICATION FLOW: Authenticate user FIRST before any database connections
             // NOTE(@Janberk): Authentication happens via API - no database connection required for login.
+            // CRITICAL: Do NOT call InitPreparingConnection() before login - it opens DB connections prematurely
+            // and can cause issues when InitPreparingConnectionFromApi() disposes/recreates them.
+            // The INI-based fallback will be initialized only if API connection fails.
             t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
 
-            InitPreparingConnection();// mecburen burada connection hazırlanıyor
+            // tüm connections burada hazırlanıyor
+            //InitPreparingConnection();// mecburen burada connection hazırlanıyor
 
             if (v.active_DB.localDbUses == false)
             {
-                //InitLoginUser(); // WebView2-based login with LoginTemplate.html
-
-                
-                InitLoginUserLegacy(); // Legacy form - not used when WebView2 is available
+                // Primary path: WebView2-based standalone login (ms_User_Standalone)
+                // This uses API for authentication and firm selection, then hands off to InitPreparingConnectionFromApi().
+                InitLoginUser(); // WebView2-based login with LoginTemplate.html
             }
             else
             {
@@ -164,30 +167,37 @@ namespace Tkn_Starter
                 return;
             }
 
-            t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri hazırlanıyor...");
-            InitPreparingConnection();
+            t.InitPreparingConnection();
 
-            t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-            Db_Open(v.active_DB.managerMSSQLConn);
 
+/*
             // 2. SECURE AUTHENTICATION FLOW: After successful authentication, get database connection info from API
             // NOTE(@Janberk): Database connections are established ONLY after user authentication.
-            /*
+            System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] SP_UserLOGIN={v.SP_UserLOGIN}, localDbUses={v.active_DB.localDbUses}, managerMSSQLConn={(v.active_DB.managerMSSQLConn != null ? "exists" : "null")}");
             if (v.SP_UserLOGIN == true && v.active_DB.localDbUses == false)
             {
                 t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri API'den alınıyor...");
+                System.Diagnostics.Debug.WriteLine("[tStarter.InitStart] Calling InitPreparingConnectionFromApi()...");
                 bool dbConnectionsEstablished = InitPreparingConnectionFromApi();
+                System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] InitPreparingConnectionFromApi() returned: {dbConnectionsEstablished}");
+                
                 if (!dbConnectionsEstablished)
                 {
-                    MessageBox.Show("Database bağlantı bilgileri alınamadı. Lütfen sistem yöneticinize başvurun.",
-                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    v.SP_ApplicationExit = true;
-                    return;
+                    System.Diagnostics.Debug.WriteLine("[tStarter.InitStart] API connection failed, falling back to INI-based connection.");
+                    if (v.active_DB.managerMSSQLConn == null || string.IsNullOrWhiteSpace(v.active_DB.managerMSSQLConn.ConnectionString))
+                    {
+                        System.Diagnostics.Debug.WriteLine("[tStarter.InitStart] INI-based connection is also missing, re-initializing...");
+                        InitPreparingConnection();
+                    }
                 }
-                if (v.active_DB.managerMSSQLConn != null)
+                
+                if (v.active_DB.managerMSSQLConn != null && !string.IsNullOrWhiteSpace(v.active_DB.managerMSSQLConn.ConnectionString))
                 {
+                    System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] managerMSSQLConn exists, State={v.active_DB.managerMSSQLConn.State}, ConnectionString length={v.active_DB.managerMSSQLConn.ConnectionString?.Length ?? 0}");
                     t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-                    if (!Db_Open(v.active_DB.managerMSSQLConn))
+                    bool dbOpened = Db_Open(v.active_DB.managerMSSQLConn);
+                    System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] Db_Open(managerMSSQLConn) returned: {dbOpened}, State={v.active_DB.managerMSSQLConn?.State}");
+                    if (!dbOpened)
                     {
                         MessageBox.Show("ManagerDB bağlantısı açılamadı. Lütfen bağlantı bilgilerini kontrol edin.",
                             "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -197,7 +207,7 @@ namespace Tkn_Starter
                 }
                 else
                 {
-                    MessageBox.Show("ManagerDB bağlantı nesnesi oluşturulamadı. API'den bağlantı bilgileri alınamadı.",
+                    MessageBox.Show("ManagerDB bağlantı nesnesi oluşturulamadı. Hem API hem de INI tabanlı bağlantı başarısız oldu.",
                         "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     v.SP_ApplicationExit = true;
                     return;
@@ -207,17 +217,25 @@ namespace Tkn_Starter
             {
                 // Local DB mode - use existing connection setup (for Tabim local database)
                 t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri hazırlanıyor...");
-                InitPreparingConnection();
+                t.InitPreparingConnection();
                 t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
                 if (!Db_Open(v.active_DB.managerMSSQLConn))
                 {
-                    MessageBox.Show("ManagerDB bağlantısı açılamadı (local). Lütfen bağlantı bilgilerini kontrol edin.",
+                    MessageBox.Show("ManagerDB bağlantısı açılamadı. Lütfen bağlantı bilgilerini kontrol edin.",
                         "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     v.SP_ApplicationExit = true;
                     return;
                 }
             }
-            */
+            else
+            {
+                // User did not login - should not reach here, but handle gracefully
+                MessageBox.Show("Kullanıcı girişi yapılmadı. Lütfen tekrar deneyin.",
+                    "Giriş Hatası", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                v.SP_ApplicationExit = true;
+                return;
+            }
+*/
             /// Mesaj formu nedense kayboluyor
             /// onun açılması için burada bunlar false yapılıyor
             v.IsWaitOpen = false;
@@ -302,13 +320,18 @@ namespace Tkn_Starter
         /// <returns>True if connections were successfully established, false otherwise</returns>
         bool InitPreparingConnectionFromApi()
         {
+            // CRITICAL FIX: Store old connections BEFORE disposing, so we can restore them if API fails
+            SqlConnection oldManagerConn = v.active_DB.managerMSSQLConn;
+            SqlConnection oldCrmConn = v.active_DB.ustadCrmMSSQLConn;
+            string oldManagerConnString = oldManagerConn?.ConnectionString;
+            string oldCrmConnString = oldCrmConn?.ConnectionString;
+            
             try
             {
                 suppressManagerConnWarning = true;
                 v.SP_ConnBool_Manager = false;
                 v.SP_ConnBool_Manager_Old = false;
-                try { v.active_DB.managerMSSQLConn?.Dispose(); } catch { }
-                try { v.active_DB.ustadCrmMSSQLConn?.Dispose(); } catch { }
+                
                 string apiBaseUrl = Tkn_UstadAPI.tApiConfig.GetApiBaseUrl();
                 string jwtKey = Tkn_UstadAPI.tApiConfig.GetJwtKey();
                 using (var apiClient = new Tkn_UstadAPI.UstadApiClient(apiBaseUrl))
@@ -317,7 +340,7 @@ namespace Tkn_Starter
                     string authToken = GetStoredAuthToken();
                     if (string.IsNullOrEmpty(authToken))
                     {
-                        System.Diagnostics.Debug.WriteLine("No authentication token found. User must login first.");
+                        System.Diagnostics.Debug.WriteLine("No authentication token found. User must login first. Keeping INI-based connection.");
                         return false;
                     }
                     apiClient.SetAuthToken(authToken);
@@ -329,16 +352,22 @@ namespace Tkn_Starter
                     
                     if (dbInfo == null)
                     {
-                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: dbInfo is null.");
+                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: dbInfo is null. Keeping INI-based connection.");
                         return false;
                     }
                     bool hasCrm = !string.IsNullOrWhiteSpace(dbInfo.UstadCrmConnectionString);
                     bool hasMgr = !string.IsNullOrWhiteSpace(dbInfo.ManagerConnectionString);
                     if (!hasCrm || !hasMgr)
                     {
-                        System.Diagnostics.Debug.WriteLine($"InitPreparingConnectionFromApi: Missing decrypted strings. EncryptedCRM len: {dbInfo.EncryptedUstadCrmConnectionString?.Length ?? 0}, EncryptedMgr len: {dbInfo.EncryptedManagerConnectionString?.Length ?? 0}");
+                        System.Diagnostics.Debug.WriteLine($"InitPreparingConnectionFromApi: Missing decrypted strings. EncryptedCRM len: {dbInfo.EncryptedUstadCrmConnectionString?.Length ?? 0}, EncryptedMgr len: {dbInfo.EncryptedManagerConnectionString?.Length ?? 0}. Keeping INI-based connection.");
                         return false;
                     }
+                    
+                    // TODO(@Janberk): TO BE REVIEWED
+                    // Only NOW that we have valid connection strings from API, dispose old connections
+                    try { oldManagerConn?.Dispose(); } catch { }
+                    try { oldCrmConn?.Dispose(); } catch { }
+                    
                     v.active_DB.managerDBType = v.dBaseType.MSSQL;
                     v.active_DB.ustadCrmDBType = v.dBaseType.MSSQL;
                     v.active_DB.projectDBType = v.dBaseType.MSSQL;
@@ -346,16 +375,51 @@ namespace Tkn_Starter
                     ParseConnectionStringFromApi(dbInfo.ManagerConnectionString, false); 
                     if (v.active_DB.managerMSSQLConn == null || v.active_DB.ustadCrmMSSQLConn == null)
                     {
-                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: Connection objects were not created after parsing connection strings.");
+                        System.Diagnostics.Debug.WriteLine("InitPreparingConnectionFromApi: Connection objects were not created after parsing connection strings. Restoring INI-based connection.");
+                        if (!string.IsNullOrWhiteSpace(oldManagerConnString))
+                        {
+                            v.active_DB.managerMSSQLConn = new SqlConnection(oldManagerConnString);
+                            v.active_DB.managerMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                        }
+                        if (!string.IsNullOrWhiteSpace(oldCrmConnString))
+                        {
+                            v.active_DB.ustadCrmMSSQLConn = new SqlConnection(oldCrmConnString);
+                            v.active_DB.ustadCrmMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                        }
                         return false;
                     }
+                    
+                    // Initialize publishManager_DB connection (uses same connection as manager)
+                    // NOTE(@Janberk): publishManager_DB is a copy of manager connection for publishing purposes
+                    v.publishManager_DB.dBaseNo = v.dBaseNo.publishManager;
+                    v.publishManager_DB.userName = v.active_DB.managerUserName;
+                    v.publishManager_DB.serverName = v.active_DB.managerServerName;
+                    v.publishManager_DB.databaseName = v.active_DB.managerDBName;
+                    v.publishManager_DB.connectionText = v.active_DB.managerConnectionText;
+                    v.publishManager_DB.MSSQLConn = new SqlConnection(v.publishManager_DB.connectionText);
+                    v.publishManager_DB.MSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                    
+                    System.Diagnostics.Debug.WriteLine($"[tStarter.InitPreparingConnectionFromApi] Connections established: managerMSSQLConn={(v.active_DB.managerMSSQLConn != null ? "exists" : "null")}, ustadCrmMSSQLConn={(v.active_DB.ustadCrmMSSQLConn != null ? "exists" : "null")}, publishManager_MSSQLConn={(v.publishManager_DB.MSSQLConn != null ? "exists" : "null")}");
+                    
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting DB connection info from API: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error getting DB connection info from API: {ex.Message}. Restoring INI-based connection.");
                 System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                if (!string.IsNullOrWhiteSpace(oldManagerConnString) && v.active_DB.managerMSSQLConn == null)
+                {
+                    v.active_DB.managerMSSQLConn = new SqlConnection(oldManagerConnString);
+                    v.active_DB.managerMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                }
+                if (!string.IsNullOrWhiteSpace(oldCrmConnString) && v.active_DB.ustadCrmMSSQLConn == null)
+                {
+                    v.active_DB.ustadCrmMSSQLConn = new SqlConnection(oldCrmConnString);
+                    v.active_DB.ustadCrmMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+                }
+                
                 return false;
             }
             finally
@@ -415,6 +479,7 @@ namespace Tkn_Starter
         /// NOTE(@Janberk): This method is kept for local DB mode (Tabim) and backward compatibility.
         /// For secure mode, use InitPreparingConnectionFromApi() instead.
         /// </summary>
+  /*
         private void InitPreparingConnection() 
         {
 
@@ -433,13 +498,7 @@ namespace Tkn_Starter
             string _publishDbPass = v.db_PASSWORD;
             string _publishServerName = v.db_SERVERIP;
 
-            /// NOT : Project burada kullanılmıyor
-            /// kullanıcı bir firma seçtiğinde hangi database  kullanılacak ise 
-            /// o bilgi user&firms tablosundaki alınacak
-            /// bu örnek : 
             string _projectDbName = "";
-            _projectDbName = "Mts00000011";  // vaya
-            _projectDbName = "Src00004204";  // 
             string _projectDbPass = v.db_PASSWORD; /// şimdillik ortak pass kullanılıyor
 
             ///
@@ -536,10 +595,17 @@ namespace Tkn_Starter
             // DİKKAT : BU METODU KULLANMA MASTER-DETAIL de DETAIL kırılıyor
             // v.SP_Conn_Text_Manager_MSSQL = " Server=94.73.145.8; Database=MSV3DFTRBLT; Uid=user4601;Pwd=CanBerk98";
             tToolBox t = new tToolBox();
-            t.Db_Open(v.active_DB.managerMSSQLConn);
+            if (v.active_DB.managerMSSQLConn != null)
+            {
+                t.Db_Open(v.active_DB.managerMSSQLConn);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[InitPreparingConnection] WARNING: managerMSSQLConn is null, cannot open connection");
+            }
 
         }
-
+*/
         void InitLoginComputer()
         {
             //MessageBox.Show(v.tComputer.Network_MACAddress);
@@ -683,22 +749,30 @@ namespace Tkn_Starter
         /// <summary>
         /// Opens standalone login form (no database required)
         /// </summary>
+        /// <summary>
+        /// Opens standalone login form (no database required)
+        /// Uses WebView2-based login with LoginTemplate.html
+        /// </summary>
         void InitLoginUser()
         {
+            YesiLdefter.ms_User_Standalone loginForm = null;
             try
             {
-                YesiLdefter.ms_User_Standalone loginForm = new YesiLdefter.ms_User_Standalone();
+                loginForm = new YesiLdefter.ms_User_Standalone();
                 loginForm.ShowDialog(v.mainForm);
                 loginForm.Dispose();
             }
             catch (Exception ex)
             {
+                try
+                {
+                    loginForm?.Dispose();
+                    v.SP_ApplicationExit = true;
+                }
+                catch { }
                 MessageBox.Show(
-                    $"Giriş formu açılırken hata oluştu:\n{ex.Message}\n\nLütfen sistem yöneticinize başvurun.",
-                    "Giriş Hatası",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-                v.SP_ApplicationExit = true;
+                    $"Giriş formu açılırken hata oluştu:\n{ex.Message}\n\nDetaylar için debug çıktısını kontrol edin.\n\nLütfen sistem yöneticinize başvurun.",
+                    "Giriş Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         /// <summary>

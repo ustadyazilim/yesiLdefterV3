@@ -437,7 +437,15 @@ namespace YesiLdefter
                 firstConnect = true;
             }
 
-            onay = t.Db_Open(v.active_DB.localMSSQLConn);
+            if (v.active_DB.localMSSQLConn != null)
+            {
+                onay = t.Db_Open(v.active_DB.localMSSQLConn);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[ms_TabimMtsk] WARNING: localMSSQLConn is null");
+                onay = false;
+            }
 
             return onay;
         }

@@ -191,6 +191,15 @@ namespace Tkn_Variable
         public static databaseAbout_ source_DB = new databaseAbout_();
         public static databaseAbout_ publishManager_DB = new databaseAbout_();
 
+        public class fullManagerDbs 
+        {
+            public databaseAbout_ managerDB = new databaseAbout_();
+            public databaseAbout_ ustadCrmDB = new databaseAbout_();
+            public databaseAbout_ publishDB = new databaseAbout_();
+        }
+
+        public static fullManagerDbs fullManagerDbs_ = new fullManagerDbs();
+
         #endregion Database Yapısı
 
         #region Ftp
@@ -297,7 +306,7 @@ namespace Tkn_Variable
 
         public static Boolean SP_Debug = false;
         public static Boolean SP_UserIN = false;
-        public static Boolean SP_UserLOGIN = true;
+        public static Boolean SP_UserLOGIN = false;
         public static Boolean SP_CheckedNewApplication = false;
         public static Boolean SP_ApplicationExit = false;
 

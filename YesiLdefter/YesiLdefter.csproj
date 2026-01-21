@@ -251,6 +251,11 @@
     <Compile Include="CEFSharp\CEFHelper.cs" />
     <Compile Include="CEFSharp\CefSharpInstaller.cs" />
     <Compile Include="Codes\CihazLogs.cs" />
+    <Compile Include="Codes\WhatsAppApiClient.cs" />
+    <Compile Include="Codes\tWhatsAppNotify.cs" />
+    <Compile Include="Codes\WhatsAppStatusBar.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Connected Services\ServiceReferenceUyumTest\Reference.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

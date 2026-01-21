@@ -1,4 +1,4 @@
-﻿/* Core Namespace */
+/* Core Namespace */
 using DevExpress.XtraEditors;
 using System;
 using System.Data;
@@ -229,8 +229,8 @@ namespace YesiLdefter
                     "API URL: " + apiBaseUrl, "API Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            checkedInputApi();
-            //checkedInput();
+            //checkedInputApi();
+            checkedInput();
         }
 
         void cmb_EMail_EditValueChanged(object sender, EventArgs e)
@@ -248,8 +248,8 @@ namespace YesiLdefter
                         "API Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
-                checkedInputApi();
-                //checkedInput();
+                //checkedInputApi();
+                checkedInput();
             }
         }
 
@@ -330,7 +330,7 @@ namespace YesiLdefter
                 return;
             }
 
-            if (t.IsNotNull(ds_UL))
+            if (t.IsNotNull(ds_UL) && (dN_UL != null))
             {
                 if (dN_UL.Position > -1)
                 {
@@ -674,6 +674,7 @@ namespace YesiLdefter
             }
 
             user_Email = user_Email?.Trim() ?? string.Empty;
+
             if (string.IsNullOrWhiteSpace(user_Email))
             {
                 MessageBox.Show("Lütfen geçerli bir e-posta adresi giriniz.", "Eksik Bilgi",
@@ -691,6 +692,7 @@ namespace YesiLdefter
                 {
                     t.WaitFormOpen(this, "Kullanıcı kontrol ediliyor...");
                 }
+                
                 Application.DoEvents();
                 
                 var userExists = await ExecuteWithRetryAsync(
@@ -776,7 +778,7 @@ namespace YesiLdefter
                 // NOTE(@Janberk): Step 1 - Select firm via API to get new token with firm claim
                 t.WaitFormOpen(this, "Firma seçiliyor...");
                 Application.DoEvents();
-                
+
                 var selectFirmResponse = await ExecuteWithRetryAsync(
                     () => apiClient.SelectFirmAsync(firm.FirmGUID),
                     maxRetries: 2,
@@ -790,9 +792,10 @@ namespace YesiLdefter
                     v.SP_UserLOGIN = false;
                     return;
                 }
-
-                // NOTE(@Janberk): Update stored JWT token with firm claim
+                
+                // NOTE(@Janberk): Update stored JWT token with firm claim and propagate to API client
                 v.tUser.JwtToken = selectFirmResponse.Token;
+                apiClient.SetAuthToken(selectFirmResponse.Token);
                 if (selectFirmResponse.FirmId > 0)
                 {
                     // Store firm ID in MainFirmId (user's current working firm)

@@ -174,6 +174,23 @@ namespace Ustad.API.Controllers
         {
             public string Message { get; set; } = string.Empty;
         }
+        /// <summary>
+        /// Demo request payload
+        /// </summary>
+        public class DemoRequestModel
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Email { get; set; } = string.Empty;
+            public string Note { get; set; } = string.Empty;
+        }
+        /// <summary>
+        /// Demo request response payload
+        /// </summary>
+        public class DemoRequestResponse
+        {
+            public string Message { get; set; } = string.Empty;
+            public bool Success { get; set; }
+        }
         #endregion
         #region Private Login Methods
         // SQL Query Constants
@@ -948,6 +965,65 @@ ELSE
             }
         }
         #endregion
+        #region Public Demo Request Method
+        /// <summary>
+        /// Demo request endpoint for new users
+        /// </summary>
+        /// <param name="request">Demo request including name, email, and optional note</param>
+        /// <returns>DemoRequestResponse with success message</returns>
+        /// <response code="200">Demo request received successfully</response>
+        /// <response code="400">Invalid request (missing name or email)</response>
+        [HttpPost("demo-request")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(DemoRequestResponse), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> DemoRequest([FromBody] DemoRequestModel request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new DemoRequestResponse { Message = "Geçersiz istek.", Success = false });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Email))
+            {
+                return BadRequest(new DemoRequestResponse { Message = "İsim ve e-posta zorunludur.", Success = false });
+            }
+
+            // Validate email format
+            try
+            {
+                var emailAddr = new System.Net.Mail.MailAddress(request.Email);
+            }
+            catch
+            {
+                return BadRequest(new DemoRequestResponse { Message = "Geçersiz e-posta formatı.", Success = false });
+            }
+
+            // Send email asynchronously (fire and forget)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailService.SendDemoRequestEmailAsync(
+                        request.Name,
+                        request.Email,
+                        request.Note ?? string.Empty
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Failed to send demo request email for {Email}", request.Email);
+                }
+            });
+
+            // Always return success (don't reveal if email sending failed)
+            return Ok(new DemoRequestResponse
+            {
+                Message = "Demo talebiniz alındı. En kısa sürede size geri dönüş yapacağız.",
+                Success = true
+            });
+        }
+        #endregion
         #region Public Refresh Token Method
         /// <summary>
         /// Refresh token endpoint for YesilDefter Web & Desktop Application
@@ -1330,25 +1406,128 @@ ELSE
                     using (var cmd = con.CreateCommand())
                     {
                         // Check if user has access to this firm via UstadFirmsUsers table
-                        // Match on FirmGUID from UstadFirms table (since UstadFirmsUsers.FirmGUID might be NULL)
-                        // Convert GUID to string to avoid casting issues
+                        // First, try to find the firm by matching the COALESCE logic from GetUserFirmsAsync
+                        // If that fails, we'll query what GUIDs are actually in the database for debugging
+                        // Match the logic from GetUserFirms: only filter by UserGUID, not by f.IsActive
+                        // This ensures firms shown in the list can be selected
                         cmd.CommandText = @"
 SELECT TOP 1
     uf.FirmId,
     COALESCE(f.FirmLongName, '') AS FirmLongName,
-    CAST(COALESCE(uf.FirmGUID, f.FirmGUID, CAST('00000000-0000-0000-0000-000000000000' AS UNIQUEIDENTIFIER)) AS NVARCHAR(36)) AS FirmGUID
+    CASE 
+        WHEN uf.FirmGUID IS NOT NULL THEN CAST(uf.FirmGUID AS NVARCHAR(36))
+        WHEN f.FirmGUID IS NOT NULL THEN CAST(f.FirmGUID AS NVARCHAR(36))
+        ELSE '00000000-0000-0000-0000-000000000000'
+    END AS FirmGUID,
+    CAST(uf.FirmGUID AS NVARCHAR(36)) AS UstadFirmsUsers_FirmGUID,
+    CAST(f.FirmGUID AS NVARCHAR(36)) AS UstadFirms_FirmGUID
 FROM UstadFirmsUsers uf
 LEFT JOIN UstadFirms f ON uf.FirmId = f.FirmId
 WHERE uf.UserGUID = @UserGUID
-  AND (uf.FirmGUID = @FirmGUID OR f.FirmGUID = @FirmGUID)
   AND uf.IsActive = 1
-  AND (f.IsActive = 1 OR f.IsActive IS NULL)";
+  AND (
+    (uf.FirmGUID IS NOT NULL AND LOWER(CAST(uf.FirmGUID AS NVARCHAR(36))) = LOWER(@FirmGUID))
+    OR 
+    (uf.FirmGUID IS NULL AND f.FirmGUID IS NOT NULL AND LOWER(CAST(f.FirmGUID AS NVARCHAR(36))) = LOWER(@FirmGUID))
+  )";
                         cmd.Parameters.AddWithValue("@UserGUID", userGuidClaim);
-                        cmd.Parameters.AddWithValue("@FirmGUID", firmGUID);
+                        cmd.Parameters.AddWithValue("@FirmGUID", firmGUID.Trim());
+
+                        // Add debug logging
+                        _logger?.LogInformation($"[SelectFirm] Querying for UserGUID={userGuidClaim}, FirmGUID={firmGUID}");
 
                         using var r = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow);
                         if (!await r.ReadAsync())
                         {
+                            // Debug: Query what firms the user actually has access to
+                            _logger?.LogWarning($"[SelectFirm] No matching firm found. Querying available firms for UserGUID={userGuidClaim}");
+                            
+                            using (var debugCmd = con.CreateCommand())
+                            {
+                                // First, check if the firm exists in UstadFirmsUsers for this user (without IsActive filter on UstadFirms)
+                                debugCmd.CommandText = @"
+SELECT 
+    uf.FirmId,
+    uf.IsActive AS UstadFirmsUsers_IsActive,
+    CAST(uf.FirmGUID AS NVARCHAR(36)) AS UstadFirmsUsers_FirmGUID,
+    f.IsActive AS UstadFirms_IsActive,
+    CAST(f.FirmGUID AS NVARCHAR(36)) AS UstadFirms_FirmGUID,
+    CASE 
+        WHEN uf.FirmGUID IS NOT NULL THEN CAST(uf.FirmGUID AS NVARCHAR(36))
+        WHEN f.FirmGUID IS NOT NULL THEN CAST(f.FirmGUID AS NVARCHAR(36))
+        ELSE 'NULL'
+    END AS Effective_FirmGUID,
+    f.FirmLongName
+FROM UstadFirmsUsers uf
+LEFT JOIN UstadFirms f ON uf.FirmId = f.FirmId
+WHERE uf.UserGUID = @UserGUID
+  AND (
+    (uf.FirmGUID IS NOT NULL AND LOWER(CAST(uf.FirmGUID AS NVARCHAR(36))) = LOWER(@FirmGUID))
+    OR 
+    (uf.FirmGUID IS NULL AND f.FirmGUID IS NOT NULL AND LOWER(CAST(f.FirmGUID AS NVARCHAR(36))) = LOWER(@FirmGUID))
+  )";
+                                debugCmd.Parameters.AddWithValue("@UserGUID", userGuidClaim);
+                                debugCmd.Parameters.AddWithValue("@FirmGUID", firmGUID);
+                                
+                                using var debugR = await debugCmd.ExecuteReaderAsync();
+                                if (await debugR.ReadAsync())
+                                {
+                                    var debugFirmId = debugR.GetInt32("FirmId");
+                                    var ufIsActive = debugR.GetBoolean("UstadFirmsUsers_IsActive");
+                                    var ufGuid = debugR.IsDBNull("UstadFirmsUsers_FirmGUID") ? "NULL" : debugR.GetString("UstadFirmsUsers_FirmGUID");
+                                    var fIsActive = debugR.IsDBNull("UstadFirms_IsActive") ? (bool?)null : debugR.GetBoolean("UstadFirms_IsActive");
+                                    var fGuid = debugR.IsDBNull("UstadFirms_FirmGUID") ? "NULL" : debugR.GetString("UstadFirms_FirmGUID");
+                                    var effectiveGuid = debugR.GetString("Effective_FirmGUID");
+                                    var debugFirmName = debugR.IsDBNull("FirmLongName") ? "" : debugR.GetString("FirmLongName");
+                                    
+                                    _logger?.LogWarning($"[SelectFirm] Found firm in database: FirmId={debugFirmId}, UstadFirmsUsers.IsActive={ufIsActive}, UstadFirms.IsActive={fIsActive}, UstadFirmsUsers.FirmGUID={ufGuid}, UstadFirms.FirmGUID={fGuid}, Effective={effectiveGuid}, Name={debugFirmName}");
+                                    _logger?.LogWarning($"[SelectFirm] Firm is excluded because: UstadFirmsUsers.IsActive={ufIsActive} (needs 1), UstadFirms.IsActive={fIsActive} (needs 1 or NULL)");
+                                }
+                                else
+                                {
+                                    _logger?.LogWarning($"[SelectFirm] Firm with GUID {firmGUID} not found in UstadFirmsUsers for this user at all.");
+                                    
+                                    // Also check all available firms (limited to 20 for logging)
+                                    debugCmd.CommandText = @"
+SELECT TOP 20
+    uf.FirmId,
+    uf.IsActive AS UstadFirmsUsers_IsActive,
+    CAST(uf.FirmGUID AS NVARCHAR(36)) AS UstadFirmsUsers_FirmGUID,
+    f.IsActive AS UstadFirms_IsActive,
+    CAST(f.FirmGUID AS NVARCHAR(36)) AS UstadFirms_FirmGUID,
+    CASE 
+        WHEN uf.FirmGUID IS NOT NULL THEN CAST(uf.FirmGUID AS NVARCHAR(36))
+        WHEN f.FirmGUID IS NOT NULL THEN CAST(f.FirmGUID AS NVARCHAR(36))
+        ELSE 'NULL'
+    END AS Effective_FirmGUID,
+    f.FirmLongName
+FROM UstadFirmsUsers uf
+LEFT JOIN UstadFirms f ON uf.FirmId = f.FirmId
+WHERE uf.UserGUID = @UserGUID
+ORDER BY uf.FirmId";
+                                    debugCmd.Parameters.Clear();
+                                    debugCmd.Parameters.AddWithValue("@UserGUID", userGuidClaim);
+                                    
+                                    using var debugR2 = await debugCmd.ExecuteReaderAsync();
+                                    var availableFirms = new List<string>();
+                                    while (await debugR2.ReadAsync())
+                                    {
+                                        var debugFirmId2 = debugR2.GetInt32("FirmId");
+                                        var ufIsActive2 = debugR2.GetBoolean("UstadFirmsUsers_IsActive");
+                                        var ufGuid2 = debugR2.IsDBNull("UstadFirmsUsers_FirmGUID") ? "NULL" : debugR2.GetString("UstadFirmsUsers_FirmGUID");
+                                        var fIsActive2 = debugR2.IsDBNull("UstadFirms_IsActive") ? (bool?)null : debugR2.GetBoolean("UstadFirms_IsActive");
+                                        var fGuid2 = debugR2.IsDBNull("UstadFirms_FirmGUID") ? "NULL" : debugR2.GetString("UstadFirms_FirmGUID");
+                                        var effectiveGuid2 = debugR2.GetString("Effective_FirmGUID");
+                                        var debugFirmName2 = debugR2.IsDBNull("FirmLongName") ? "" : debugR2.GetString("FirmLongName");
+                                        availableFirms.Add($"FirmId={debugFirmId2}, UstadFirmsUsers.IsActive={ufIsActive2}, UstadFirms.IsActive={fIsActive2}, Effective={effectiveGuid2}, Name={debugFirmName2}");
+                                    }
+                                    
+                                    _logger?.LogWarning($"[SelectFirm] Available firms for user (first 20): {string.Join("; ", availableFirms)}");
+                                }
+                                
+                                _logger?.LogWarning($"[SelectFirm] Looking for FirmGUID={firmGUID} (lowercase: {firmGUID.ToLowerInvariant()})");
+                            }
+                            
                             return Unauthorized("User does not have access to the specified firm.");
                         }
 
@@ -1589,5 +1768,4 @@ WHERE uf.UserGUID = @UserGUID
         #endregion
     }
 }
-
 

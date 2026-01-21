@@ -13,6 +13,7 @@ namespace YesiLdefter
     {
         public void preparingMainForm(Form tForm)
         {
+            System.Diagnostics.Debug.WriteLine($"[tMainForm.preparingMainForm] Starting. tForm.Name={tForm?.Name}, tForm.IsMdiContainer={tForm?.IsMdiContainer}");
             tEvents ev = new tEvents();
             tEventsMenu evm = new tEventsMenu();
 
@@ -52,6 +53,7 @@ namespace YesiLdefter
             DevExpress.XtraBars.BarEditItem mainProgressBar = new DevExpress.XtraBars.BarEditItem();
             DevExpress.XtraEditors.Repository.RepositoryItemProgressBar _mainProgressBar = new DevExpress.XtraEditors.Repository.RepositoryItemProgressBar();
             DevExpress.XtraBars.BarButtonItem barButtonServiceTool = new DevExpress.XtraBars.BarButtonItem();
+            DevExpress.XtraBars.BarButtonItem barButtonWhatsApp = new DevExpress.XtraBars.BarButtonItem();
             DevExpress.XtraBars.BarEditItem barEditItemCari = new DevExpress.XtraBars.BarEditItem();
             DevExpress.XtraEditors.Repository.RepositoryItemSearchControl _mainCariSearch = new DevExpress.XtraEditors.Repository.RepositoryItemSearchControl();
             DevExpress.XtraBars.BarEditItem barPrjConn = new DevExpress.XtraBars.BarEditItem();
@@ -93,6 +95,10 @@ namespace YesiLdefter
             // 
             // xtraTabbedMdiManager1
             // 
+            // CRITICAL: Main form MUST be an MDI container for child forms to work properly
+            System.Diagnostics.Debug.WriteLine($"[tMainForm.preparingMainForm] Before setting IsMdiContainer: tForm.IsMdiContainer={tForm.IsMdiContainer}");
+            tForm.IsMdiContainer = true;
+            System.Diagnostics.Debug.WriteLine($"[tMainForm.preparingMainForm] After setting IsMdiContainer: tForm.IsMdiContainer={tForm.IsMdiContainer}");
             xtraTabbedMdiManager1.MdiParent = tForm;
             //xtraTabbedMdiManager1.HeaderLocation = DevExpress.XtraTab.TabHeaderLocation.Right;
             //.RightToLeftLayout = DevExpress.Utils.DefaultBoolean.True;
@@ -112,6 +118,7 @@ namespace YesiLdefter
                    barButtonGuncelleme,
                    mainProgressBar,
                    barButtonServiceTool,
+                   barButtonWhatsApp,
                    //skinDropDownButtonItem1,
                    //skinRibbonGalleryBarItem1,
                    //skinPaletteRibbonGalleryBarItem1
@@ -203,6 +210,7 @@ namespace YesiLdefter
             ribbonStatusBar1.ItemLinks.Add(barButtonServiceTool);
             ribbonStatusBar1.ItemLinks.Add(barPrjConn);
             ribbonStatusBar1.ItemLinks.Add(barMSConn);
+            ribbonStatusBar1.ItemLinks.Add(barButtonWhatsApp);
             ribbonStatusBar1.Location = new System.Drawing.Point(0, 391);
             ribbonStatusBar1.Name = "ribbonStatusBar1";
             ribbonStatusBar1.Ribbon = ribbonControl1;
@@ -243,6 +251,13 @@ namespace YesiLdefter
             barButtonGuncelleme.ItemAppearance.Normal.Options.UseBackColor = true;
             barButtonGuncelleme.ItemAppearance.Normal.Options.UseForeColor = true;
             barButtonGuncelleme.Name = "barButtonGuncelleme";
+            // 
+            // barButtonWhatsApp
+            // 
+            barButtonWhatsApp.Alignment = DevExpress.XtraBars.BarItemLinkAlignment.Right;
+            barButtonWhatsApp.Caption = "WhatsApp: Bekleniyor";
+            barButtonWhatsApp.Id = 11;
+            barButtonWhatsApp.Name = "barButtonWhatsApp";
             barButtonGuncelleme.Visibility = DevExpress.XtraBars.BarItemVisibility.Never;
             // 
             // mainProgressBar
@@ -633,6 +648,7 @@ namespace YesiLdefter
             //((System.ComponentModel.ISupportInitialize)(manager)).EndInit();
             //tForm.ResumeLayout(false);
 
+            System.Diagnostics.Debug.WriteLine($"[tMainForm.preparingMainForm] Completed. tForm.IsMdiContainer={tForm.IsMdiContainer}");
 
         }
     }

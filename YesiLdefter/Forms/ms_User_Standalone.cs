@@ -1,4 +1,4 @@
-﻿/* Core Namespace */
+﻿﻿/* Core Namespace */
 using DevExpress.XtraEditors;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
@@ -360,8 +360,8 @@ namespace YesiLdefter
                 {
                     // Store user info
                     v.tUser.UserId = (loginResponse.UserId != 0) ? loginResponse.UserId : loginResponse.OperatorId;
-                    v.tUser.UserGUID = loginResponse.UserGUID;
-                    v.tUser.FullName = loginResponse.FullName;
+                    v.tUser.UserGUID = loginResponse.UserGUID ?? string.Empty;
+                    v.tUser.FullName = loginResponse.FullName ?? string.Empty;
                     v.tUser.UserDbTypeId = loginResponse.DbTypeId;
                     v.tUser.eMail = email;
                     // NOTE(@Janberk): API should return both UserId and UserGUID; OperatorId maps legacy UserId usage.
@@ -369,8 +369,9 @@ namespace YesiLdefter
                     v.tUser.JwtToken = loginResponse.Token;
                     // TODO(@Janberk): Add refresh-token support and persist token securely with expiry tracking.
 
-                    // Set auth token for subsequent API calls
+                    // Set auth token for subsequent API calls - CRITICAL for firm selection
                     apiClient.SetAuthToken(loginResponse.Token);
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Token set after login. UserId={v.tUser.UserId}, UserGUID={v.tUser.UserGUID}");
 
                     // Save registry
                     SaveUserRegistry(email, password);
@@ -384,6 +385,21 @@ namespace YesiLdefter
                         maxRetries: 2,
                         operationName: "Firma bilgileri"
                     );
+
+
+
+                    v.fullManagerDbs_.managerDB.databaseName = "MainManagerV3";
+                    v.fullManagerDbs_.managerDB.psw = v.db_PASSWORD;
+                    v.fullManagerDbs_.managerDB.serverName = v.db_SERVERIP;
+
+                    v.fullManagerDbs_.ustadCrmDB.databaseName = "UstadCRMV1";
+                    v.fullManagerDbs_.ustadCrmDB.psw = v.db_PASSWORD;
+                    v.fullManagerDbs_.ustadCrmDB.serverName = v.db_SERVERIP;
+
+                    v.fullManagerDbs_.publishDB.databaseName = "UstadManagerV3";
+                    v.fullManagerDbs_.publishDB.psw = v.db_PASSWORD;
+                    v.fullManagerDbs_.publishDB.serverName = v.db_SERVERIP;
+
 
                     if (userFirmsList != null && userFirmsList.Count > 0)
                     {
@@ -439,6 +455,22 @@ namespace YesiLdefter
                 ShowStatus("Firma seçiliyor...", false);
                 SetControlsEnabled(false);
 
+                // Ensure token is set before firm selection
+                if (string.IsNullOrEmpty(v.tUser.JwtToken))
+                {
+                    throw new Exception("Authentication token is missing. Please login again.");
+                }
+                apiClient.SetAuthToken(v.tUser.JwtToken);
+                
+                // Log firm details for debugging
+                System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Calling SelectFirmAsync with:");
+                System.Diagnostics.Debug.WriteLine($"  FirmGUID={firm.FirmGUID}");
+                System.Diagnostics.Debug.WriteLine($"  FirmId={firm.FirmId}");
+                System.Diagnostics.Debug.WriteLine($"  FirmLongName={firm.FirmLongName}");
+                System.Diagnostics.Debug.WriteLine($"  SectorTypeId={firm.SectorTypeId}");
+                System.Diagnostics.Debug.WriteLine($"  Token present={!string.IsNullOrEmpty(v.tUser.JwtToken)}");
+                System.Diagnostics.Debug.WriteLine($"  UserGUID={v.tUser.UserGUID}");
+
                 var selectFirmResponse = await ExecuteWithRetryAsync(
                     () => apiClient.SelectFirmAsync(firm.FirmGUID),
                     maxRetries: 2,
@@ -464,6 +496,19 @@ namespace YesiLdefter
                     v.tMainFirm.DbTypeId = firm.DbTypeId ?? (short)0;
                     v.tMainFirm.SectorTypeId = firm.SectorTypeId ?? (short)0;
                     v.SP_Firm_SectorTypeId = firm.SectorTypeId ?? (short)0;
+                    // CRITICAL: Set MenuCode from firm info - this determines which main menu form to open
+                    v.tMainFirm.MenuCode = firm.MenuCode ?? "";
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Set tMainFirm.MenuCode={v.tMainFirm.MenuCode} from firm.MenuCode={firm.MenuCode}");
+                    
+                    // CRITICAL: Set location fields for SQL parameter replacement
+                    // CityTypeId maps to IlKodu (province code), DistrictTypeId maps to IlceKodu (district code)
+                    v.tMainFirm.IlKodu = firm.CityTypeId?.ToString() ?? "";
+                    v.tMainFirm.IlceKodu = firm.DistrictTypeId?.ToString() ?? "";
+                    // IlAdi and IlceAdi will be populated later from ILList/ILCEList if needed
+                    // For now, set empty strings - they'll be looked up if the SQL needs them
+                    v.tMainFirm.IlAdi = "";
+                    v.tMainFirm.IlceAdi = "";
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Set location: IlKodu={v.tMainFirm.IlKodu}, IlceKodu={v.tMainFirm.IlceKodu} from CityTypeId={firm.CityTypeId}, DistrictTypeId={firm.DistrictTypeId}");
 
                     // Initialize database connection using firm info
                     t.setSelectFirm(v.tMainFirm);
@@ -598,7 +643,15 @@ namespace YesiLdefter
             // Also send status to WebView2
             if (htmlLayout != null && htmlLayout.CoreWebView2 != null && webViewDomReady)
             {
-                _ = htmlLayout.CoreWebView2.ExecuteScriptAsync($"window.__ustadUpdateStatus && window.__ustadUpdateStatus({Newtonsoft.Json.JsonConvert.SerializeObject(new { message = message, isError = isError })});");
+                try
+                {
+                    string script = $"window.__ustadSetStatus && window.__ustadSetStatus({Newtonsoft.Json.JsonConvert.SerializeObject(message)}, {Newtonsoft.Json.JsonConvert.SerializeObject(isError)});";
+                    _ = htmlLayout.CoreWebView2.ExecuteScriptAsync(script);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Error sending status to WebView2: {ex.Message}");
+                }
             }
 
             System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Status: {message}");

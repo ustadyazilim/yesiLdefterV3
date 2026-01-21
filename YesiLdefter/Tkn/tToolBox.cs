@@ -1371,7 +1371,27 @@ namespace Tkn_ToolBox
                 catch (Exception e)
                 {
                     string conn = VTbaglanti.ConnectionString;
-                    //  Data Source = 111.222.333.444; Initial Catalog = xxxxxxx; User ID = sa; Password = *****; MultipleActiveResultSets = True 
+                    //  Data Source = 111.222.333.444; Initial Catalog = xxxxxxx; User ID = sa; Password = *****; MultipleActiveResultSets = True
+                    
+                    // CRITICAL: Log detailed connection error for debugging
+                    System.Diagnostics.Debug.WriteLine($"[Db_Open] EXCEPTION opening connection: Exception Type={e.GetType().Name}, Message={e.Message}");
+                    if (e is System.Data.SqlClient.SqlException sqlEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Db_Open] SQL Exception: Number={sqlEx.Number}, Server={sqlEx.Server}");
+                        System.Diagnostics.Debug.WriteLine($"[Db_Open] SQL Exception: Source={sqlEx.Source}, State={sqlEx.State}, Class={sqlEx.Class}");
+                    }
+                    // Mask password in connection string for logging
+                    string maskedConn = conn;
+                    if (!string.IsNullOrEmpty(conn))
+                    {
+                        try
+                        {
+                            var builder = new System.Data.SqlClient.SqlConnectionStringBuilder(conn);
+                            maskedConn = $"Data Source={builder.DataSource}; Initial Catalog={builder.InitialCatalog}; User ID={builder.UserID}; Password=***; MultipleActiveResultSets={builder.MultipleActiveResultSets}";
+                        }
+                        catch { }
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[Db_Open] Connection String (masked): {maskedConn}"); 
                     int i1 = conn.IndexOf("Password");
                     int i2 = conn.IndexOf("MultipleActiveResultSets");
                     conn = conn.Remove(i1 + 10, i2 - i1 - 10); // password ü sil
@@ -1555,11 +1575,52 @@ namespace Tkn_ToolBox
             {
                 vt.DBaseType = v.dBaseType.MSSQL;
                 vt.msSqlConnection = v.active_DB.projectMSSQLConn;
+                
+                // CRITICAL: If project connection is null, log warning and try to ensure it exists
+                if (vt.msSqlConnection == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[preparing_vTable] WARNING: projectMSSQLConn is null for TableIPCode={vt.TableIPCode}, TableName={vt.TableName}. This may cause empty DataSet errors.");
+                    // Try to ensure project connection is created if firm info is available
+                    if (!string.IsNullOrEmpty(v.active_DB.projectDBName) && !string.IsNullOrEmpty(v.active_DB.projectServerName))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[preparing_vTable] Attempting to recreate project connection: DB={v.active_DB.projectDBName}, Server={v.active_DB.projectServerName}");
+                        // Recreate connection if connection string info is available
+                        if (!string.IsNullOrEmpty(v.active_DB.projectConnectionText))
+                        {
+                            try
+                            {
+                                v.active_DB.projectMSSQLConn = new SqlConnection(v.active_DB.projectConnectionText);
+                                v.active_DB.projectMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateProject);
+                                vt.msSqlConnection = v.active_DB.projectMSSQLConn;
+                                System.Diagnostics.Debug.WriteLine($"[preparing_vTable] Project connection recreated successfully");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[preparing_vTable] Failed to recreate project connection: {ex.Message}");
+                            }
+                        }
+                    }
+                }
             }
             if (vt.DBaseNo == v.dBaseNo.Local)
             {
                 vt.DBaseType = v.dBaseType.MSSQL;
                 vt.msSqlConnection = v.active_DB.localMSSQLConn;
+                
+                // CRITICAL: If localDbUses is false (API-based auth), fall back to Project database
+                // Some forms are configured to use Local DB, but with API-based auth, there's no local DB
+                if (vt.msSqlConnection == null && v.active_DB.localDbUses == false)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[preparing_vTable] WARNING: Local DB requested but localDbUses=false. TableIPCode={vt.TableIPCode}, TableName={vt.TableName}. Falling back to Project DB.");
+                    vt.DBaseNo = v.dBaseNo.Project;
+                    vt.DBaseType = v.dBaseType.MSSQL;
+                    vt.msSqlConnection = v.active_DB.projectMSSQLConn;
+                    
+                    if (vt.msSqlConnection == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[preparing_vTable] ERROR: Project DB connection is also null! Cannot execute query for TableIPCode={vt.TableIPCode}");
+                    }
+                }
             }
             if (vt.DBaseNo == v.dBaseNo.NewDatabase)
             {
@@ -1752,8 +1813,19 @@ namespace Tkn_ToolBox
             Boolean onay = false;
 
             SqlConnection msSqlConn = vt.msSqlConnection;
+            
+            // Guard: connection object must exist
+            if (msSqlConn == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sql_Execute] WARNING: msSqlConnection is null for DBaseNo={vt.DBaseNo}, TableName={vt.TableName}, functionName={vt.functionName}");
+                return false;
+            }
                         
-            Db_Open(msSqlConn);
+            if (!Db_Open(msSqlConn))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Sql_Execute] WARNING: Db_Open failed for DBaseNo={vt.DBaseNo}, TableName={vt.TableName}, functionName={vt.functionName}");
+                return false;
+            }
 
             SqlDataAdapter msSqlAdapter = null;
 
@@ -1829,6 +1901,18 @@ namespace Tkn_ToolBox
                 ///
 
                 onay = false;
+                
+                // CRITICAL: Log detailed error information for debugging
+                System.Diagnostics.Debug.WriteLine($"[Sql_Execute] EXCEPTION: DBaseNo={vt.DBaseNo}, TableName={vt.TableName}, functionName={vt.functionName}");
+                System.Diagnostics.Debug.WriteLine($"[Sql_Execute] Connection State={msSqlConn?.State}, ConnectionString length={msSqlConn?.ConnectionString?.Length ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"[Sql_Execute] Exception Type={e.GetType().Name}, Message={e.Message}");
+                if (e is System.Data.SqlClient.SqlException sqlEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Sql_Execute] SQL Exception: Number={sqlEx.Number}, Server={sqlEx.Server}");
+                    System.Diagnostics.Debug.WriteLine($"[Sql_Execute] SQL Exception: Source={sqlEx.Source}, State={sqlEx.State}, Class={sqlEx.Class}");
+                }
+                System.Diagnostics.Debug.WriteLine($"[Sql_Execute] SQL (first 200 chars): {SQL?.Substring(0, Math.Min(200, SQL?.Length ?? 0))}");
+                
                 Cursor.Current = Cursors.Default;
 
                 v.SQL = v.ENTER2 +
@@ -1864,14 +1948,33 @@ namespace Tkn_ToolBox
             // Gerekli olan verileri topla
             vTable vt = new vTable();
             Preparing_DataSet(tForm, dsData, vt);
+            
+            // CRITICAL: Log Data_Read_Execute calls
+            System.Diagnostics.Debug.WriteLine($"[Data_Read_Execute] Starting: DBaseNo={vt.DBaseNo}, TableName={TableName}, TableIPCode={vt.TableIPCode}, SQL length={SQL?.Length ?? 0}, Eksi99={Eksi99}");
 
             if ((SQL != "") &&
                 (Eksi99 == -1))
             {
+                // CRITICAL: Log SQL before SQLPreparing
+                System.Diagnostics.Debug.WriteLine($"[Data_Read_Execute] SQL before SQLPreparing: length={SQL.Length}, first 300 chars: {SQL.Substring(0, Math.Min(300, SQL.Length))}");
+                
                 SQL = SQLPreparing(SQL, vt);
+                
+                // CRITICAL: Log SQL after SQLPreparing
+                System.Diagnostics.Debug.WriteLine($"[Data_Read_Execute] SQL after SQLPreparing: length={SQL.Length}, first 300 chars: {SQL.Substring(0, Math.Min(300, SQL.Length))}");
+                if (SQL.Length > 300)
+                    System.Diagnostics.Debug.WriteLine($"[Data_Read_Execute] SQL after SQLPreparing (last 200 chars): {SQL.Substring(SQL.Length - 200)}");
 
                 // 1. adım
                 onay = Sql_Execute(dsData, ref SQL, vt);
+                
+                // CRITICAL: Log result
+                int rowCount = 0;
+                if (dsData != null && dsData.Tables.Count > 0)
+                {
+                    rowCount = dsData.Tables[0].Rows.Count;
+                }
+                System.Diagnostics.Debug.WriteLine($"[Data_Read_Execute] Sql_Execute result: onay={onay}, DBaseNo={vt.DBaseNo}, TableIPCode={vt.TableIPCode}, DataSet Tables Count={dsData?.Tables?.Count ?? 0}, Rows Count={rowCount}");
 
                 DataNavigator dN = Find_DataNavigator(tForm, vt.TableIPCode);
                 if (dN != null)
@@ -2175,13 +2278,39 @@ namespace Tkn_ToolBox
 
             string sqlM = msMenuItemsList_SQL(masterCode);
 
-            SqlDataAdapter msSqlAdapter6 = null;
-            if (sqlM != string.Empty)
+            // Guard: connection must be properly initialized before attempting to load menu items
+            if (v.active_DB.managerMSSQLConn == null ||
+                string.IsNullOrWhiteSpace(v.active_DB.managerMSSQLConn.ConnectionString))
             {
-                msSqlAdapter6 = new SqlDataAdapter(sqlM, v.active_DB.managerMSSQLConn);
-                msSqlAdapter6.Fill(v.ds_MsMenuItems, masterCode);
+                System.Diagnostics.Debug.WriteLine(
+                    "[tToolBox.readMenuItemsList_] ManagerDB connection is null or has empty ConnectionString. " +
+                    "Menu items cannot be loaded.");
+
+                try
+                {
+                    MessageBox.Show(
+                        "Menü bilgileri yüklenemedi çünkü veritabanı bağlantısı hazırlanmadı.\r\n\r\n" +
+                        "Lütfen uygulamayı kapatıp tekrar açın veya bağlantı ayarlarını kontrol edin.",
+                        "Veritabanı Bağlantı Hatası",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+                catch
+                {
+                    // UI mesajı gösterilemese bile uygulama çökmemeli
+                }
+
+                return;
             }
-            msSqlAdapter6.Dispose();
+
+            if (!string.IsNullOrEmpty(sqlM))
+            {
+                using (var msSqlAdapter6 = new SqlDataAdapter(sqlM, v.active_DB.managerMSSQLConn))
+                {
+                    msSqlAdapter6.Fill(v.ds_MsMenuItems, masterCode);
+                }
+            }
+            // msSqlAdapter6.Dispose();
         }
         public void preparing_DataCopyList(string DC_Code)
         {
@@ -2625,6 +2754,25 @@ namespace Tkn_ToolBox
 
             Preparing_DataSet(tForm, dsData, vt);
 
+            // CRITICAL: Ensure project DB connection is open if needed
+            if (vt.DBaseNo == v.dBaseNo.Project && vt.msSqlConnection != null)
+            {
+                if (vt.msSqlConnection.State != System.Data.ConnectionState.Open)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SQL_Read_Execute] Project DB connection is closed, attempting to open for TableName={tableName}, function={function_name}");
+                    if (!Db_Open(vt.msSqlConnection))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SQL_Read_Execute] WARNING: Failed to open project DB connection for TableName={tableName}, function={function_name}. Connection State={vt.msSqlConnection?.State}");
+                        if (Cursor.Current == Cursors.WaitCursor)
+                            Cursor.Current = Cursors.Default;
+                        return false; // Return false immediately if connection can't be opened
+                    }
+                }
+            }
+            
+            // CRITICAL: Log which database and table we're querying
+            System.Diagnostics.Debug.WriteLine($"[SQL_Read_Execute] Executing query: DBaseNo={vt.DBaseNo}, TableName={tableName}, function={function_name}, TableIPCode={vt.TableIPCode}, SQL length={SQL?.Length ?? 0}");
+
             if (SQL != "")
             {
 
@@ -2648,6 +2796,21 @@ namespace Tkn_ToolBox
 
                 // 1. adım
                 onay = Sql_Execute(dsData, ref SQL, vt);
+                
+                // CRITICAL: Log result of SQL execution with detailed info
+                if (!onay)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SQL_Read_Execute] Sql_Execute returned FALSE. DBaseNo={vt.DBaseNo}, TableName={tableName}, function={function_name}, TableIPCode={vt.TableIPCode}, Connection={(vt.msSqlConnection != null ? vt.msSqlConnection.State.ToString() : "null")}, DataSet Tables Count={dsData?.Tables?.Count ?? 0}");
+                }
+                else
+                {
+                    int rowCount = 0;
+                    if (dsData != null && dsData.Tables.Count > 0)
+                    {
+                        rowCount = dsData.Tables[0].Rows.Count;
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[SQL_Read_Execute] Sql_Execute returned TRUE. DBaseNo={vt.DBaseNo}, TableName={tableName}, function={function_name}, TableIPCode={vt.TableIPCode}, DataSet Tables Count={dsData?.Tables?.Count ?? 0}, Rows Count={rowCount}");
+                }
 
                 tSqlSecond_Set(ref dsData, SQL);
 
@@ -3902,9 +4065,6 @@ namespace Tkn_ToolBox
         public void setSelectFirm(tUstadFirm tFirm)
         {
             v.tUser.MainFirmId = tFirm.FirmId;
-            
-            v.SP_FIRM_ID = tFirm.FirmId;
-            v.SP_Firm_SectorTypeId = tFirm.SectorTypeId;
 
             ///(0, N''),
             ///(1, N'Ön Muhasebe'),
@@ -3915,20 +4075,33 @@ namespace Tkn_ToolBox
             ///(201, N'Mtsk'),
             ///(202, N'İşmak'),
             ///(203, N'SRC'),
+            ///(204, N'SRC5'), 
             ///(211, N'TabimMtsk')
 
-            v.active_DB.projectDBName = tFirm.DatabaseName;
-            
-            //if (v.active_DB.mainManagerDbUses == false)
-                v.active_DB.projectServerName = tFirm.ServerNameIP; // "195.xx";
+            v.SP_FIRM_ID = tFirm.FirmId;
+            v.SP_Firm_SectorTypeId = tFirm.SectorTypeId;
 
-            v.active_DB.projectUserName = tFirm.DbLoginName; // "sa";
-
+            v.active_DB.projectDBType = v.dBaseType.MSSQL;
+            v.active_DB.projectServerName = tFirm.ServerNameIP ?? "";
+            v.active_DB.projectDBName = tFirm.DatabaseName ?? "";
+            v.active_DB.projectUserName = tFirm.DbLoginName ?? "";
             if (tFirm.DbPassword != "")
                 v.active_DB.projectPsw = "Password = " + tFirm.DbPassword + ";"; // Password = 1;
             else v.active_DB.projectPsw = "";
 
-            v.active_DB.projectDBType = v.dBaseType.MSSQL;
+            // CRITICAL: Validate that required connection info is available
+            if (string.IsNullOrWhiteSpace(v.active_DB.projectDBName))
+            {
+                System.Diagnostics.Debug.WriteLine($"[setSelectFirm] WARNING: projectDBName is empty! FirmId={tFirm.FirmId}, DatabaseName={tFirm.DatabaseName}");
+            }
+            if (string.IsNullOrWhiteSpace(v.active_DB.projectServerName))
+            {
+                System.Diagnostics.Debug.WriteLine($"[setSelectFirm] WARNING: projectServerName is empty! FirmId={tFirm.FirmId}, ServerNameIP={tFirm.ServerNameIP}");
+            }
+            if (string.IsNullOrWhiteSpace(v.active_DB.projectUserName))
+            {
+                System.Diagnostics.Debug.WriteLine($"[setSelectFirm] WARNING: projectUserName is empty! FirmId={tFirm.FirmId}, DbLoginName={tFirm.DbLoginName}");
+            }
 
             v.active_DB.projectConnectionText =
                 string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
@@ -3937,8 +4110,161 @@ namespace Tkn_ToolBox
                 v.active_DB.projectUserName,
                 v.active_DB.projectPsw);
 
+            // Dispose old connection if it exists
+            if (v.active_DB.projectMSSQLConn != null)
+            {
+                try
+                {
+                    if (v.active_DB.projectMSSQLConn.State != System.Data.ConnectionState.Closed)
+                        v.active_DB.projectMSSQLConn.Close();
+                    v.active_DB.projectMSSQLConn.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[setSelectFirm] Error disposing old connection: {ex.Message}");
+                }
+            }
             v.active_DB.projectMSSQLConn = new SqlConnection(v.active_DB.projectConnectionText);
             v.active_DB.projectMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateProject);
+            
+            // Log connection string with password masked
+            string maskedConnStr = v.active_DB.projectConnectionText;
+            if (!string.IsNullOrEmpty(maskedConnStr))
+            {
+                try
+                {
+                    var builder = new System.Data.SqlClient.SqlConnectionStringBuilder(maskedConnStr);
+                    maskedConnStr = $"Data Source={builder.DataSource}; Initial Catalog={builder.InitialCatalog}; User ID={builder.UserID}; Password=***; MultipleActiveResultSets={builder.MultipleActiveResultSets}";
+                }
+                catch { }
+            }
+            System.Diagnostics.Debug.WriteLine($"[setSelectFirm] Project connection created. ConnectionString (masked): {maskedConnStr}");
+            
+        }
+
+        public void InitPreparingConnection()
+        {
+            /// Project DB connection ayarları setSelectFirm içerisinde hazırlanıyor
+            /// 
+
+            bool IsDebugMode = v.active_DB.mainManagerDbUses;   //false;// true;
+            string _user = "sa";
+
+            string _managerDbName = v.fullManagerDbs_.managerDB.databaseName;  //  "MainManagerV3";
+            string _managerDbPass = v.fullManagerDbs_.managerDB.psw;//  v.db_PASSWORD;
+            string _managerServerName = v.fullManagerDbs_.managerDB.serverName; //  v.db_SERVERIP;
+
+            string _crmDbName = v.fullManagerDbs_.ustadCrmDB.databaseName;//  "UstadCRMV1";
+            string _crmDbPass = v.fullManagerDbs_.ustadCrmDB.psw;//  v.db_PASSWORD;
+            string _crmServerName = v.fullManagerDbs_.ustadCrmDB.serverName; // v.db_SERVERIP;
+
+            string _publishDbName = v.fullManagerDbs_.publishDB.databaseName;//  "UstadManagerV3";
+            string _publishDbPass = v.fullManagerDbs_.publishDB.psw;// v.db_PASSWORD;
+            string _publishServerName = v.fullManagerDbs_.publishDB.serverName;// v.db_SERVERIP;
+
+            ///
+            /// ------------------------------------------------
+            ///
+            /// hangi database hangi databaseServer de çalışıyor  
+            /// şimdilik manuel set ediyorum
+            /// 
+            v.active_DB.managerDBType = v.dBaseType.MSSQL;
+            v.active_DB.ustadCrmDBType = v.dBaseType.MSSQL;
+            v.active_DB.projectDBType = v.dBaseType.MSSQL;
+
+
+            if (IsDebugMode)
+            {
+                /// birşey yapma     
+            }
+            else
+            {
+                _managerDbName = _publishDbName;
+                _managerDbPass = _publishDbPass;
+            }
+
+            /// main Manager DB Connections
+            #region
+            v.active_DB.managerUserName = _user;
+            v.active_DB.managerServerName = _managerServerName;
+            v.active_DB.managerDBName = _managerDbName;
+            v.active_DB.managerPsw = "Password = " + _managerDbPass + ";";
+            v.active_DB.managerConnectionText =
+                string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
+                v.active_DB.managerServerName,
+                v.active_DB.managerDBName,
+                v.active_DB.managerUserName,
+                v.active_DB.managerPsw);
+            v.active_DB.managerMSSQLConn = new SqlConnection(v.active_DB.managerConnectionText);
+            v.active_DB.managerMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+            #endregion
+
+            /// publish Manager DB Connections
+            #region
+            v.publishManager_DB.dBaseNo = v.dBaseNo.publishManager;
+            v.publishManager_DB.serverName = _publishServerName;
+            v.publishManager_DB.databaseName = _publishDbName;
+            v.publishManager_DB.userName = _user;
+            v.publishManager_DB.psw = "Password = " + _publishDbPass + ";";
+            v.publishManager_DB.connectionText =
+                string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
+                v.publishManager_DB.serverName,
+                v.publishManager_DB.databaseName,
+                v.publishManager_DB.userName,
+                v.publishManager_DB.psw);
+            v.publishManager_DB.MSSQLConn = new SqlConnection(v.publishManager_DB.connectionText);
+            v.publishManager_DB.MSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+            #endregion
+
+            /// UstadCRM DB Connections
+            #region
+
+            //v.active_DB.ustadCrmDBName = "UstadCRM";
+            v.active_DB.ustadCrmUserName = _user;
+            v.active_DB.ustadCrmServerName = _crmServerName;
+            v.active_DB.ustadCrmDBName = _crmDbName;
+            v.active_DB.ustadCrmPsw = "Password = " + _crmDbPass + ";";
+            v.active_DB.ustadCrmConnectionText =
+                string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
+                v.active_DB.ustadCrmServerName,
+                v.active_DB.ustadCrmDBName,
+                v.active_DB.ustadCrmUserName,
+                v.active_DB.ustadCrmPsw);
+            v.active_DB.ustadCrmMSSQLConn = new SqlConnection(v.active_DB.ustadCrmConnectionText);
+            v.active_DB.ustadCrmMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+            #endregion
+
+            /// master DB Connections (MSSQL.master)
+            #region
+
+            v.active_DB.masterDBName = "master";
+            if (IsNotNull(v.active_DB.masterUserName) == false)
+                v.active_DB.masterUserName = "sa";
+
+            v.active_DB.masterConnectionText =
+                string.Format(" Data Source = {0}; Initial Catalog = {1}; User ID = {2}; {3} MultipleActiveResultSets = True ",
+                v.active_DB.masterServerName,
+                v.active_DB.masterDBName,
+                v.active_DB.masterUserName,
+                v.active_DB.masterPsw);
+
+            v.active_DB.masterMSSQLConn = new SqlConnection(v.active_DB.masterConnectionText);
+            v.active_DB.masterMSSQLConn.StateChange += new StateChangeEventHandler(DBConnectStateManager);
+
+            #endregion
+
+            // DİKKAT : BU METODU KULLANMA MASTER-DETAIL de DETAIL kırılıyor
+            // v.SP_Conn_Text_Manager_MSSQL = " Server=94.73.145.8; Database=MSV3DFTRBLT; Uid=user4601;Pwd=CanBerk98";
+            tToolBox t = new tToolBox();
+            if (v.active_DB.managerMSSQLConn != null)
+            {
+                t.Db_Open(v.active_DB.managerMSSQLConn);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[InitPreparingConnection] WARNING: managerMSSQLConn is null, cannot open connection");
+            }
+
         }
 
         #endregion Firm İşlemleri
@@ -4038,10 +4364,17 @@ namespace Tkn_ToolBox
             Str_Replace(ref Sql, ":VT_FIRM_ID", v.SP_FIRM_ID.ToString());
             Str_Replace(ref Sql, "\':FIRM_ID\'", v.SP_FIRM_ID.ToString());
             Str_Replace(ref Sql, ":FIRM_ID", v.SP_FIRM_ID.ToString());
-            Str_Replace(ref Sql, ":FIRM_ILKODU", v.tMainFirm.IlKodu);
-            Str_Replace(ref Sql, ":FIRM_ILCEKODU", v.tMainFirm.IlceKodu);
-            Str_Replace(ref Sql, ":FIRM_ILADI", v.tMainFirm.IlAdi);
-            Str_Replace(ref Sql, ":FIRM_ILCEADI", v.tMainFirm.IlceAdi);
+            
+            // CRITICAL: Handle location parameters - use "0" as default if empty to avoid SQL syntax errors
+            string ilKodu = string.IsNullOrEmpty(v.tMainFirm.IlKodu) ? "0" : v.tMainFirm.IlKodu;
+            string ilceKodu = string.IsNullOrEmpty(v.tMainFirm.IlceKodu) ? "0" : v.tMainFirm.IlceKodu;
+            string ilAdi = string.IsNullOrEmpty(v.tMainFirm.IlAdi) ? "" : v.tMainFirm.IlAdi;
+            string ilceAdi = string.IsNullOrEmpty(v.tMainFirm.IlceAdi) ? "" : v.tMainFirm.IlceAdi;
+            
+            Str_Replace(ref Sql, ":FIRM_ILKODU", ilKodu);
+            Str_Replace(ref Sql, ":FIRM_ILCEKODU", ilceKodu);
+            Str_Replace(ref Sql, ":FIRM_ILADI", ilAdi);
+            Str_Replace(ref Sql, ":FIRM_ILCEADI", ilceAdi);
             Str_Replace(ref Sql, ":FIRM_DBNAME", v.tMainFirm.DatabaseName);
             //Str_Replace(ref Sql, ":FIRM_USERLIST", v.SP_FIRM_USERLIST);
             //Str_Replace(ref Sql, ":FIRM_USER_LIST", v.SP_FIRM_USERLIST);
@@ -4315,7 +4648,9 @@ namespace Tkn_ToolBox
                 if (tNewForm != null)
                 {
                     /// ?? nedir 
-                    tNewForm.Opacity = 50;
+                    // NOTE: Opacity=50 makes forms semi-transparent, which can make them appear "broken"
+                    // Only set opacity for non-main forms or specific use cases
+                    // tNewForm.Opacity = 50; // Commented out - was making forms appear broken
                     //tNewForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
 
                     /// refresh özelliğini taşı
@@ -4424,6 +4759,9 @@ namespace Tkn_ToolBox
 
         public void OpenFormPreparing(string FormName, string FormCode, v.formType formType)
         {
+            System.Diagnostics.Debug.WriteLine($"[OpenFormPreparing] FormName={FormName}, FormCode={FormCode}, formType={formType}");
+            System.Diagnostics.Debug.WriteLine($"[OpenFormPreparing] v.mainForm={(v.mainForm != null ? v.mainForm.Name : "null")}, IsMdiContainer={v.mainForm?.IsMdiContainer}, Application.OpenForms.Count={Application.OpenForms.Count}");
+            
             //string FormName = "ms_User";
             //string FormCode = "UST/PMS/PMS/SYS_USERLOGIN";
 
@@ -4550,26 +4888,51 @@ namespace Tkn_ToolBox
 
             if (IsNotNull(FORMNAME))
             {
+                System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Getting form: FORMNAME={FORMNAME}, FORMCODE={FORMCODE}, FORMTYPE={FORMTYPE}, FORMSTATE={FORMSTATE}");
                 tNewForm = fr.Get_Form(FORMNAME);
+                System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Get_Form returned: {(tNewForm != null ? tNewForm.Name : "null")}");
 
                 // MS_LAYOUT Preparing
                 // form code var ise boş formu kullanarak Layout dizayn et
                 if (FORMCODE != "")
                 {
+                    System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Creating layout for FORMCODE={FORMCODE}");
                     tLayout l = new tLayout();
                     l.Create_Layout(tNewForm, FORMCODE);
                 }
 
                 if (tNewForm != null)
                 {
-                    tNewForm.Opacity = 50;
+                    System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Form created: {tNewForm.Name}, IsMdiContainer={tNewForm.IsMdiContainer}");
+                    // NOTE: Opacity=50 makes forms semi-transparent, which can make them appear "broken"
+                    // Only set opacity for non-main forms or specific use cases
+                    // tNewForm.Opacity = 50; // Commented out - was making forms appear broken
                     //tNewForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
 
                     if (IsNotNull(FORMTYPE))
                     {
+                        System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] FORMTYPE={FORMTYPE}, Application.OpenForms.Count={Application.OpenForms.Count}");
+                        if (Application.OpenForms.Count > 0)
+                        {
+                            var parentForm = Application.OpenForms[0];
+                            System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Parent form: {parentForm.Name}, IsMdiContainer={parentForm.IsMdiContainer}, IsDisposed={parentForm.IsDisposed}");
+                        }
+                        
                         if (FORMTYPE == "CHILD")
                         {
-                            ChildForm_View(tNewForm, Application.OpenForms[0], myFormLoadValue);
+                            System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Opening as CHILD form");
+
+                            Form mdiParent = GetMainMdiForm();
+                            if (mdiParent != null)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] Using mdiParent={mdiParent.Name} (IsMdiContainer={mdiParent.IsMdiContainer})");
+                                ChildForm_View(tNewForm, mdiParent, myFormLoadValue);
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[OpenForm_OLD] WARNING: No suitable MDI parent found, opening as standalone form");
+                                ChildForm_View(tNewForm, null, myFormLoadValue);
+                            }
                         }
                         if (FORMTYPE == "NORMAL")
                         {
@@ -4594,7 +4957,15 @@ namespace Tkn_ToolBox
                     {
                         if (FORMTYPE == "CHILD")
                         {
-                            ChildForm_View(tNewForm, Application.OpenForms[0], myFormLoadValue);
+                            Form mdiParent = GetMainMdiForm();
+                            if (mdiParent != null)
+                            {
+                                ChildForm_View(tNewForm, mdiParent, myFormLoadValue);
+                            }
+                            else
+                            {
+                                ChildForm_View(tNewForm, null, myFormLoadValue);
+                            }
                         }
                     }
                 }
@@ -4602,6 +4973,41 @@ namespace Tkn_ToolBox
 
             }
             //return tNewForm;
+        }
+
+        /// <summary>
+        /// Finds the main MDI parent form for CHILD forms.
+        /// Prefer v.mainForm if it is an MDI container; otherwise fall back to the first open MDI form,
+        /// and finally to Application.OpenForms[0] if nothing else is suitable.
+        /// </summary>
+        private Form GetMainMdiForm()
+        {
+            try
+            {
+                if (v.mainForm != null && v.mainForm.IsMdiContainer && !v.mainForm.IsDisposed)
+                {
+                    return v.mainForm;
+                }
+
+                foreach (Form f in Application.OpenForms)
+                {
+                    if (f != null && f.IsMdiContainer && !f.IsDisposed)
+                    {
+                        return f;
+                    }
+                }
+
+                if (Application.OpenForms.Count > 0)
+                {
+                    return Application.OpenForms[0];
+                }
+            }
+            catch
+            {
+                // Swallow any exceptions here; caller will handle null parent.
+            }
+
+            return null;
         }
 
         //----
@@ -4612,6 +5018,9 @@ namespace Tkn_ToolBox
 
         public void ChildForm_View(Form tForm, Form tMdiForm, string myFormLoadValue)
         {
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Opening form: {tForm?.Name ?? "null"}, Parent: {tMdiForm?.Name ?? "null"}");
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] tMdiForm.IsMdiContainer={tMdiForm?.IsMdiContainer}, tMdiForm.IsDisposed={tMdiForm?.IsDisposed}");
+            
             // Formun üzerinde MyFormBox isimli memo yok ise eklesin
             tCreateObject co = new tCreateObject();
             co.Create_MyFormBox(tForm, myFormLoadValue);
@@ -4619,9 +5028,20 @@ namespace Tkn_ToolBox
             v.con_FormOpen = true;
             v.sp_OpenFormState = "CHILD";
             tForm.Tag = v.sp_OpenFormState;
-            if (tMdiForm.IsMdiContainer)
+            
+            if (tMdiForm != null && tMdiForm.IsMdiContainer)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Setting MdiParent: {tForm.Name}.MdiParent = {tMdiForm.Name}");
                 tForm.MdiParent = tMdiForm;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[ChildForm_View] WARNING: Cannot set MdiParent - tMdiForm is null or not IsMdiContainer. tMdiForm={(tMdiForm != null ? tMdiForm.Name : "null")}, IsMdiContainer={tMdiForm?.IsMdiContainer}");
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Calling tForm.Show() for {tForm.Name}, MdiParent={(tForm.MdiParent != null ? tForm.MdiParent.Name : "null")}");
             tForm.Show();
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Form {tForm.Name} shown. WindowState={tForm.WindowState}, Visible={tForm.Visible}, MdiParent={(tForm.MdiParent != null ? tForm.MdiParent.Name : "null")}");
             v.con_FormOpen = false;
 
             ScreenSize(tForm);
@@ -4634,18 +5054,30 @@ namespace Tkn_ToolBox
 
         public void ChildForm_View(Form tForm, Form tMdiForm, FormWindowState state, string myFormLoadValue)
         {
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Opening form with state: {tForm?.Name ?? "null"}, Parent: {tMdiForm?.Name ?? "null"}, State={state}");
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] tMdiForm.IsMdiContainer={tMdiForm?.IsMdiContainer}, tMdiForm.IsDisposed={tMdiForm?.IsDisposed}");
+            
             // Formun üzerinde MyFormBox isimli memo yok ise eklesin
             tCreateObject co = new tCreateObject();
             co.Create_MyFormBox(tForm, myFormLoadValue);
 
-            if (tMdiForm.IsMdiContainer)
+            if (tMdiForm != null && tMdiForm.IsMdiContainer)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Setting MdiParent: {tForm.Name}.MdiParent = {tMdiForm.Name}");
                 tForm.MdiParent = tMdiForm;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[ChildForm_View] WARNING: Cannot set MdiParent - tMdiForm is null or not IsMdiContainer. tMdiForm={(tMdiForm != null ? tMdiForm.Name : "null")}, IsMdiContainer={tMdiForm?.IsMdiContainer}");
+            }
 
             v.con_FormOpen = true;
             v.sp_OpenFormState = "CHILD";
             tForm.Tag = v.sp_OpenFormState;
             tForm.WindowState = state;
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Calling tForm.Show() for {tForm.Name}, MdiParent={(tForm.MdiParent != null ? tForm.MdiParent.Name : "null")}, WindowState={state}");
             tForm.Show();
+            System.Diagnostics.Debug.WriteLine($"[ChildForm_View] Form {tForm.Name} shown. WindowState={tForm.WindowState}, Visible={tForm.Visible}, MdiParent={(tForm.MdiParent != null ? tForm.MdiParent.Name : "null")}");
             v.con_FormOpen = false;
 
             ScreenSize(tForm);
@@ -16640,13 +17072,19 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
         #region ftp Connection
         public void ftpDownloadIniFile()
         {
+
             bool onay = false;
 
             /// Janberk & Tekin
             /// ftpden ini file indirme iptal oldu
             ///
             onay = true; //  ftpDownload(v.tExeAbout.activePath, "YesiLdefterConnection.Ini");
-            
+
+            v.active_DB.mainManagerDbUses = true;
+
+            return;
+
+
             string MainManagerDbUses = "";
             string SourceDbUses = "";
 

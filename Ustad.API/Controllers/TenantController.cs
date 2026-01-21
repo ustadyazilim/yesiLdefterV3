@@ -47,7 +47,7 @@ namespace Ustad.API.Controllers
                 _logger.LogInformation("[TenantController] Resolving tenant for firmGUID: {FirmGUID}", firmGUID);
 
                 string sqlDataSource = _configuration.GetConnectionString(v.dbCrm);
-                
+
                 // Query UstadFirms table to get DatabaseName from FirmGUID
                 string query = @"
                     SELECT TOP 1 
@@ -65,7 +65,7 @@ namespace Ustad.API.Controllers
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("@FirmGUID", firmGUID);
-                        
+
                         object result = command.ExecuteScalar();
                         if (result != null && result != DBNull.Value)
                         {

@@ -242,6 +242,12 @@ namespace Tkn_UstadAPI
                     throw new Exception("FirmGUID is required.");
                 }
 
+                // Ensure we have a valid auth token before making the request
+                if (_httpClient.DefaultRequestHeaders.Authorization == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[UstadApiClient] Warning: No authorization token set before SelectFirmAsync call");
+                }
+
                 var request = new SelectFirmRequest
                 {
                     FirmGUID = firmGUID.Trim()
@@ -249,6 +255,8 @@ namespace Tkn_UstadAPI
 
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                System.Diagnostics.Debug.WriteLine($"[UstadApiClient] Calling /auth/select-firm with FirmGUID: {firmGUID}");
                 var response = await _httpClient.PostAsync("/auth/select-firm", content);
 
                 if (!response.IsSuccessStatusCode)
@@ -256,6 +264,24 @@ namespace Tkn_UstadAPI
                     var errorContent = await response.Content.ReadAsStringAsync();
                     var statusCode = (int)response.StatusCode;
                     var httpStatusMessage = response.StatusCode.ToString();
+                    
+                    System.Diagnostics.Debug.WriteLine($"[UstadApiClient] SelectFirmAsync failed: HTTP {statusCode} {httpStatusMessage}");
+                    System.Diagnostics.Debug.WriteLine($"[UstadApiClient] Error content: {errorContent}");
+                    
+                    // If 401, check if token is missing or invalid
+                    if (statusCode == 401)
+                    {
+                        var authHeader = _httpClient.DefaultRequestHeaders.Authorization;
+                        if (authHeader == null)
+                        {
+                            throw new Exception("Authentication token is missing. Please login again.");
+                        }
+                        else
+                        {
+                            throw new Exception($"Authentication failed. Token may be expired or invalid. Please login again. Details: {errorContent}");
+                        }
+                    }
+                    
                     var ex = new Exception($"Select firm failed (HTTP {statusCode} {httpStatusMessage}): {errorContent}");
                     ex.Data["StatusCode"] = statusCode;
                     ex.Data["StatusMessage"] = httpStatusMessage;
@@ -271,20 +297,28 @@ namespace Tkn_UstadAPI
                 {
                     _httpClient.DefaultRequestHeaders.Authorization = 
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", selectFirmResponse.Token);
+                    System.Diagnostics.Debug.WriteLine("[UstadApiClient] Token updated after firm selection");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[UstadApiClient] Warning: SelectFirmAsync returned empty token");
                 }
 
                 return selectFirmResponse;
             }
             catch (System.Net.Http.HttpRequestException ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[UstadApiClient] HttpRequestException in SelectFirmAsync: {ex.Message}");
                 throw new Exception($"API connection error to {_apiBaseUrl}: {ex.Message}", ex);
             }
             catch (TaskCanceledException)
             {
+                System.Diagnostics.Debug.WriteLine("[UstadApiClient] TaskCanceledException in SelectFirmAsync (timeout)");
                 throw new Exception("API request timeout. Please check if the API is running.");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[UstadApiClient] Exception in SelectFirmAsync: {ex.Message}");
                 throw new Exception($"Select firm error: {ex.Message}", ex);
             }
         }
