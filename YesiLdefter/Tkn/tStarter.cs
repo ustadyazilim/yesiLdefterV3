@@ -1,4 +1,4 @@
-﻿using DevExpress.LookAndFeel;
+using DevExpress.LookAndFeel;
 using DevExpress.XtraEditors;
 using System;
 using System.Data;
@@ -112,16 +112,19 @@ namespace Tkn_Starter
             
             // 1. SECURE AUTHENTICATION FLOW: Authenticate user FIRST before any database connections
             // NOTE(@Janberk): Authentication happens via API - no database connection required for login.
+            // CRITICAL: Do NOT call InitPreparingConnection() before login - it opens DB connections prematurely
+            // and can cause issues when InitPreparingConnectionFromApi() disposes/recreates them.
+            // The INI-based fallback will be initialized only if API connection fails.
             t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
 
-            InitPreparingConnection();// mecburen burada connection hazırlanıyor
+            // tüm connections burada hazırlanıyor
+            //InitPreparingConnection();// mecburen burada connection hazırlanıyor
 
             if (v.active_DB.localDbUses == false)
             {
-                //InitLoginUser(); // WebView2-based login with LoginTemplate.html
-
-                
-                InitLoginUserLegacy(); // Legacy form - not used when WebView2 is available
+                // Primary path: WebView2-based standalone login (ms_User_Standalone)
+                // This uses API for authentication and firm selection, then hands off to InitPreparingConnectionFromApi().
+                InitLoginUser(); // WebView2-based login with LoginTemplate.html
             }
             else
             {
@@ -164,6 +167,10 @@ namespace Tkn_Starter
                 return;
             }
 
+            t.InitPreparingConnection();
+
+
+/*
             // 2. SECURE AUTHENTICATION FLOW: After successful authentication, get database connection info from API
             // NOTE(@Janberk): Database connections are established ONLY after user authentication.
             System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] SP_UserLOGIN={v.SP_UserLOGIN}, localDbUses={v.active_DB.localDbUses}, managerMSSQLConn={(v.active_DB.managerMSSQLConn != null ? "exists" : "null")}");
@@ -210,7 +217,7 @@ namespace Tkn_Starter
             {
                 // Local DB mode - use existing connection setup (for Tabim local database)
                 t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri hazırlanıyor...");
-                InitPreparingConnection();
+                t.InitPreparingConnection();
                 t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
                 if (!Db_Open(v.active_DB.managerMSSQLConn))
                 {
@@ -228,7 +235,7 @@ namespace Tkn_Starter
                 v.SP_ApplicationExit = true;
                 return;
             }
-
+*/
             /// Mesaj formu nedense kayboluyor
             /// onun açılması için burada bunlar false yapılıyor
             v.IsWaitOpen = false;
@@ -472,6 +479,7 @@ namespace Tkn_Starter
         /// NOTE(@Janberk): This method is kept for local DB mode (Tabim) and backward compatibility.
         /// For secure mode, use InitPreparingConnectionFromApi() instead.
         /// </summary>
+  /*
         private void InitPreparingConnection() 
         {
 
@@ -490,13 +498,7 @@ namespace Tkn_Starter
             string _publishDbPass = v.db_PASSWORD;
             string _publishServerName = v.db_SERVERIP;
 
-            /// NOT : Project burada kullanılmıyor
-            /// kullanıcı bir firma seçtiğinde hangi database  kullanılacak ise 
-            /// o bilgi user&firms tablosundaki alınacak
-            /// bu örnek : 
             string _projectDbName = "";
-            _projectDbName = "Mts00000011";  // vaya
-            _projectDbName = "Src00004204";  // 
             string _projectDbPass = v.db_PASSWORD; /// şimdillik ortak pass kullanılıyor
 
             ///
@@ -603,7 +605,7 @@ namespace Tkn_Starter
             }
 
         }
-
+*/
         void InitLoginComputer()
         {
             //MessageBox.Show(v.tComputer.Network_MACAddress);
@@ -753,14 +755,11 @@ namespace Tkn_Starter
         /// </summary>
         void InitLoginUser()
         {
-            System.Diagnostics.Debug.WriteLine($"[InitLoginUser] Starting login. v.mainForm={(v.mainForm != null ? v.mainForm.Name : "null")}, v.mainForm.IsMdiContainer={v.mainForm?.IsMdiContainer}, v.mainForm.IsDisposed={v.mainForm?.IsDisposed}");
             YesiLdefter.ms_User_Standalone loginForm = null;
             try
             {
                 loginForm = new YesiLdefter.ms_User_Standalone();
-                System.Diagnostics.Debug.WriteLine($"[InitLoginUser] Created loginForm: {loginForm.Name}, calling ShowDialog with parent: {(v.mainForm != null ? v.mainForm.Name : "null")}");
                 loginForm.ShowDialog(v.mainForm);
-                System.Diagnostics.Debug.WriteLine($"[InitLoginUser] Login dialog closed. DialogResult={loginForm.DialogResult}, SP_UserLOGIN={v.SP_UserLOGIN}");
                 loginForm.Dispose();
             }
             catch (Exception ex)

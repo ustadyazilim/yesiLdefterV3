@@ -52,6 +52,7 @@ namespace Tkn_Forms
             if (FormName == "ms_Bildirimler") tForm = new YesiLdefter.ms_Bildirimler();
             if (FormName == "ms_EFatura") tForm = new YesiLdefter.ms_EFatura();
             if (FormName == "ms_XMLRead") tForm = new YesiLdefter.ms_XMLRead();
+            if (FormName == "ms_WhatsApp") tForm = new YesiLdefter.Forms.ms_WhatsApp();
 
             if (FormName == "SekCevHukumlu") tForm = new YesiLdefter.Forms.SEK.SekCevHukumlu();
             if (FormName == "SekCevHukumluList") tForm = new YesiLdefter.Forms.SEK.SekCevHukumluList();

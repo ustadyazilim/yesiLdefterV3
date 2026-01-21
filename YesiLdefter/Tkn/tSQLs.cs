@@ -2240,6 +2240,9 @@ INSERT INTO [dbo].[SYS_UPDATES]
             if ((softCode != "") && (projectCode != ""))
                  TableIPCode = softCode + "/" + projectCode + "/" + TableCode + "." + IPCode;
             else TableIPCode = TableCode + "." + IPCode;
+            
+            // CRITICAL: Log when Preparing_dsData is called for specific forms
+            System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] Starting: TableIPCode={TableIPCode}, DBaseNo={dBaseNo}, TableName={TableName}, IP_Caption={IP_Caption}");
                        
             string Data_Find = t.Set(row["DATA_FIND"].ToString(), "", ""); /* 0= Find yok, 1. standart, 2. List&Data   */
             string Find_FName = t.Set(row["FIND_FNAME"].ToString(), "", "");
@@ -2323,10 +2326,36 @@ INSERT INTO [dbo].[SYS_UPDATES]
             // TableType.Select
             if (Table_Type == 6)
             {
-                NewSQL = t.Set(row["IP_SELECT_SQL"].ToString(), row["LKP_TB_SELECT_SQL"].ToString(), "null");
+                string ipSelectSql = row["IP_SELECT_SQL"]?.ToString() ?? "";
+                string tbSelectSql = row["LKP_TB_SELECT_SQL"]?.ToString() ?? "";
+                
+                // CRITICAL: Log SQL retrieval to diagnose truncation/corruption issues
+                System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] TableType=6 (Select): TableIPCode={TableIPCode}");
+                System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] IP_SELECT_SQL length={ipSelectSql.Length}, LKP_TB_SELECT_SQL length={tbSelectSql.Length}");
+                if (ipSelectSql.Length > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] IP_SELECT_SQL (first 500 chars): {ipSelectSql.Substring(0, Math.Min(500, ipSelectSql.Length))}");
+                    if (ipSelectSql.Length > 500)
+                        System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] IP_SELECT_SQL (last 200 chars): {ipSelectSql.Substring(ipSelectSql.Length - 200)}");
+                }
+                if (tbSelectSql.Length > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] LKP_TB_SELECT_SQL (first 500 chars): {tbSelectSql.Substring(0, Math.Min(500, tbSelectSql.Length))}");
+                }
+                
+                NewSQL = t.Set(ipSelectSql, tbSelectSql, "null");
 
                 if (t.IsNotNull(NewSQL))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] Final NewSQL length={NewSQL.Length}");
+                    if (NewSQL.Length > 500)
+                        System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] Final NewSQL (last 200 chars): {NewSQL.Substring(NewSQL.Length - 200)}");
                     NewSQL = NewSQL + "     ";
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] WARNING: NewSQL is null or empty after t.Set()!");
+                }
             }
 
             #endregion Tanımlar
@@ -2727,7 +2756,18 @@ INSERT INTO [dbo].[SYS_UPDATES]
 
             #region Read dsData
             
+            // CRITICAL: Log before calling Data_Read_Execute
+            System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] Calling Data_Read_Execute: TableIPCode={TableIPCode}, NewSQL length={NewSQL?.Length ?? 0}, TableName={TableName}");
+            
             t.Data_Read_Execute(tForm, dsData, ref NewSQL, TableIPCode, null);
+            
+            // CRITICAL: Log after Data_Read_Execute
+            int finalRowCount = 0;
+            if (dsData != null && dsData.Tables.Count > 0)
+            {
+                finalRowCount = dsData.Tables[0].Rows.Count;
+            }
+            System.Diagnostics.Debug.WriteLine($"[Preparing_dsData] After Data_Read_Execute: TableIPCode={TableIPCode}, DataSet Tables Count={dsData?.Tables?.Count ?? 0}, Rows Count={finalRowCount}");
 
             if ((TargetValue == "NewRecord") ||
                 (AutoInsert == "True"))

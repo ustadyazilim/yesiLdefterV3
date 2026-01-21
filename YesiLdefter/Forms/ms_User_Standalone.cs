@@ -1,4 +1,4 @@
-﻿/* Core Namespace */
+﻿﻿/* Core Namespace */
 using DevExpress.XtraEditors;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
@@ -386,6 +386,21 @@ namespace YesiLdefter
                         operationName: "Firma bilgileri"
                     );
 
+
+
+                    v.fullManagerDbs_.managerDB.databaseName = "MainManagerV3";
+                    v.fullManagerDbs_.managerDB.psw = v.db_PASSWORD;
+                    v.fullManagerDbs_.managerDB.serverName = v.db_SERVERIP;
+
+                    v.fullManagerDbs_.ustadCrmDB.databaseName = "UstadCRMV1";
+                    v.fullManagerDbs_.ustadCrmDB.psw = v.db_PASSWORD;
+                    v.fullManagerDbs_.ustadCrmDB.serverName = v.db_SERVERIP;
+
+                    v.fullManagerDbs_.publishDB.databaseName = "UstadManagerV3";
+                    v.fullManagerDbs_.publishDB.psw = v.db_PASSWORD;
+                    v.fullManagerDbs_.publishDB.serverName = v.db_SERVERIP;
+
+
                     if (userFirmsList != null && userFirmsList.Count > 0)
                     {
                         if (userFirmsList.Count == 1)
@@ -484,6 +499,16 @@ namespace YesiLdefter
                     // CRITICAL: Set MenuCode from firm info - this determines which main menu form to open
                     v.tMainFirm.MenuCode = firm.MenuCode ?? "";
                     System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Set tMainFirm.MenuCode={v.tMainFirm.MenuCode} from firm.MenuCode={firm.MenuCode}");
+                    
+                    // CRITICAL: Set location fields for SQL parameter replacement
+                    // CityTypeId maps to IlKodu (province code), DistrictTypeId maps to IlceKodu (district code)
+                    v.tMainFirm.IlKodu = firm.CityTypeId?.ToString() ?? "";
+                    v.tMainFirm.IlceKodu = firm.DistrictTypeId?.ToString() ?? "";
+                    // IlAdi and IlceAdi will be populated later from ILList/ILCEList if needed
+                    // For now, set empty strings - they'll be looked up if the SQL needs them
+                    v.tMainFirm.IlAdi = "";
+                    v.tMainFirm.IlceAdi = "";
+                    System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Set location: IlKodu={v.tMainFirm.IlKodu}, IlceKodu={v.tMainFirm.IlceKodu} from CityTypeId={firm.CityTypeId}, DistrictTypeId={firm.DistrictTypeId}");
 
                     // Initialize database connection using firm info
                     t.setSelectFirm(v.tMainFirm);
