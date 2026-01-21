@@ -113,11 +113,14 @@ namespace Tkn_Starter
             // 1. SECURE AUTHENTICATION FLOW: Authenticate user FIRST before any database connections
             // NOTE(@Janberk): Authentication happens via API - no database connection required for login.
             t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
+
+            InitPreparingConnection();// mecburen burada connection hazırlanıyor
+
             if (v.active_DB.localDbUses == false)
             {
                 //InitLoginUser(); // WebView2-based login with LoginTemplate.html
 
-                InitPreparingConnection();// mecburen burada connection hazırlanıyor
+                
                 InitLoginUserLegacy(); // Legacy form - not used when WebView2 is available
             }
             else

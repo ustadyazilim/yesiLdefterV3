@@ -43,24 +43,25 @@ commit transaction
 
 begin transaction
 
-
+/*
 -- ------------------------------------------------------- 
--- DerslikTipiId
+-- DersTipiId
 -- ------------------------------------------------------- 
-IF EXISTS (Select * From sys.objects WHERE name = 'SrcKIhlalTeorikDDerslikTipi')
-drop table [Lkp].[SrcKIhlalTeorikDDerslikTipi]
+IF EXISTS (Select * From sys.objects WHERE name = 'SrcKIhlalTeorikDDersTipi')
+drop table [Lkp].[SrcKIhlalTeorikDDersTipi]
 
-create table Lkp.SrcKIhlalTeorikDDerslikTipi
+create table Lkp.SrcKIhlalTeorikDDersTipi
 (
    Id          Int Unique Not Null,
-   DerslikTipi nVarchar(50)   null
+   DersTipi    nVarchar(50)   null
    
-   constraint  pk_SrcKIhlalTeorikDDerslikTipi primary key (Id)
+   constraint  pk_SrcKIhlalTeorikDDersTipi primary key (Id)
 )
 
-Delete from [Lkp].[SrcKIhlalTeorikDDerslikTipi]
-INSERT INTO Lkp.SrcKIhlalTeorikDDerslikTipi (Id, DerslikTipi)
+Delete from [Lkp].[SrcKIhlalTeorikDDersTipi]
+INSERT INTO Lkp.SrcKIhlalTeorikDDersTipi (Id, DersTipi)
  VALUES 
+
   ( 0, N'Teorik dersler'),
   ( 1, N'Trafik ve Çevre Dersi'),
   ( 2, N'İlkyardım Dersi'),
@@ -70,7 +71,7 @@ INSERT INTO Lkp.SrcKIhlalTeorikDDerslikTipi (Id, DerslikTipi)
   ( 11, N'Direksiyon Eğitim Alanı'), -- Personel ihlalleri için gerekli oldu
   ( 12, N'Akan Trafik'),
   ( 13, N'Simülatör')
-
+*/
 -- ------------------------------------------------------- 
 -- DerslikAdiTipiId
 -- ------------------------------------------------------- 
