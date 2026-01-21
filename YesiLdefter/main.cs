@@ -325,6 +325,8 @@ namespace YesiLdefter
                 t.WaitFormOpen(v.mainForm, "Menü hazırlanıyor...");
                 preparingMenus();
 
+
+
                 /// Ustad Crm ve TabimMtsk değil ise DbUpdates çalışacak
                 /// TabimMtsk ya ait güncellemeler ise ms_TabimMtsk.cs içinde çalışıyor
                 /// 

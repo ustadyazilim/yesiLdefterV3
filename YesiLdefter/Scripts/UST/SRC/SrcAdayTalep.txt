@@ -760,6 +760,8 @@ AS BEGIN
 	  Delete from SrcAdayOgrenim    Where TalepId = @curId
 	  Delete from SrcAdayTakip      Where TalepId = @curId
 	  Delete from SrcAdayUcret      Where TalepId = @curId
+	  Delete from SrcAdayKimlik     Where TalepId = @curId
+	  Delete from SrcAdayEhliyet    Where TalepId = @curId
 
       FETCH NEXT FROM talepCursorDlt INTO @curId
     END

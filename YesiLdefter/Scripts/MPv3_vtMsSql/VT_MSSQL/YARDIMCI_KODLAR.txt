@@ -760,3 +760,23 @@ Full HD çözünürlük (1920x1080 piksel) ilk olarak 2006 yılında yaygınlaş
 Özellikle 2007-2008 dönemi, Full HD'nin hem TV'lerde hem de bilgisayar monitörlerinde standart haline gelmeye başladığı yıllardı.
 
 */
+
+
+
+-- Login oluştur
+CREATE LOGIN [TABIM]
+WITH PASSWORD = '312',
+     CHECK_POLICY = OFF,   -- Basit şifre olduğu için policy kapatıldı
+     CHECK_EXPIRATION = OFF;
+
+-- İlgili veritabanında kullanıcı oluştur
+USE [Surucu07];  -- Buraya kendi veritabanı adını yaz
+CREATE USER [TABIM] FOR LOGIN [TABIM];
+
+-- Yetki vermek istersen örnek:
+ALTER ROLE db_datareader ADD MEMBER [TABIM];  -- Okuma yetkisi
+ALTER ROLE db_datawriter ADD MEMBER [TABIM];  -- Yazma yetkisi
+
+ALTER ROLE db_owner ADD MEMBER [TABIM];
+
+

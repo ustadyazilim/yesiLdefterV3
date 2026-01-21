@@ -8,7 +8,7 @@ AS BEGIN
 
   declare @SP_Message nvarchar(100) = ''
   declare @TahsilatAdedi int = 0
-  declare @SectorTypeId smallint = 0 -- 201. Mtsk, 202. İşmak, 203. Src, 204. Src5
+  declare @SectorTypeId smallint = 0 -- 201. Mtsk, 202. İşmak, 203. Src
 
   Set @SectorTypeId = dbo.fnc_getSectorTypeId(@FirmId)
 
@@ -36,7 +36,7 @@ AS BEGIN
 	  or BelgeStokBId > 0) -- fatura kesilmişse
   end -- if
 
-  if (@SectorTypeId = 203)    
+  if (@SectorTypeId = 203 or @SectorTypeId = 204)    
   begin
       Select @TahsilatAdedi = count(Id)
       From [dbo].[OnmOdemePlani]
@@ -138,7 +138,7 @@ AS BEGIN
   end -- if İşmak
   */
 
-  if (@SectorTypeId = 203)
+  if (@SectorTypeId = 203 or @SectorTypeId = 204)
   begin
       Select
        @FirmId = u.[FirmId]  
@@ -234,7 +234,7 @@ AS BEGIN
       Set @BitUcretTipiId = 22101
   end -- İşmak
 
-  if (@SectorTypeId = 203) -- Src
+  if (@SectorTypeId = 203 or @SectorTypeId = 204) -- Src and Src5
   begin       
       if (@TalepTipiId = 1) set @UcretTipiId = 23101 -- Src1,2,3,4 Sertifika
       if (@TalepTipiId = 2) set @UcretTipiId = 23102 -- Src5 Sertifika
@@ -500,12 +500,13 @@ AS BEGIN
   if (@SectorTypeId = 202)
      Execute dbo.prc_IsmakAdayBorcunuHesapla @FirmId, @TalepId
 
-  if (@SectorTypeId = 203)
+  if (@SectorTypeId = 203 or @SectorTypeId = 204)
      Execute dbo.prc_SrcAdayBorcunuHesapla @FirmId, @TalepId
 
   -- Bunu kapatma veya silme. 
   -- Bu sonuca kodun içinde kontrol ediliyor
   Select @SP_Message as SP_Message
+
 
 END -- procedure
 

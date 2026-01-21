@@ -37,7 +37,7 @@ AS BEGIN
    from (
      Select distinct [teoDers].GrupTipiId, grup.GrupTipi
      from Src5TeorikDers as [teoDers]
-	   left outer join Lkp.SrcGrupTipi as grup on ( teoDers.GrupTipiId = grup.Id )
+	   left outer join Lkp.Src5GrupTipi as grup on ( teoDers.GrupTipiId = grup.Id )
      Where [teoDers].DonemTipiId = @DonemTipiId
      and   [teoDers].FirmId = @FirmId
    ) as x
