@@ -191,6 +191,15 @@ namespace Tkn_Variable
         public static databaseAbout_ source_DB = new databaseAbout_();
         public static databaseAbout_ publishManager_DB = new databaseAbout_();
 
+        public class fullManagerDbs 
+        {
+            public databaseAbout_ managerDB = new databaseAbout_();
+            public databaseAbout_ ustadCrmDB = new databaseAbout_();
+            public databaseAbout_ publishDB = new databaseAbout_();
+        }
+
+        public static fullManagerDbs fullManagerDbs_ = new fullManagerDbs();
+
         #endregion Database Yapısı
 
         #region Ftp

@@ -272,4 +272,27 @@ INSERT INTO [dbo].[MsReports]
            ( 1        , 0         , 'DNM.TALP.UCR'  , 'DNM.TALP' , 'Ücretler'                    , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SRC'     , null       ),
            ( 1        , 0         , 'DNM.TALP.BIL'  , 'DNM.TALP' , 'Bildirimler'                 , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SRC'     , null       ),
            ( 1        , 0         , 'DNM.TALP.TKP'  , 'DNM.TALP' , 'Takip durumu'                , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SRC'     , null       ),
-           ( 1        , 0         , 'DNM.TALP.FRM'  , 'DNM.TALP' , 'Formlar'                     , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SRC'     , null       )
+           ( 1        , 0         , 'DNM.TALP.FRM'  , 'DNM.TALP' , 'Formlar'                     , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SRC'     , null       ),
+
+           -- SRC5
+           ( 1        , 0         , 'KRM'       , ''         , 'Kurum işlemleri'                 , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'OMS'       , ''         , 'Ön muhasebe'                     , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'DNM'       , ''         , 'Dönem işlemler'                  , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'IDA'       , ''         , 'İdari işlemler'                  , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'RPR'       , ''         , 'Rapor işlemleri'                 , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+
+           ( 1        , 0         , 'DNM.TALP'  , 'DNM'      , 'Talep raporları'                 , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'DNM.SNVH'  , 'DNM'      , 'Sınav hazırlık raporları'        , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+
+
+           --( 1        , 0         , 'DNM.TALP'      , 'DNM'      , 'Talep raporları'             , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'DNM.TALP.TLP'  , 'DNM.TALP' , 'Talep '                      , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'DNM.TALP.EVR'  , 'DNM.TALP' , 'Evraklar'                    , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'DNM.TALP.DER'  , 'DNM.TALP' , 'Dersler'                     , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'DNM.TALP.UCR'  , 'DNM.TALP' , 'Ücretler'                    , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'DNM.TALP.BIL'  , 'DNM.TALP' , 'Bildirimler'                 , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'DNM.TALP.TKP'  , 'DNM.TALP' , 'Takip durumu'                , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       ),
+           ( 1        , 0         , 'DNM.TALP.FRM'  , 'DNM.TALP' , 'Formlar'                     , null  , ''          , 1            , 0            , null          , 'UST'        , 'MEB'       , 'SR5'     , null       )
+
+
+

@@ -16,10 +16,10 @@ namespace Tkn_UstadAPI
         // Default values (fallback if not in registry or environment)
         // NOTE: Prefer environment variables; these are non-secret placeholders to avoid startup crashes.
         // Env vars:
-        //   USTAD_API_BASE_URL (e.g., http://localhost:5000)
+        //   USTAD_API_BASE_URL (e.g., http://localhost:5001)
         //   USTAD_JWT_KEY      (must match API Jwt:Key)
         private static readonly string DEFAULT_API_BASE_URL =
-            Environment.GetEnvironmentVariable("USTAD_API_BASE_URL") ?? "http://localhost:5000";
+            Environment.GetEnvironmentVariable("USTAD_API_BASE_URL") ?? "http://143.198.228.153:5000/";
         private static readonly string DEFAULT_JWT_KEY =
             Environment.GetEnvironmentVariable("USTAD_JWT_KEY") ?? string.Empty;
         /// <summary>
@@ -137,6 +137,15 @@ namespace Tkn_UstadAPI
             {
                 System.Diagnostics.Debug.WriteLine($"Error initializing API configuration defaults: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Reset API base URL to default (localhost:5001)
+        /// Use this to override any production URL stored in registry
+        /// </summary>
+        public static void ResetApiBaseUrlToDefault()
+        {
+            SetApiBaseUrl(DEFAULT_API_BASE_URL);
         }
     }
 }

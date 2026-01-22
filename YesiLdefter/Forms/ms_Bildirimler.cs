@@ -12,6 +12,7 @@ using Tkn_Events;
 using Tkn_SMS;
 using Tkn_ToolBox;
 using Tkn_Variable;
+using YesiLdefter.Codes;
 
 namespace YesiLdefter
 {
@@ -24,6 +25,7 @@ namespace YesiLdefter
         string buttonBildirimleriRaporla = "ButtonBildirimleriRaporla";
         string buttonSMSKontorSayisi = "ButtonSMSKontorSayisi";
         string buttonBildirimleriGonder = "ButtonBildirimleriGonder";
+        string buttonWhatsAppGonder = "ButtonWhatsAppGonder";
 
         DataSet ds_bildirimListesiHeader = null;
         DataSet ds_bildirimListesiLines = null;
@@ -51,6 +53,7 @@ namespace YesiLdefter
             t.Find_Button_AddClick(this, menuName, buttonBildirimleriRaporla, myNavElementClick);
             t.Find_Button_AddClick(this, menuName, buttonSMSKontorSayisi, myNavElementClick);
             t.Find_Button_AddClick(this, menuName, buttonBildirimleriGonder, myNavElementClick);
+            t.Find_Button_AddClick(this, menuName, buttonWhatsAppGonder, myNavElementClick);
         }
         private async void myNavElementClick(object sender, DevExpress.XtraBars.Navigation.NavElementEventArgs e)
         {
@@ -68,6 +71,10 @@ namespace YesiLdefter
                 if (((DevExpress.XtraBars.Navigation.NavButton)sender).Name == buttonBildirimleriGonder)
                 {
                     bildirimleriGonder();
+                }
+                if (((DevExpress.XtraBars.Navigation.NavButton)sender).Name == buttonWhatsAppGonder)
+                {
+                    bildirimleriWhatsAppGonder();
                 }
                 
             }
@@ -130,6 +137,35 @@ namespace YesiLdefter
             return onay;
         }
 
+        /// <summary>
+        /// WhatsApp gönderimi için de aynı bildirim listesi header/lines setini hazırlar.
+        /// SMS tarafındaki kısımlar (ayar okuma vb.) burada tekrar edilmez.
+        /// </summary>
+        private bool preparingWhatsAppKanalBilgileri(Form tForm, bildirimPaketi tBildirim_)
+        {
+            bool onay = true;
+
+            if (tBildirim_.bildirimListesiHeader == "")
+            {
+                string BildirimListesiHeader = "UST/PMS/CrsBildirimB.List_01";
+                string BildirimListesiLines = "UST/PMS/CrsBildirimS.List_01";
+
+                tBildirim_.bildirimListesiHeader = BildirimListesiHeader;
+                tBildirim_.bildirimListesiLines = BildirimListesiLines;
+            }
+
+            string bildirimListesiHeader = tBildirim_.bildirimListesiHeader;
+            string bildirimListesiLines = tBildirim_.bildirimListesiLines;
+
+            if (this.ds_bildirimListesiHeader == null)
+            {
+                t.Find_DataSet(tForm, ref this.ds_bildirimListesiHeader, ref this.dN_bildirimListesiHeader, bildirimListesiHeader);
+                t.Find_DataSet(tForm, ref this.ds_bildirimListesiLines, ref this.dN_bildirimListesiLines, bildirimListesiLines);
+            }
+
+            return onay && t.IsNotNull(this.ds_bildirimListesiLines);
+        }
+
         private void bildirimleriRaporla()
         {
             bool onay = preparingSmsKanalBilgileri(this, v.tBildirim, ref this.settings);
@@ -173,6 +209,20 @@ namespace YesiLdefter
                 onay = sms.bildirimleriSMSKanaliylaGonder_(this, v.tBildirim, this.ds_bildirimListesiLines, this.dN_bildirimListesiLines, this.settings);
 
                 t.AlertMessage("Bilgilendirme", "SMS gönderme işlemi tamamlandı...");
+            }
+        }
+
+        private void bildirimleriWhatsAppGonder()
+        {
+            // WhatsApp için sadece bildirim listelerini hazırla; kanal/ayar bilgisi Go API üzerinden JWT ile gelir.
+            bool onay = preparingWhatsAppKanalBilgileri(this, v.tBildirim);
+
+            if (onay == false) return;
+
+            if (t.IsNotNull(ds_bildirimListesiLines))
+            {
+                tWhatsAppNotify wa = new tWhatsAppNotify();
+                onay = wa.bildirimleriWhatsAppKanaliylaGonder_(this, v.tBildirim, this.ds_bildirimListesiLines, this.dN_bildirimListesiLines);
             }
         }
     }
