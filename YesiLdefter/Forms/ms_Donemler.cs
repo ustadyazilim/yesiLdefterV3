@@ -1,9 +1,13 @@
-﻿using DevExpress.XtraEditors;
+﻿using DevExpress.XtraCharts;
+using DevExpress.XtraEditors;
+using DevExpress.XtraReports.Native.Templates;
 using Microsoft.JScript;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.Linq.Mapping;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -47,6 +51,9 @@ namespace YesiLdefter
 
                 if (v.SP_Firm_SectorTypeId == 203) // Src
                     TableIPCode = "UST/MEB/SrcAdayTalep.DonemlerDonemListesi";
+
+                if (v.SP_Firm_SectorTypeId == 204) // Src5
+                    TableIPCode = "UST/MEB/SrcAdayTalep.DonemlerDonemListesiSrc5";
 
                 t.Find_DataSet(this, ref ds_KursiyerList, ref dN_KursiyerList, TableIPCode);
             }
@@ -164,31 +171,117 @@ namespace YesiLdefter
 
             if (v.SP_Firm_SectorTypeId == 203)
             {
-                MessageBox.Show("Src Entegrasyon butonuna tıklandı.");
+                //MessageBox.Show("Src Entegrasyon butonuna tıklandı.");
+                sendESrcApi();
+            }
+
+            if (v.SP_Firm_SectorTypeId == 204)
+            {
+                MessageBox.Show("Src5 Entegrasyon butonuna tıklandı.");
                 //sendESrcApi();
             }
 
-
         }
-        
-        
+
+        private bool KullaniciOnayi()
+        {
+            if (ds_KursiyerList == null) return false;
+            if (t.IsNotNull(ds_KursiyerList) == false) return false;
+
+            string Donem = ds_KursiyerList.Tables[0].Rows[0]["Lkp_DonemTipi"].ToString();
+            bool onay = false;
+            string soru = Donem + " dönemi kursiyerleri Soru Bankasına gönderilecek, Onaylıyor musunuz ?";
+            DialogResult cevap = t.mySoru(soru);
+            if (DialogResult.Yes == cevap)
+            {
+                onay = true;
+            }
+            return onay;
+        }
+
+
         private void sendESrcApi()
         {
+            
+            if (KullaniciOnayi() == false) return;
+
+            bool onaylimi = Onaylimi(ds_KursiyerList);
+            bool onay = false;
+
             // Mtsk Aday Talep Donemler Tablosu
             // Src Aday Talep Donemler Tablosu      
 
-            foreach (DataRow dr in ds_KursiyerList.Tables[0].Rows)
+            // 1. Listeyi döngüden önce tanımlayın
+            var studentList = new List<StudentDataModel>();
+
+            foreach (DataRow row in ds_KursiyerList.Tables[0].Rows) // Mevcut döngünüz
             {
-                /*
-                string donemKodu = t.DataRow_Get_String(dr, "DonemKodu");
-                string donemAdi = t.DataRow_Get_String(dr, "DonemAdi");
-                DateTime baslangicTarihi = t.DataRow_Get_DateTime(dr, "BaslangicTarihi");
-                DateTime bitisTarihi = t.DataRow_Get_DateTime(dr, "BitisTarihi");
-                */
-            }   
+                onay = row["LKP_ONAY"].ToString().ToUpper() == "TRUE" ? true : false;
+
+                if ((onaylimi == false) || (onaylimi == true && onay))
+                {
+                    // 2. Her öğrenci için yeni bir nesne örneği oluşturun
+                    var item = new StudentDataModel();
+
+                    item.KURSMAIL = t.Set(v.tMainFirm.eSrcEnt_KursKodu, v.tMainFirm.FirmCode, v.tMainFirm.DatabaseName);
+                    item.PASS = v.tMainFirm.eSrcEnt_Pass;
+                    item.TC = row["Lkp_TcNo"].ToString();
+                    item.ADI = row["Lkp_Adi"].ToString();
+                    item.SOYADI = row["Lkp_Soyadi"].ToString();
+                    item.EMAIL = row["Lkp_Eposta"].ToString();
+                    item.IL = "";
+                    item.ILCE = "";
+                    item.ADRES = row["Lkp_Adres"].ToString();
+                    item.GSM = row["Lkp_CepTelefonu"].ToString();
+                    item.IMG = null;
+                    item.BELGE = row["Lkp_IstenenSertifikaTipi"].ToString();
+                    item.CINSIYET = row["Lkp_CinsiyetTipi"].ToString();
+                    item.BAKIYE = 0;
+                    item.SUBESI = row["Lkp_DonemTipi"].ToString();
+                    item.GRUP = row["Lkp_GrupTipi"].ToString();
+                    item.DONEM = row["Lkp_SubeTipi"].ToString();
+
+                    // 3. Hazırlanan nesneyi listeye ekleyin
+                    studentList.Add(item);
+                }
+            }
+
+            // 4. Döngü bittikten sonra tüm listeyi JSON'a çevirelim
+            //string finalJson = JsonSerializer.Serialize(studentList, new JsonSerializerOptions { WriteIndented = true });
+            string finalJson = JsonConvert.SerializeObject(studentList, Formatting.Indented);
+
+            /// Janberk : POST işlemi başlayacak
 
 
         }
         
+        private bool Onaylimi(DataSet ds)
+        { 
+            bool onay = false;
+            string value = "";
+            
+            foreach (DataRow dr in ds.Tables[0].Rows)
+            {
+                value = "";
+                try
+                {
+                    value = dr["LKP_ONAY"].ToString().ToUpper();
+                    if (value == "TRUE") 
+                    { 
+                        onay = true; 
+                        break;
+                    }
+                }
+                catch (Exception)
+                {
+                    break;
+                    //throw;
+                }
+            }
+
+            return onay; 
+        }
+
+
     }
 }
