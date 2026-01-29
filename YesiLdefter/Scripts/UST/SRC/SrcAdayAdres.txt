@@ -6,6 +6,7 @@ begin transaction
  (
    Id                    Int IDENTITY(1,1) not null, 
    FirmId                Int       not null,
+   IsActive              Bit           null, 
    TalepId               Int       not null, 
    AdayId                Int       not null, 
    TcNo                  Varchar(11)   null,

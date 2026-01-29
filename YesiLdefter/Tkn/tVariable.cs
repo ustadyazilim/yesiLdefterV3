@@ -1232,6 +1232,8 @@ namespace Tkn_Variable
 
         public static vInvoiceUser tInvoiceUser = new vInvoiceUser();
 
+        //public static StudentDataModel studentDataModel = new StudentDataModel();
+
         public static bool cefBrowserLoading = false;
         //public static CefSharp.WinForms.ChromiumWebBrowser cefBrowser_ = null;
         //public static CefSharp.WinForms.Host.ChromiumHostControl cefHostControl_ = null;
@@ -1754,6 +1756,7 @@ namespace Tkn_Variable
     public class tUstadFirm
     {
         public int FirmId { get; set; }
+        public string FirmCode { get; set; }
         public string FirmLongName { get; set; }
         public string FirmShortName { get; set; }
         public string FirmGuid { get; set; }
@@ -1776,6 +1779,12 @@ namespace Tkn_Variable
         public string FirmMebbisPass { get; set; }
         public string FirmGIBeArsivFaturaCode { get; set; }
         public string FirmGIBeArsivFaturaPass { get; set; }
+
+
+        // e-Src entegrasyonu için
+        public string eSrcEnt_KursKodu { get; set; }
+        public string eSrcEnt_Mail {  get; set; }
+        public string eSrcEnt_Pass {  get; set; }
 
         public void Clear()
         {
@@ -2731,6 +2740,44 @@ namespace Tkn_Variable
             WebServiceLiveUri = "";
         }
     }
+
+    /// <summary>
+    /// Student data model for e-src.net external data sync
+    /// </summary>
+    public class StudentDataModel
+    {
+        public StudentDataModel()
+        {
+            Clear();
+        }
+
+
+        public string KURSMAIL { get; set; } = string.Empty;
+        public string PASS { get; set; } = string.Empty;
+        public string TC { get; set; } = string.Empty;
+        public string ADI { get; set; } = string.Empty;
+        public string SOYADI { get; set; } = string.Empty;
+        public string EMAIL { get; set; } = string.Empty;
+        public string IL { get; set; } = string.Empty;
+        public string ILCE { get; set; } = string.Empty;
+        public string ADRES { get; set; } = string.Empty;
+        public string IMG { get; set; } = string.Empty;
+        public string BELGE { get; set; } = string.Empty;
+        public string CINSIYET { get; set; } = string.Empty;
+        public decimal? BAKIYE { get; set; }
+        public string GSM { get; set; } = string.Empty;
+        public string SUBESI { get; set; } = string.Empty;
+        public string GRUP { get; set; } = string.Empty;
+        public string DONEM { get; set; } = string.Empty;
+
+        public void Clear()
+        {
+
+        }
+
+
+    }
+
 
 
     // ------------------------------------------------------------------

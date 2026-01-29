@@ -26,6 +26,8 @@ namespace Ustad.API.Models
     /// </summary>
     public class StudentDataModel
     {
+        public string KURSMAIL { get; set; } = string.Empty;
+        public string PASS {  get; set; } = string.Empty;
         public string TC { get; set; } = string.Empty;
         public string ADI { get; set; } = string.Empty;
         public string SOYADI { get; set; } = string.Empty;
@@ -36,8 +38,11 @@ namespace Ustad.API.Models
         public string IMG { get; set; } = string.Empty;
         public string BELGE { get; set; } = string.Empty;
         public string CINSIYET { get; set; } = string.Empty;
-        public string GSM { get; set; } = string.Empty;
         public decimal? BAKIYE { get; set; }
+        public string GSM { get; set; } = string.Empty;
+        public string SUBESI { get; set; } = string.Empty;
+        public string GRUP {  get; set; } = string.Empty;
+        public string DONEM { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -108,7 +113,7 @@ namespace Ustad.API.Models
         public string IMG { get; set; } = string.Empty;
         public string BELGE { get; set; } = string.Empty;
         public string CINSIYET { get; set; } = string.Empty;
-        public decimal BAKIYE { get; set; }
+        public decimal? BAKIYE { get; set; }
         public string GSM { get; set; } = string.Empty;
         public string SUBESI { get; set; } = string.Empty;
         public string GRUP { get; set; } = string.Empty;
