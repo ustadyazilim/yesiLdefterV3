@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Ustad.API.Models
@@ -94,6 +95,56 @@ namespace Ustad.API.Models
         /// Error details (if sync failed)
         /// </summary>
         public string? ErrorDetails { get; set; }
+
+        /// <summary>
+        /// Messages returned from e-src.net API (MessageSuccess, MessageWarning, MessageError, etc.)
+        /// </summary>
+        public List<MsgBox>? ESrcMessages { get; set; }
+    }
+
+    /// <summary>
+    /// Single message box from e-src.net API response (array of these returned per request).
+    /// </summary>
+    public class MsgBox
+    {
+        public string? MessageSuccess { get; set; }
+        public string? MessageWarning { get; set; }
+        public string? MessageError { get; set; }
+        public decimal ReturnID { get; set; }
+        public string? RetrunString { get; set; }
+        public string? MessagesDanger { get; set; }
+        public int MsgType { get; set; }
+    }
+
+    /// <summary>
+    /// Batch sync request: list of students to sync to e-src.net.
+    /// </summary>
+    public class ESrcBatchSyncRequest
+    {
+        public List<StudentDataModel>? Students { get; set; }
+    }
+
+    /// <summary>
+    /// Per-student result in a batch sync.
+    /// </summary>
+    public class ESrcStudentSyncResult
+    {
+        public string? TcNo { get; set; }
+        public string? StudentName { get; set; }
+        public int? StudentId { get; set; }
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public bool FromCache { get; set; }
+        public List<MsgBox>? ESrcMessages { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    /// <summary>
+    /// Batch sync response: one result per student.
+    /// </summary>
+    public class ESrcBatchSyncResponse
+    {
+        public List<ESrcStudentSyncResult>? Results { get; set; }
     }
 
     /// <summary>

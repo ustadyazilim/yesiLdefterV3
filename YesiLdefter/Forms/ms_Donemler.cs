@@ -1,7 +1,9 @@
-﻿using DevExpress.XtraCharts;
+using DevExpress.XtraCharts;
 using DevExpress.XtraEditors;
 using DevExpress.XtraReports.Native.Templates;
 using Microsoft.JScript;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -10,11 +12,13 @@ using System.Data;
 using System.Data.Linq.Mapping;
 using System.Drawing;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Tkn_ToolBox;
 using Tkn_Variable;
+using Tkn_UstadAPI;
 
 namespace YesiLdefter
 {
@@ -246,13 +250,150 @@ namespace YesiLdefter
                 }
             }
 
-            // 4. Döngü bittikten sonra tüm listeyi JSON'a çevirelim
-            //string finalJson = JsonSerializer.Serialize(studentList, new JsonSerializerOptions { WriteIndented = true });
-            string finalJson = JsonConvert.SerializeObject(studentList, Formatting.Indented);
+            if (studentList.Count == 0)
+            {
+                MessageBox.Show("Senkronize edilecek öğrenci bulunamadı.", "e-src", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
 
-            /// Janberk : POST işlemi başlayacak
+            // POST to Ustad.API sync-batch (e-src logic and credentials live in Ustad.API)
+            try
+            {
+                string baseUrl = tApiConfig.GetApiBaseUrl()?.TrimEnd('/') ?? "http://localhost:5001";
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri(baseUrl);
+                    client.Timeout = TimeSpan.FromSeconds(90);
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
 
+                    var requestBody = new { Students = studentList };
+                    var json = JsonConvert.SerializeObject(requestBody);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
 
+                    var response = client.PostAsync("/api/esrc-external-data/sync-batch", content).GetAwaiter().GetResult();
+
+                    string responseBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        MessageBox.Show($"e-src senkronizasyon hatası: HTTP {(int)response.StatusCode}\n{responseBody}", "e-src", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    var batchResponse = JsonConvert.DeserializeObject<ESrcBatchSyncResponseDto>(responseBody);
+                    if (batchResponse?.Results == null || batchResponse.Results.Count == 0)
+                    {
+                        MessageBox.Show("Sunucudan sonuç alınamadı.", "e-src", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    string html = BuildESrcResultHtml(batchResponse.Results);
+                    ShowESrcResultDialog(html);
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                MessageBox.Show($"Bağlantı hatası: {ex.Message}", "e-src", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"e-src senkronizasyon hatası: {ex.Message}", "e-src", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private static string BuildESrcResultHtml(List<ESrcStudentSyncResultDto> results)
+        {
+            // UstadDesignTokens-style colors: success #16a34a, warning #fbbc04, error #ea4335
+            var sb = new StringBuilder();
+            sb.Append("<!DOCTYPE html><html><head><meta charset='utf-8'><style>");
+            sb.Append("body{font-family:'Segoe UI',sans-serif;padding:16px;background:#fcfcff;}");
+            sb.Append(".box{border-radius:8px;padding:12px;margin:8px 0;}");
+            sb.Append(".success{background:rgba(22,163,74,0.08);border-left:4px solid #16a34a;}");
+            sb.Append(".warning{background:rgba(251,188,4,0.08);border-left:4px solid #fbbc04;}");
+            sb.Append(".error{background:rgba(234,67,53,0.08);border-left:4px solid #ea4335;}");
+            sb.Append(".name{font-weight:600;color:#111827;} .msg{color:#374151;margin-top:4px;}");
+            sb.Append(".msg.success{background:rgba(22,163,74,0.08);color:#0d5c2e;padding:4px 8px;border-radius:4px;margin-top:4px;}");
+            sb.Append(".msg.warning{background:rgba(251,188,4,0.08);color:#b8860b;padding:4px 8px;border-radius:4px;margin-top:4px;}");
+            sb.Append(".msg.error{background:rgba(234,67,53,0.08);color:#c5221f;padding:4px 8px;border-radius:4px;margin-top:4px;}");
+            sb.Append("h3{margin:0 0 12px 0;color:#295c00;}");
+            sb.Append("</style></head><body><h3>e-src Senkronizasyon Sonuçları</h3>");
+
+            foreach (var r in results)
+            {
+                string css = r.Success ? "success" : "error";
+                if (!r.Success && (r.Message?.Contains("uyarı") == true || r.Message?.Contains("Warning") == true))
+                    css = "warning";
+                sb.Append($"<div class='box {css}'><div class='name'>{System.Net.WebUtility.HtmlEncode(r.StudentName ?? r.TcNo ?? "")}</div>");
+                sb.Append($"<div class='msg'>{System.Net.WebUtility.HtmlEncode(r.Message ?? "")}</div>");
+                if (r.ESrcMessages != null)
+                {
+                    foreach (var m in r.ESrcMessages)
+                    {
+                        string text = null;
+                        string lineClass = "msg";
+                        if (!string.IsNullOrEmpty(m.MessageSuccess)) { text = m.MessageSuccess; lineClass = "msg success"; }
+                        else if (!string.IsNullOrEmpty(m.MessageWarning)) { text = m.MessageWarning; lineClass = "msg warning"; }
+                        else if (!string.IsNullOrEmpty(m.MessageError)) { text = m.MessageError; lineClass = "msg error"; }
+                        else if (!string.IsNullOrEmpty(m.MessagesDanger)) { text = m.MessagesDanger; lineClass = "msg error"; }
+                        if (!string.IsNullOrEmpty(text))
+                            sb.Append($"<div class='{lineClass}'>{System.Net.WebUtility.HtmlEncode(text)}</div>");
+                    }
+                }
+                sb.Append("</div>"); // close box
+            }
+            sb.Append("</body></html>");
+            return sb.ToString();
+        }
+
+        private static void ShowESrcResultDialog(string html)
+        {
+            var form = new Form
+            {
+                Text = "e-src Senkronizasyon Sonuçları",
+                Size = new Size(520, 420),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.Sizable
+            };
+            var webView = new WebView2();
+            webView.Dock = DockStyle.Fill;
+            form.Controls.Add(webView);
+            form.Load += async (s, ev) =>
+            {
+                try
+                {
+                    await webView.EnsureCoreWebView2Async(null);
+                    webView.CoreWebView2.NavigateToString(html);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Sonuç penceresi açılamadı: {ex.Message}", "e-src", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            };
+            form.ShowDialog();
+        }
+
+        // DTOs for Ustad.API sync-batch response (PascalCase to match .NET JSON)
+        private class ESrcBatchSyncResponseDto
+        {
+            [JsonProperty("Results")]
+            public List<ESrcStudentSyncResultDto> Results { get; set; }
+        }
+
+        private class ESrcStudentSyncResultDto
+        {
+            [JsonProperty("TcNo")] public string TcNo { get; set; }
+            [JsonProperty("StudentName")] public string StudentName { get; set; }
+            [JsonProperty("Success")] public bool Success { get; set; }
+            [JsonProperty("Message")] public string Message { get; set; }
+            [JsonProperty("FromCache")] public bool FromCache { get; set; }
+            [JsonProperty("ESrcMessages")] public List<MsgBoxDto> ESrcMessages { get; set; }
+        }
+
+        private class MsgBoxDto
+        {
+            [JsonProperty("MessageSuccess")] public string MessageSuccess { get; set; }
+            [JsonProperty("MessageWarning")] public string MessageWarning { get; set; }
+            [JsonProperty("MessageError")] public string MessageError { get; set; }
+            [JsonProperty("MessagesDanger")] public string MessagesDanger { get; set; }
         }
         
         private bool Onaylimi(DataSet ds)

@@ -96,6 +96,8 @@ namespace Ustad.API
                     }
                 });
             });
+            services.AddMemoryCache();
+            services.AddHttpClient();
             services.AddSingleton<EmailService>();
             var jwtKeyRaw = Environment.GetEnvironmentVariable("JWT_KEY") ?? Configuration["Jwt:Key"];            
             if (string.IsNullOrWhiteSpace(jwtKeyRaw))
