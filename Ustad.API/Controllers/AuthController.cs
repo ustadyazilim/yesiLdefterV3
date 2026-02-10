@@ -1,5 +1,6 @@
 /* Core Namespace */
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
@@ -18,7 +19,8 @@ using System.Security.Cryptography;
 namespace Ustad.API.Controllers
 {
     [ApiController]
-    [Route("auth")] 
+    [Route("api/[controller]")]
+    [EnableCors("AllowOrigin")]
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;

@@ -151,8 +151,8 @@ namespace Ustad.API
         /// <param name="env">The web host environment.</param>
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            // NOTE(@Janberk): Enable CORS
-            app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+            // NOTE(@Janberk): Enable CORS (use named policy so preflight and responses get headers)
+            app.UseCors("AllowOrigin");
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -166,6 +166,8 @@ namespace Ustad.API
             });
             // NOTE(@Janberk): Use routing
             app.UseRouting();
+            // NOTE(@Janberk): Enable CORS (must be between UseRouting and UseAuthorization)
+            app.UseCors("AllowOrigin");
             // NOTE(@Janberk): Use authentication
             app.UseAuthentication();
             // NOTE(@Janberk): Use authorization
