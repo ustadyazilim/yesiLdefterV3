@@ -38,7 +38,7 @@ namespace YesiLdefter
         private void ms_Donemler_Shown(object sender, EventArgs e)
         {
             // Create WhatsApp button programmatically if it doesn't exist
-            CreateWhatsAppButtonIfNeeded();
+            // CreateWhatsAppButtonIfNeeded();
             
             // Try to attach click handlers
             t.Find_Button_AddClick(this, menuName, buttonESrc, myNavElementClick);

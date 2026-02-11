@@ -347,7 +347,7 @@ AS BEGIN
       if ((@yAdayId > 0) and (@yVeriKaynakId > 0) and @DbUpdatesIsActive = 1) 
       begin
 	      Print '   * Data transfer update'
-          UPDATE [dbo].[MtskAday] SET 
+          UPDATE [dbo].[SrcAday] SET 
 		       [IlkKayitTarihi] = @yTalepKayitTarihi   
               ,[TcNo] = @yTcNo
               ,[KimlikSeriNo] = @yKimlikSeriNo
@@ -365,7 +365,7 @@ AS BEGIN
 		  Print '   * Data transfer update end'
       end -- if
 
-      -- MtskAday tablosu burada olmak zorunda : AdayId tespit ediliyor
+      -- SrcAday tablosu burada olmak zorunda : AdayId tespit ediliyor
       if (@yAdayId = 0 and @yTcNo <> '' and @mevcutAdayId = 0) --@DbUpdatesIsActive = 1)
       begin
           if (@mevcutAdayId = 0)
@@ -375,7 +375,7 @@ AS BEGIN
 			  (  [AdayGUID],  [FirmId], [IsActive],  [TcNo], [KimlikSeriNo], [TamAdiSoyadi], [Adi], [Soyadi],  [DogumTarihi], [BabaAdi], [AnneAdi], [CinsiyetTipiId], [CepTelefonu], [CepTelefonu2], [Eposta], [IlkKayitTarihi] ) VALUES
               (  NEWID(),    @yFirmId,   1,         @yTcNo, @yKimlikSeriNo,  @newTamAdi,    @yAdi, @ySoyadi,  @yDogumTarihi, @yBabaAdi, @yAnneAdi, @yCinsiyetTipiId, @yCepTelefonu, @yCepTelefonu2, @yEposta, @yTalepKayitTarihi  )
               -- Yeni @mevcutAdayId ye kavuştuk
-              Select @yAdayId = Id from MtskAday
+              Select @yAdayId = Id from dbo.SrcAday
               Where TcNo = @yTcNo
               Print '   * Data transfer insert end'
           end
@@ -428,7 +428,7 @@ AS BEGIN
            set @yIstemeNedeniTipiId = 2 -- yenileme
       else set @yIstemeNedeniTipiId = 1 -- yeni  
 
-	  -- @yAdayId   : ilk mebbisden kayıt alındığında adayId = 0, MtskAday yeni kayıt oluşturuluyor ve adayId belli oluyor
+	  -- @yAdayId   : ilk mebbisden kayıt alındığında adayId = 0, SrcAday yeni kayıt oluşturuluyor ve adayId belli oluyor
       -- @yIsActive : kayıtTipiId ye göre IsActive değişiyor
       -- @newTamAdi : ad veya soyad değişebiliyor
       -- @yMevcutSertifikaTipiId or

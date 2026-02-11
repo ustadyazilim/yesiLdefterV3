@@ -4,6 +4,7 @@ CREATE PROCEDURE [dbo].[prc_MtskAdayBorclandirUygulamaSinavi] (@FirmId int, @Ucr
 AS BEGIN  
 
   --declare @FirmId Int  = 11
+  --declare @TalepId Int  = 123456
   --declare @UcretTipiId Int  = 21112  --- u-sınav 
   --declare @UcretTipiId Int  = 21113  --- başarasız ücreti
   --declare @UcretTipiId Int  = 21114  --- u-sınav + başarasız ücreti
@@ -90,7 +91,8 @@ AS BEGIN
           and odeme.UcretTipiId = @UcretTipiId
 	   )
        left outer join dbo.MtskUcretUygulama as uygUcreti on ( 
-              talep.MevcutSertifikaTipiId = uygUcreti.MevcutSertifikaTipiId
+              --talep.MevcutSertifikaTipiId = uygUcreti.MevcutSertifikaTipiId
+              uygUcreti.MevcutSertifikaTipiId = 0 -- artık mevcut sertifika tipi baz alınmayacak
           and talep.IstenenSertifikaTipiId = uygUcreti.IstenenSertifikaTipiId 
        )
   Where talep.FirmId = @FirmId 

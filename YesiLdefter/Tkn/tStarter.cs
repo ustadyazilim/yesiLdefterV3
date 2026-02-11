@@ -83,8 +83,6 @@ namespace Tkn_Starter
 
             // YesiLdefter.Ini
             // YesiLdefterConnection.Ini
-            // NOTE(@Janberk): INI read hydrates legacy DB endpoints (manager/CRM/publish/local). 
-            // This is the only source before API handoff.
             //
             t.WaitFormOpen(v.mainForm, "Ini dosyalar okunuyor...");
             t.ftpDownloadIniFile();
@@ -94,7 +92,7 @@ namespace Tkn_Starter
 
             //Version clrVersion = Environment.Version;
             //string appVersion = Application.ProductVersion;
-/*
+
             /// Computer hakkındaki verileri topla
             /// 
             t.WaitFormOpen(v.mainForm, "Bilgisayar hakkındaki bilgiler okunuyor...");
@@ -108,17 +106,9 @@ namespace Tkn_Starter
                 Get_ComputerAbout();
             //});
             //task2.Start();
-*/
-            
-            // 1. SECURE AUTHENTICATION FLOW: Authenticate user FIRST before any database connections
-            // NOTE(@Janberk): Authentication happens via API - no database connection required for login.
-            // CRITICAL: Do NOT call InitPreparingConnection() before login - it opens DB connections prematurely
-            // and can cause issues when InitPreparingConnectionFromApi() disposes/recreates them.
-            // The INI-based fallback will be initialized only if API connection fails.
-            t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
 
-            // tüm connections burada hazırlanıyor
-            //InitPreparingConnection();// mecburen burada connection hazırlanıyor
+            
+            t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
 
             if (v.active_DB.localDbUses == false)
             {
@@ -150,6 +140,7 @@ namespace Tkn_Starter
                     /// Local db de DbUpdates tablosunu oluştur ve update leri uygula
                     /// User listesini getir ve kullanıcı girişini sağla
                     /// 
+                    t.InitPreparingConnection();
                     InitTabimLoginUser();
                 }
                 else
@@ -170,72 +161,6 @@ namespace Tkn_Starter
             t.InitPreparingConnection();
 
 
-/*
-            // 2. SECURE AUTHENTICATION FLOW: After successful authentication, get database connection info from API
-            // NOTE(@Janberk): Database connections are established ONLY after user authentication.
-            System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] SP_UserLOGIN={v.SP_UserLOGIN}, localDbUses={v.active_DB.localDbUses}, managerMSSQLConn={(v.active_DB.managerMSSQLConn != null ? "exists" : "null")}");
-            if (v.SP_UserLOGIN == true && v.active_DB.localDbUses == false)
-            {
-                t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri API'den alınıyor...");
-                System.Diagnostics.Debug.WriteLine("[tStarter.InitStart] Calling InitPreparingConnectionFromApi()...");
-                bool dbConnectionsEstablished = InitPreparingConnectionFromApi();
-                System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] InitPreparingConnectionFromApi() returned: {dbConnectionsEstablished}");
-                
-                if (!dbConnectionsEstablished)
-                {
-                    System.Diagnostics.Debug.WriteLine("[tStarter.InitStart] API connection failed, falling back to INI-based connection.");
-                    if (v.active_DB.managerMSSQLConn == null || string.IsNullOrWhiteSpace(v.active_DB.managerMSSQLConn.ConnectionString))
-                    {
-                        System.Diagnostics.Debug.WriteLine("[tStarter.InitStart] INI-based connection is also missing, re-initializing...");
-                        InitPreparingConnection();
-                    }
-                }
-                
-                if (v.active_DB.managerMSSQLConn != null && !string.IsNullOrWhiteSpace(v.active_DB.managerMSSQLConn.ConnectionString))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] managerMSSQLConn exists, State={v.active_DB.managerMSSQLConn.State}, ConnectionString length={v.active_DB.managerMSSQLConn.ConnectionString?.Length ?? 0}");
-                    t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-                    bool dbOpened = Db_Open(v.active_DB.managerMSSQLConn);
-                    System.Diagnostics.Debug.WriteLine($"[tStarter.InitStart] Db_Open(managerMSSQLConn) returned: {dbOpened}, State={v.active_DB.managerMSSQLConn?.State}");
-                    if (!dbOpened)
-                    {
-                        MessageBox.Show("ManagerDB bağlantısı açılamadı. Lütfen bağlantı bilgilerini kontrol edin.",
-                            "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        v.SP_ApplicationExit = true;
-                        return;
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("ManagerDB bağlantı nesnesi oluşturulamadı. Hem API hem de INI tabanlı bağlantı başarısız oldu.",
-                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    v.SP_ApplicationExit = true;
-                    return;
-                }
-            }
-            else if (v.active_DB.localDbUses == true)
-            {
-                // Local DB mode - use existing connection setup (for Tabim local database)
-                t.WaitFormOpen(v.mainForm, "Database bağlantı bilgileri hazırlanıyor...");
-                t.InitPreparingConnection();
-                t.WaitFormOpen(v.mainForm, "ManagerDB bağlantısı gerçekleşiyor...");
-                if (!Db_Open(v.active_DB.managerMSSQLConn))
-                {
-                    MessageBox.Show("ManagerDB bağlantısı açılamadı. Lütfen bağlantı bilgilerini kontrol edin.",
-                        "Bağlantı Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    v.SP_ApplicationExit = true;
-                    return;
-                }
-            }
-            else
-            {
-                // User did not login - should not reach here, but handle gracefully
-                MessageBox.Show("Kullanıcı girişi yapılmadı. Lütfen tekrar deneyin.",
-                    "Giriş Hatası", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                v.SP_ApplicationExit = true;
-                return;
-            }
-*/
             /// Mesaj formu nedense kayboluyor
             /// onun açılması için burada bunlar false yapılıyor
             v.IsWaitOpen = false;
@@ -279,8 +204,7 @@ namespace Tkn_Starter
             });
             task1.Start();
 
-            //t.TestRead();
-
+            
             // TODO(@Janberk): Extract initialization stages into Ustad.API and the endpoints called here:
             // - InitPreparingConnection()
             // - InitLoginUser()
@@ -621,20 +545,6 @@ namespace Tkn_Starter
             /// firma için kayıt olan computer sayısı / lisans tespit edilmiş olacak
             string networkKey = v.tComputer.Network_MACAddress;
             string pcName = v.tComputer.PcName;
-            /* test için
-            networkKey = null;
-            pcName = "VIRA-2PC";
-            v.tMainFirm.FirmId = 116;
-            v.tUser.UserFirmGUID = "aab68ddf-1c4c-49e6-a860-80bbd558d945";
-            v.tComputer.PcName = pcName;
-            v.tComputer.Network_MACAddress = null;
-            v.tComputer.Processor_Name = null;
-            v.tComputer.Processor_Id = null;
-            v.tComputer.DiskDrive_Model = null;
-            v.tComputer.DiskDrive_SerialNumber = null;
-            if (IsNotNull(networkKey) == false) networkKey = "";
-            if (IsNotNull(pcName) == false) pcName = "";
-            */
             /// FirmGUID
             /// NetworkMacAddress
             /// SystemName
@@ -672,7 +582,7 @@ namespace Tkn_Starter
                     + " , LastDate = " + TarihSaat_Formati(Convert.ToDateTime(DateTime.Now)) // v.TARIH_SAAT
                     + " , OperatingSystem = '" + v.tComputer.OperatingSystem + "' "
                     //+ " , ExeVersion = '" + v.tExeAbout.activeVersionNo.Substring(0, 8) + "' "
-                    + " , ExeVersion = '20250905_standart' "
+                    + " , ExeVersion = '20260210_standart' "
                     + " where ComputerId = " + v.tComputer.UstadCrmComputerId.ToString();
                     DataSet ds_ = new DataSet();
                     SQL_Read_Execute(v.dBaseNo.UstadCrm, ds_, ref tSql, "UstadComputers", "Update");

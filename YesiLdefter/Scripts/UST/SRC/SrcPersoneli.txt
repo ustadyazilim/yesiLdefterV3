@@ -378,12 +378,11 @@ delete [Lkp].[SrcPersoneliBrans1Tipi]
 
 INSERT INTO [Lkp].[SrcPersoneliBrans1Tipi] (Id, Brans1Tipi, GrupTipiId)
  VALUES 
-  (  0,     N'', 1 ), 
-  ( 1246,   N'Direksiyon Eğitimi', 1 ), 
-  ( 1803,   N'Motor ve Araç Tekniği', 1 ),
-  ( 4878,   N'Trafik ve Çevre Bilgisi', 1 ), 
-  ( 9988,   N'İlkyardım Bilgisi', 1 ), 
-  ( 10000,  N'Trafik ve İlk Yardım', 1 )
+  ( 0,   N'', 1 ), 
+  ( 1,   N'A Grubu Eğitmeni', 1 ), 
+  ( 2,   N'B Grubu Eğitmeni', 1 ),
+  ( 3,   N'C Grubu Eğitmeni', 1 ), 
+  ( 4,   N'D Grubu Eğitmeni', 1 )
 
 -- ------------------------------------------------------- 
 -- Brans2Tipi
@@ -404,12 +403,11 @@ delete [Lkp].[SrcPersoneliBrans2Tipi]
 
 INSERT INTO [Lkp].[SrcPersoneliBrans2Tipi] (Id, Brans2Tipi, GrupTipiId)
  VALUES 
-  (  0,     N'', 1 ), 
-  ( 1246,   N'Direksiyon Eğitimi', 1 ), 
-  ( 1803,   N'Motor ve Araç Tekniği', 1 ),
-  ( 4878,   N'Trafik ve Çevre Bilgisi', 1 ), 
-  ( 9988,   N'İlkyardım Bilgisi', 1 ), 
-  ( 10000,  N'Trafik ve İlk Yardım', 1 )
+  ( 0,   N'', 1 ), 
+  ( 1,   N'A Grubu Eğitmeni', 1 ), 
+  ( 2,   N'B Grubu Eğitmeni', 1 ),
+  ( 3,   N'C Grubu Eğitmeni', 1 ), 
+  ( 4,   N'D Grubu Eğitmeni', 1 )
 
 
 -- ------------------------------------------------------- 
@@ -431,12 +429,11 @@ delete [Lkp].[SrcPersoneliBrans3Tipi]
 
 INSERT INTO [Lkp].[SrcPersoneliBrans3Tipi] (Id, Brans3Tipi, GrupTipiId)
  VALUES 
-  (  0,     N'', 1 ), 
-  ( 1246,   N'Direksiyon Eğitimi', 1 ), 
-  ( 1803,   N'Motor ve Araç Tekniği', 1 ),
-  ( 4878,   N'Trafik ve Çevre Bilgisi', 1 ), 
-  ( 9988,   N'İlkyardım Bilgisi', 1 ), 
-  ( 10000,  N'Trafik ve İlk Yardım', 1 )
+  ( 0,   N'', 1 ), 
+  ( 1,   N'A Grubu Eğitmeni', 1 ), 
+  ( 2,   N'B Grubu Eğitmeni', 1 ),
+  ( 3,   N'C Grubu Eğitmeni', 1 ), 
+  ( 4,   N'D Grubu Eğitmeni', 1 )
 
 
 
@@ -459,16 +456,15 @@ delete [Lkp].[SrcPersoneliBrans4Tipi]
 
 INSERT INTO [Lkp].[SrcPersoneliBrans4Tipi] (Id, Brans4Tipi, GrupTipiId)
  VALUES 
-  (  0,     N'', 1 ), 
-  ( 1246,   N'Direksiyon Eğitimi', 1 ), 
-  ( 1803,   N'Motor ve Araç Tekniği', 1 ),
-  ( 4878,   N'Trafik ve Çevre Bilgisi', 1 ), 
-  ( 9988,   N'İlkyardım Bilgisi', 1 ), 
-  ( 10000,  N'Trafik ve İlk Yardım', 1 )
-
-
+  ( 0,   N'', 1 ), 
+  ( 1,   N'A Grubu Eğitmeni', 1 ), 
+  ( 2,   N'B Grubu Eğitmeni', 1 ),
+  ( 3,   N'C Grubu Eğitmeni', 1 ), 
+  ( 4,   N'D Grubu Eğitmeni', 1 )
 
 /*CreateLkpTableEnd*/
+
+
 
 
 /*

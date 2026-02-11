@@ -1236,6 +1236,7 @@
     <Content Include="Scripts\UST\ResmiMuhasebe\HesapPlani.txt" />
     <Content Include="Scripts\UST\SRC\A_SrcSunumu.txt" />
     <Content Include="Scripts\UST\SRC\DbUpdates.txt" />
+    <Content Include="Scripts\UST\SRC\fnc_GetAdayLastId.txt" />
     <Content Include="Scripts\UST\SRC\fnc_getDonemTipiId.txt" />
     <Content Include="Scripts\UST\SRC\fnc_getEUSinavNo.txt" />
     <Content Include="Scripts\UST\SRC\Lkp_Src5GrupTipi.txt" />
@@ -1244,6 +1245,7 @@
     <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersPlaniOlustur.txt" />
     <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersToplamlari.txt" />
     <Content Include="Scripts\UST\SRC\prc_Src5AdayTakip.txt" />
+    <Content Include="Scripts\UST\SRC\SrcSablonTeorikF.txt" />
     <Content Include="Scripts\UST\SRC\Src5SablonTeorikF.txt" />
     <Content Include="Scripts\UST\SRC\prc_MonthName.txt" />
     <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersListesi.txt" />

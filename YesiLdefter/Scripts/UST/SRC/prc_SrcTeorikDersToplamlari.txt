@@ -33,7 +33,7 @@ AS BEGIN
     and SubeTipiId = @SubeTipiId
 
     --Select @SertifikaTipiId
-    --set @SertifikaTipiId = 15044
+    if (@SertifikaTipiId <= 0 or @SertifikaTipiId is null) Set @SertifikaTipiId = 15001
 
     if (@SertifikaTipiId >= 15001 and @SertifikaTipiId <= 15008) Set @talepTipiId = '1' -- Src
     if  @SertifikaTipiId = 15021 Set @talepTipiId = '2' -- Src5

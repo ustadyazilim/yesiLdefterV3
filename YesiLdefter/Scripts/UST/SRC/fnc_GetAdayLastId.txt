@@ -1,0 +1,46 @@
+﻿/*CreateFunction*/
+
+Create or Alter Function fnc_GetAdayLastId(@FirmId int, @AdayId int, @TabloAdi varchar(50))  
+Returns INT
+as
+Begin
+
+  --declare @FirmId int = 4204
+  --declare @AdayId int = 10169 
+  --declare @TabloAdi varchar(50) 
+  declare @returnId int = 0
+
+  Set @TabloAdi = 'SrcAdayOgrenim'
+  Set @TabloAdi = 'SrcAdayAdliSicil'
+  Set @TabloAdi = 'SrcAdayAdres'
+
+  if (UPPER(@TabloAdi) = 'SrcAdayOgrenim')
+  begin
+      Select top 1 @returnId = isnull(Id,0) From dbo.SrcAdayOgrenim 
+      Where FirmId = @FirmId
+      and   AdayId = @AdayId
+      order by Id desc 
+  end 
+
+  if (UPPER(@TabloAdi) = 'SrcAdayAdliSicil')
+  begin
+      Select top 1 @returnId = isnull(Id,0) From dbo.SrcAdayAdliSicil 
+      Where FirmId = @FirmId
+      and   AdayId = @AdayId
+      order by Id desc 
+  end 
+
+  if (UPPER(@TabloAdi) = 'SrcAdayAdres')
+  begin
+      Select top 1 @returnId = isnull(Id,0) From dbo.SrcAdayAdres 
+      Where FirmId = @FirmId
+      and   AdayId = @AdayId
+      order by Id desc 
+  end 
+
+  --Select @returnId 
+  return @returnId 
+
+End -- fnc_
+
+/*CreateFunctionEnd*/

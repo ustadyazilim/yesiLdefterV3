@@ -1,0 +1,131 @@
+﻿/*CreateTable*/
+
+begin transaction
+
+ create table SrcSablonTeorikF
+ (
+   Id                      Int IDENTITY(1,1) not null, 
+   FirmId                  Int       not null,
+
+   DersGrupTipiId          Int           null, 
+   DerslikTipiId           SmallInt      null,
+   BaslangicTarihi         Date          null,
+   BaslangicSaati          Varchar(5)    null,
+   DersSureDakika          SmallInt      null,
+   TeorikMolaDakika        SmallInt      null,
+   UygulamaMolaDakika      SmallInt      null,
+   DersAdedi               SmallInt      null,
+   HaftaIciGunlukMaxDers   SmallInt      null, -- 6 saat
+   HaftaSonuGunlukMaxDers  SmallInt      null, -- 8 saat
+
+
+   constraint		pk_SrcSablonTeorikF primary key (Id)
+ )
+  
+ grant select, insert, update, delete on SrcSablonTeorikF to public
+
+ create index X_SrcSablonTeorikF01 on SrcSablonTeorikF (FirmId)
+ 
+commit transaction
+
+/*CreateTableEnd*/
+
+/*CreateLkpTable*/
+
+begin transaction
+
+
+-- ------------------------------------------------------- 
+-- DersGrupTipiId
+-- ------------------------------------------------------- 
+if exists (Select * From sys.objects WHERE name = 'SrcSablonTeorikFDersGrupTipi')
+drop table [Lkp].[SrcSablonTeorikFDersGrupTipi]
+create table Lkp.SrcSablonTeorikFDersGrupTipi
+(
+   Id              Int Unique Not Null,
+   DersGrupTipi    nVarchar(50)   null,
+
+   constraint  pk_SrcSablonTeorikFDersGrupTipi primary key (Id)
+)
+INSERT INTO Lkp.SrcSablonTeorikFDersGrupTipi (Id, DersGrupTipi)
+ VALUES 
+    (0,  N'Tanımsız')
+  , (1,  N'A, B, C, D sırayla')
+  , (2,  N'B, A, D, C sırayla')
+  , (11, N'Sadece A grubu')
+  , (12, N'Sadece B grubu')
+  , (13, N'Sadece C grubu')
+  , (14, N'Sadece D grubu')
+
+
+
+-- ------------------------------------------------------- 
+-- DerslikTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'SrcSablonTeorikFDerslikTipi')
+drop table [Lkp].[SrcSablonTeorikFDerslikTipi]
+
+create table Lkp.SrcSablonTeorikFDerslikTipi
+(
+   Id              Int Unique Not Null,
+   DerslikTipi     nVarchar(50)   null,
+   DerslikKamuAdi  nVarchar(50)   null,
+   DerslikKamuKodu nVarchar(20)   null,
+   
+   constraint  pk_SrcSablonTeorikFDerslikTipi primary key (Id)
+)
+
+INSERT INTO Lkp.SrcSablonTeorikFDerslikTipi (Id, DerslikTipi)
+ VALUES 
+  ( 0, N'Tanımsız'),
+  ( 1, N'Derslik-1'),
+  ( 2, N'Derslik-2'),
+  ( 3, N'Derslik-3'),
+  ( 4, N'Derslik-4'),
+  ( 5, N'Derslik-5'),
+  ( 6, N'Derslik-6'),
+  ( 7, N'Derslik-7'),
+  ( 8, N'Derslik-8'),
+  ( 9, N'Derslik-9'),
+  (10, N'Derslik-10')
+
+  commit transaction
+ 
+/*CreateLkpTableEnd*/
+
+
+/*CreateData*/
+
+declare @FirmId int = :FIRM_ID
+
+if ( Select count(Id) From dbo.SrcSablonTeorikF) = 0
+begin
+    INSERT INTO [dbo].[SrcSablonTeorikF]
+           ([FirmId]
+           ,[DersGrubuTipiId]
+           ,[DerslikTipiId]
+           ,[BaslangicTarihi]
+           ,[BaslangicSaati]
+           ,[DersSureDakika]
+           ,[TeorikMolaDakika]
+           ,[UygulamaMolaDakika]
+           ,[DersAdedi]
+           ,[HaftaIciGunlukMaxDers]
+           ,[HaftaSonuGunlukMaxDers])
+     VALUES
+           (@FirmId -- FirmId
+           ,0       -- DersGrubuTipiId
+           ,1       -- DerslikTipiId
+           ,null    -- BaslangicTarihi
+           ,'09:00' -- BaslangicSaati
+           ,'50'    -- DersSureDakika
+           ,'10'    -- TeorikMolaDakika
+           ,'0'     -- UygulamaMolaDakika   Uygulama yok
+           ,0       -- DersAdedi
+           ,6       -- HaftaIciGunlukMaxDers
+           ,8       -- HaftaSonuGunlukMaxDers
+           )
+end
+
+/*CreateDataEnd*/
+

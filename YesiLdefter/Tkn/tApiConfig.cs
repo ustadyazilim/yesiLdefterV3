@@ -30,7 +30,8 @@ namespace Tkn_UstadAPI
             try
             {
                 var reg = new tRegistry();
-                var value = reg.getRegistryValue(REGISTRY_KEY_API_BASE_URL);
+                //var value = reg.getRegistryValue(REGISTRY_KEY_API_BASE_URL);
+                var value = DEFAULT_API_BASE_URL;
                 if (value != null && !string.IsNullOrWhiteSpace(value.ToString()))
                 {
                     return value.ToString().Trim();

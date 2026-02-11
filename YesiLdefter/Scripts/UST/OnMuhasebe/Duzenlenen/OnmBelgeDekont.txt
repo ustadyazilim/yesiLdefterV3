@@ -828,6 +828,7 @@ INSERT INTO [Lkp].[OnmBelgeDekontIslemTipi] (IslemKodu, IslemAdi, BorcHesapId, A
  ( '400.100',  'Banka kredisi için nakit ödeme uv.' , 400,  100  ), 
  ( '320.100',  '320.Cari hesaba ödenen nakit' , 320,  100  ), 
  ( '770.100',  'Genel yönetim giderleri için nakit ödeme' , 770,  100  ), 
+ ( '901.100',  'SGK giderleri için nakit ödeme' , 901,  100  ), 
 
  -- OnmOdemePlani.UcretTipiId
  --
@@ -903,7 +904,7 @@ INSERT INTO [Lkp].[OnmBelgeDekontIslemTipi] (IslemKodu, IslemAdi, BorcHesapId, A
  ( '793.1023',  'Dışarıdan sağlanan hizmetler için kredi kartıyla ödeme' , 793,  1023  ), 
  ( '793.100',   'Dışarıdan sağlanan hizmetler için nakit ödeme' , 793,  100  ), 
  ( '793.1022',  'Dışarıdan sağlanan hizmetler için banka hesabından havale/Eft' , 793,  1022  ), 
-
+ ( '901.1022',  'SGK giderleri için banka hesabından havale/Eft' , 901,  1022  ), 
 
  -- OnmOdemePlani.UcretTipiId  POS Cihazından iade
  --
@@ -1013,7 +1014,7 @@ INSERT INTO [Lkp].[OnmBelgeDekontBHesapTipi] (Id, BHesapTipi, GrupTipiId)
   ( 793,  N'Dışarıdan sağlanan fayda ve hizmetler', 1),
   ( 795,  N'Vergi, resim ve harçlar', 1),
 
-  --( 901,   N'SGK giderleri', 1),
+  ( 901,   N'SGK giderleri', 1),
   --( 902,   N'SGK işci payı giderleri', 1),
   --( 903,   N'SGK işveren payı giderleri', 1),
   --( 911,   N'Bağkur giderleri', 1),
@@ -1098,7 +1099,7 @@ INSERT INTO [Lkp].[OnmBelgeDekontAHesapTipi] (Id, AHesapTipi, GrupTipiId)
   ( 793,  N'Dışarıdan sağlanan fayda ve hizmetler', 1),
   ( 795,  N'Vergi, resim ve harçlar', 1),
 
-  --( 901,   N'SGK giderleri', 1),
+  ( 901,   N'SGK giderleri', 1),
   --( 902,   N'SGK işci payı giderleri', 1),
   --( 903,   N'SGK işveren payı giderleri', 1),
   --( 911,   N'Bağkur giderleri', 1),

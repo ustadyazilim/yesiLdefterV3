@@ -61,6 +61,8 @@ AS BEGIN
   if (@SertifikaSinifTipi = 16) Set @ids = '2110, 2130'       -- 16,  N'Y.Temel + Sınıf1'
   if (@SertifikaSinifTipi = 17) Set @ids = '2110, 2140'       -- 17,  N'Y.Temel + Sınıf7'
 
+  if (@SertifikaSinifTipi <= 0 or @SertifikaSinifTipi is null) Set @ids = '2010, 2020'
+
   Set @sql = N'
   Select 
       dr.Id

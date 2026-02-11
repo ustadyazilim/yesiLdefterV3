@@ -500,6 +500,20 @@ namespace YesiLdefter
                     v.tMainFirm.MenuCode = firm.MenuCode ?? "";
                     System.Diagnostics.Debug.WriteLine($"[ms_User_Standalone] Set tMainFirm.MenuCode={v.tMainFirm.MenuCode} from firm.MenuCode={firm.MenuCode}");
                     
+                    /// Geçici çözüm Firma kartında eski sistem menü kodu varsa şimdilik manuel çözüm. Firma hem eski Tabimi hem yeni programı kullanıyor
+                    /// 
+
+                    if ( v.tMainFirm.ServerNameIP.ToString() != "" &&
+                         v.tMainFirm.DbPassword.ToString() != "" )
+                    {
+                        if (v.tMainFirm.SectorTypeId == 201 &&
+                            v.tMainFirm.MenuCode == "UST/MEB/TB1/MAIN") v.tMainFirm.MenuCode = "UST/MEB/MTS/MAIN";
+
+                        if (v.tMainFirm.SectorTypeId == 203 &&
+                            v.tMainFirm.MenuCode == "UST/MEB/TB2/MAIN") v.tMainFirm.MenuCode = "UST/MEB/SRC/MAIN";
+                    }
+
+
                     // CRITICAL: Set location fields for SQL parameter replacement
                     // CityTypeId maps to IlKodu (province code), DistrictTypeId maps to IlceKodu (district code)
                     v.tMainFirm.IlKodu = firm.CityTypeId?.ToString() ?? "";

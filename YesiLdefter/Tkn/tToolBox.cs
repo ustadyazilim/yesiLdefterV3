@@ -4181,6 +4181,7 @@ namespace Tkn_ToolBox
             {
                 _managerDbName = _publishDbName;
                 _managerDbPass = _publishDbPass;
+                _managerServerName = _publishServerName;
             }
 
             /// main Manager DB Connections
@@ -4219,7 +4220,6 @@ namespace Tkn_ToolBox
             /// UstadCRM DB Connections
             #region
 
-            //v.active_DB.ustadCrmDBName = "UstadCRM";
             v.active_DB.ustadCrmUserName = _user;
             v.active_DB.ustadCrmServerName = _crmServerName;
             v.active_DB.ustadCrmDBName = _crmDbName;
@@ -4255,10 +4255,10 @@ namespace Tkn_ToolBox
 
             // DİKKAT : BU METODU KULLANMA MASTER-DETAIL de DETAIL kırılıyor
             // v.SP_Conn_Text_Manager_MSSQL = " Server=94.73.145.8; Database=MSV3DFTRBLT; Uid=user4601;Pwd=CanBerk98";
-            tToolBox t = new tToolBox();
+            //tToolBox t = new tToolBox();
             if (v.active_DB.managerMSSQLConn != null)
             {
-                t.Db_Open(v.active_DB.managerMSSQLConn);
+                Db_Open(v.active_DB.managerMSSQLConn);
             }
             else
             {
@@ -17079,17 +17079,13 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
             /// ftpden ini file indirme iptal oldu
             ///
             onay = true; //  ftpDownload(v.tExeAbout.activePath, "YesiLdefterConnection.Ini");
-
-            v.active_DB.mainManagerDbUses = true;
-
-            return;
-
-
+                        
             string MainManagerDbUses = "";
             string SourceDbUses = "";
 
             v.active_DB.mainManagerDbUses = false;
             
+            /*
             // Normal kullanıcılar için
             var ConnectionIni = new tIniFile("YesiLdefterConnection.Ini");
             if (ConnectionIni != null)
@@ -17101,7 +17097,7 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
                 v.publishManager_DB.serverName = ConnectionIni.Read("PublishManagerServerIp");
                 v.publishManager_DB.databaseName = ConnectionIni.Read("PublishManagerDbName");
             }
-
+            */
             // Ustad çalışanları için 
             if (File.Exists("YesiLdefter.Ini"))
             {
@@ -17109,12 +17105,12 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
             }
             
             var YesiLdefterIni = new tIniFile("YesiLdefter2.Ini");
-            
-            
+                        
             MainManagerDbUses = YesiLdefterIni.Read("MainManagerDbUses");
             if (MainManagerDbUses.ToUpper() == "TRUE")
             {
                 v.active_DB.mainManagerDbUses = true;
+                /*
                 v.active_DB.managerServerName = YesiLdefterIni.Read("MainManagerServerIp");
                 v.active_DB.managerDBName = YesiLdefterIni.Read("MainManagerDbName");
                 v.active_DB.ustadCrmServerName = ConnectionIni.Read("UstadCrmServerIp");
@@ -17128,7 +17124,7 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
                 v.active_DB.masterPsw = YesiLdefterIni.Read("MasterDbPass");
                 if (IsNotNull(v.active_DB.masterPsw))
                     v.active_DB.masterPsw = " Password = " + v.active_DB.masterPsw + "; ";
-
+                */
                 /// Eğer kullanıcı YesiLdefter2.Ini yi kullanıyorsa tester kullanıcıdır
                 /// 
                 v.SP_tUserType = v.tUserType.TesterUser;
@@ -17139,6 +17135,9 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
             SourceDbUses = YesiLdefterTabimIni.Read("SourceDbUses");
             if (SourceDbUses.ToUpper() == "TRUE")
             {
+                /// yukarıdaki iptal edildi fakat TabimSurucu07 için halen gerekli
+                var ConnectionIni = new tIniFile("YesiLdefterConnection.Ini");
+
                 if (v.SP_TabimParamsKurumTipi == "")
                     v.SP_TabimParamsKurumTipi = "MTSK";
 
@@ -17201,6 +17200,20 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
                         Application.Exit();
                     }
                 }
+
+
+                v.fullManagerDbs_.managerDB.databaseName = YesiLdefterIni.Read("MainManagerDbName");
+                v.fullManagerDbs_.managerDB.psw = v.db_PASSWORD;
+                v.fullManagerDbs_.managerDB.serverName = YesiLdefterIni.Read("MainManagerServerIp");
+                
+                v.fullManagerDbs_.ustadCrmDB.databaseName = ConnectionIni.Read("UstadCrmDbName");
+                v.fullManagerDbs_.ustadCrmDB.psw = v.db_PASSWORD;
+                v.fullManagerDbs_.ustadCrmDB.serverName = ConnectionIni.Read("UstadCrmServerIp");
+
+                v.fullManagerDbs_.publishDB.databaseName = ConnectionIni.Read("PublishManagerDbName");
+                v.fullManagerDbs_.publishDB.psw = v.db_PASSWORD;
+                v.fullManagerDbs_.publishDB.serverName = ConnectionIni.Read("PublishManagerServerIp");
+
 
                 // ini file içinde manuel false yapılmış olabilir
                 // yapılırsa sonuç ne olur bilmiyorum
