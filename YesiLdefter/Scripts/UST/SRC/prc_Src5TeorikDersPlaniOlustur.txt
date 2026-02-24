@@ -1,6 +1,6 @@
 ﻿/*CreateProcedure*/
 
-CREATE PROCEDURE [dbo].[prc_Src5TeorikDersPlaniOlustur] (
+CREATE or ALTER PROCEDURE [dbo].[prc_Src5TeorikDersPlaniOlustur] (
      @FirmId int 
    , @DonemTipiId int 
    , @GrupTipiId smallint )  
@@ -13,19 +13,33 @@ AS BEGIN
   declare @DonemTipiId int = 202601
   declare @GrupTipiId smallInt = 2
 */  
-
+  
+  declare @SP_Message varchar(100)
   declare @GrupBaslamaTarihi date
   declare @SertifikaSinifTipi smallint = 0
   declare @SertifikaSinifTipiValue smallint = 0
 
   -- Açılan grubta hangi sertifikalar verilecek tespit et
   Select 
-      @SertifikaSinifTipiValue = SertifikaSinifTipiId
+      @SertifikaSinifTipiValue = isnull(SertifikaSinifTipiId,0)
      ,@GrupBaslamaTarihi = GrupBaslamaTarihi
   From dbo.Src5Donemi
   Where FirmId = @FirmId
   and   DonemTipiId = @DonemTipiId
   and   GrupTipiId = @GrupTipiId
+
+  if (@SertifikaSinifTipiValue <= 0)
+  begin
+     set @SP_Message = 'DİKKAT : Grubun sertifika sınıfı belli olmadığı için işlem yapılamıyor...'
+     Select @SP_Message as SP_Message
+     return; 
+  end
+  if (@GrupBaslamaTarihi is null) 
+  begin
+     set @SP_Message = 'DİKKAT : Grubun başlangıç tarihi belli olmadığı için işlem yapılamıyor...'
+     Select @SP_Message as SP_Message
+     return; 
+  end
 
   -- Sertifika türlerine göre verilecek dersleri ve toplam ders saatlerini oku
   DECLARE @DersListesi TABLE (
@@ -252,7 +266,10 @@ BEGIN
 
 END -- WHILE
 
+Select '' as SP_Message
+
 END -- procedure
+
 
 /*CreateProcedureEnd*/
 

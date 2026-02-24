@@ -1,5 +1,6 @@
 using DevExpress.LookAndFeel;
 using DevExpress.XtraEditors;
+using FastReport;
 using System;
 using System.Data;
 using System.Data.SqlClient;
@@ -12,6 +13,7 @@ using System.Windows.Forms;
 using Tkn_ToolBox;
 using Tkn_UserFirms;
 using Tkn_Variable;
+using Tkn_Web2Checked;
 
 namespace Tkn_Starter
 {
@@ -56,7 +58,6 @@ namespace Tkn_Starter
             System.IO.Directory.CreateDirectory(v.EXE_DevExReportsPath);
             System.IO.Directory.CreateDirectory(v.EXE_GIBDownloadPath);
             System.IO.Directory.CreateDirectory(v.EXE_GIBDownloadPath+"\\Temp\\");
-
 
             // output = { 20190325_2259 }
             // output : { 25.03.2019 22:59:22 }
@@ -107,8 +108,11 @@ namespace Tkn_Starter
             //});
             //task2.Start();
 
-            
-            t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
+
+
+            //t.WaitFormOpen(v.mainForm, "Kullanıcı Girişi...");
+            v.IsWaitOpen = false;
+            t.WaitFormClose();
 
             if (v.active_DB.localDbUses == false)
             {

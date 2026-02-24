@@ -1,4 +1,5 @@
-﻿using DevExpress.XtraBars.Ribbon;
+﻿using DevExpress.CodeParser;
+using DevExpress.XtraBars.Ribbon;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid;
 using DevExpress.XtraGrid.Views.BandedGrid;
@@ -8,6 +9,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -104,6 +106,13 @@ namespace Tkn_Events
             {
                 t.readProNavigator(propNavigator, ref prop_, ref propList_);
             }
+
+            i = propNavigator.IndexOf("iLİlceBaglantisi;");
+            if (i > -1)
+            {
+                t.readIlceKodu(tForm, buttonHint.sender);
+            }
+
 
             /// tek blokluk propNavigator ise
             if (prop_ != null)
@@ -2488,13 +2497,44 @@ namespace Tkn_Events
                 {
                     onay = true;
 
+                    /// sp den mesaj dönmesini istiyorsan RKEYFNAME e mesajın döneceği fieldName i yazman gerekiyor,
+                    /// genelde fieldName "SP_Message" olarak belirleniyor, 
+                    /// fakat önemli olan isim değil, önemli olan sp nin o fieldName e mesajı döndürüyor olması
+
+                    /// örnek sp kodu :
+                    /// 
+                    /// declare @SP_Message varchar(100)
+                    /// 
+                    /// if (@GrupBaslamaTarihi is null) 
+                    /// begin
+                    ///     set @SP_Message = 'DİKKAT : Grubun başlangıç tarihi belli olmadığı için işlem yapılamıyor...'
+                    ///     Select @SP_Message as SP_Message
+                    ///     return;
+                    ///  end
+
+                    /// sp nin sonunada gelmişse işlem başarıyla tamamlandığı için 
+                    /// ( Select '' as SP_Message ) ekleniyor, böylece sp den mesaj dönmesi sağlanıyor
+                    /// 
+
+
                     string readKeyFieldName = item.RKEYFNAME.ToString();
                     string mesaj = "";
 
                     if (t.IsNotNull(readKeyFieldName))
                     {
-                        item.MSETVALUE = dsData.Tables[0].Rows[0][readKeyFieldName].ToString();
-
+                        try
+                        {
+                            /// sp nin sonuna okunacak mesaj ekleniyor, 
+                            /// yalnız sp nin kontrollerine eklenen bu mesaj 
+                            /// en alt işlem başarıyla bittiğinde "Select '' as SP_Message" unutulyor
+                            /// 
+                            item.MSETVALUE = dsData.Tables[0].Rows[0][readKeyFieldName].ToString();
+                        }
+                        catch (Exception)
+                        {
+                            //throw;
+                        }
+                        
                         if (item.MSETVALUE != "")
                         {
                             mesaj = t.Set(item.MSETVALUE, "İşlem başarıyla çalıştı...", "");

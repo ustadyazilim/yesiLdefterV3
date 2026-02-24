@@ -1433,6 +1433,10 @@ order by x.DonemTipiId
         {
             return @" Select * from Lkp.IlceTipi order by IlKodu ";
         }
+        public string SQL_ILCE_LIST(string ilKodu)
+        {
+            return @" Select * from Lkp.IlceTipi Where IlKodu = '" + ilKodu + "' order by IlceAdi ";
+        }
 
         public string SQL_Settings_UpdateSectorTypeId(int FirmId, Int16 SectorTypeId)
         {

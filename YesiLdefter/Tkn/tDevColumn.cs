@@ -20,6 +20,7 @@ using Tkn_Save;
 using Tkn_ToolBox;
 using Tkn_Variable;
 using WIA;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace Tkn_DevColumn
 {
@@ -523,6 +524,44 @@ namespace Tkn_DevColumn
             }
         }
 
+        public void tRepositoryItem_Ilce_Fill(
+                        RepositoryItemComboBox ItemBox_ICB,
+                        DevExpress.XtraEditors.ImageComboBoxEdit tEdit_ICB)
+        {
+            //if ( t.IsNotNull(ds_Il_IlceList) == false return;
+
+            string idFieldName = "IlceKodu";
+            string captionFieldName = "IlceAdi";
+            string value = "";
+            string caption = "";
+            Int16 type = 231;// 167;
+
+            int i1 = v.ds_Il_IlceList.Tables[0].Rows.Count;
+
+            for (int i = 0; i < i1; i++)
+            {
+                try
+                {
+                    value = v.ds_Il_IlceList.Tables[0].Rows[i][idFieldName].ToString();
+                    caption = v.ds_Il_IlceList.Tables[0].Rows[i][captionFieldName].ToString();
+
+                    RepositoryItem_Add_(
+                        ItemBox_ICB, tEdit_ICB,
+                        null, null,
+                        null, null,
+                        null, null, caption, value, type);
+
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("DİKKAT : Hatalı isim. " + captionFieldName + " veya " + idFieldName);
+                    //throw;
+                    break;
+                }
+            } // for
+        }
+
+
         private void tRepositoryItem_Fill(string tableName, string idFieldName, string captionFieldName, string groupListType, Int16 type,
                                  RepositoryItemComboBox ItemBox_ICB,
                                  DevExpress.XtraEditors.ImageComboBoxEdit tEdit_ICB,
@@ -588,7 +627,15 @@ namespace Tkn_DevColumn
                 }
             } // for
             
+            /// ILKodu, IlceKodu bağlantısı için
+            /// 
+            if (tableName == "ILTipi" && tEdit_ICB != null)
+            {
+                string tProp_Navigator = "Type:" + v.iLilceBaglantisi + ";";
+                ((DevExpress.XtraEditors.ImageComboBoxEdit)tEdit_ICB).Properties.AccessibleDescription = tProp_Navigator;
+            }
         }
+
 
         #endregion LookUpTableFill
 

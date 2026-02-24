@@ -357,6 +357,7 @@ namespace Tkn_Variable
         public static DataSet ds_DonemTipiList = new DataSet();
         public static DataSet ds_ILList = new DataSet();
         public static DataSet ds_IlceList = new DataSet();
+        public static DataSet ds_Il_IlceList = new DataSet();
         public static DataTable dt_SearchLookUp = null;
         public static DataSet dsMsReports = null;
         public static DataNavigator dNMsReports = null;
@@ -1335,7 +1336,7 @@ namespace Tkn_Variable
         public static string con_SearchTableIPCode = string.Empty;
         public static string search_readTableIPCode = "";
 
-
+        public static string iLilceBaglantisi = "iLİlceBaglantisi";
     }
 
 

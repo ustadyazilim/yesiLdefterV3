@@ -59,7 +59,7 @@ commit transaction
 
 /*CreateTrigger*/
 
-CREATE TRIGGER [dbo].[trg_SrcSinavETeorik] on [dbo].[SrcSinavETeorik] 
+CREATE or ALTER TRIGGER [dbo].[trg_SrcSinavETeorik] on [dbo].[SrcSinavETeorik] 
 AFTER INSERT, UPDATE
 AS BEGIN
 
@@ -89,6 +89,7 @@ AS BEGIN
 	declare @SinavSonucTipiId smallInt = 0
 	declare @yLineTypeId smallInt = 0
     declare @ySourceId int
+    declare @IsYeniYonetmelik bit
 
     -- Veri Transferi başladımı
     declare @DbUpdatesIsActive Bit = 0
@@ -119,6 +120,11 @@ AS BEGIN
 		from inserted ins
     	where ins.Id = @curId
 
+        -- Default yeni yönetmelik
+        Set @IsYeniYonetmelik = 1
+        if (convert(date, @ySinavTarihi, 103) < convert(date, '04.02.2026', 103)) Set @IsYeniYonetmelik = 0
+        
+        
         Select @TalepTipiId = TalepTipiId 
         From dbo.SrcAdayTalep
         Where FirmId = @yFirmId
@@ -184,12 +190,23 @@ AS BEGIN
             order by DonemTipiId desc, Id desc
 		end
 
-		if (@yTeorikPuani >= 70 and @yTeorikPuani <= 100) 
-		   set @SinavSonucTipiId = 1 -- Başarılı
+        if (@IsYeniYonetmelik = 0)
+        begin
+            if (@yTeorikPuani >= 70 and @yTeorikPuani <= 100) 
+                set @SinavSonucTipiId = 1 -- Başarılı
 		
-		if (@yTeorikPuani > 0 and @yTeorikPuani < 70) 
-		   set @SinavSonucTipiId = 2 -- Başarısız
+            if (@yTeorikPuani > 0 and @yTeorikPuani < 70) 
+                set @SinavSonucTipiId = 2 -- Başarısız
+		end
+        if (@IsYeniYonetmelik = 1)
+        begin
+            if (@yTeorikPuani >= 60 and @yTeorikPuani <= 100) 
+                set @SinavSonucTipiId = 1 -- Başarılı
 		
+            if (@yTeorikPuani > 0 and @yTeorikPuani < 60) 
+                set @SinavSonucTipiId = 2 -- Başarısız
+		end
+
 		if (@yTeorikPuani < 0 or @yTeorikPuani > 100) 
 		   set @SinavSonucTipiId = 0 -- Tanımsız
 

@@ -1,7 +1,6 @@
-﻿
-/*CreateProcedure*/
+﻿/*CreateProcedure*/
 
-CREATE PROCEDURE [dbo].[prc_SrcTeorikDerslerListesi] (@SertifikaTipiId int)  
+CREATE or ALTER PROCEDURE [dbo].[prc_SrcTeorikDerslerListesi] (@SertifikaTipiId int, @OrderBy varchar(20))  
 AS BEGIN
 
 /*
@@ -35,7 +34,66 @@ AS BEGIN
     declare @sql nvarchar(max)
     declare @sqlAddField nvarchar(500)
     declare @sqlWhere nvarchar(500)
+    declare @sqlOrderBy nvarchar(500) = ''
     declare @talepTipiId varchar(2)
+    
+    if (@OrderBy = '')
+        Set @sqlOrderBy = ''
+
+    if (@OrderBy = 'A,B,C,D')
+        Set @sqlOrderBy = ' ORDER BY
+  CASE Grubu
+    WHEN ''A'' THEN 1
+    WHEN ''B'' THEN 2
+    WHEN ''C'' THEN 3
+    WHEN ''D'' THEN 4
+    ELSE 99
+  END
+';
+
+    if (@OrderBy = 'B,A,C,D')
+        Set @sqlOrderBy = ' ORDER BY
+  CASE Grubu
+    WHEN ''B'' THEN 1
+    WHEN ''A'' THEN 2
+    WHEN ''C'' THEN 3
+    WHEN ''D'' THEN 4
+    ELSE 99
+  END
+';
+    
+    if (@OrderBy = 'B,A,D,C')
+        Set @sqlOrderBy = ' ORDER BY
+  CASE Grubu
+    WHEN ''B'' THEN 1
+    WHEN ''A'' THEN 2
+    WHEN ''D'' THEN 3
+    WHEN ''C'' THEN 4
+    ELSE 99
+  END
+';
+
+    if (@OrderBy = 'D,C,B,A')
+        Set @sqlOrderBy = ' ORDER BY
+  CASE Grubu
+    WHEN ''D'' THEN 1
+    WHEN ''C'' THEN 2
+    WHEN ''B'' THEN 3
+    WHEN ''A'' THEN 4
+    ELSE 99
+  END
+';
+
+    if (@OrderBy = 'C,D,B,A')
+        Set @sqlOrderBy = ' ORDER BY
+  CASE Grubu
+    WHEN ''C'' THEN 1
+    WHEN ''D'' THEN 2
+    WHEN ''B'' THEN 3
+    WHEN ''A'' THEN 4
+    ELSE 99
+  END
+';
 
     Set @sqlAddField = ''
     Set @sqlWhere = ''
@@ -45,7 +103,6 @@ AS BEGIN
     if  @SertifikaTipiId = 15031 Set @talepTipiId = '3'
     if (@SertifikaTipiId >= 15041 and @SertifikaTipiId <= 15047) Set @talepTipiId = '4'
     if (@SertifikaTipiId >= 15061 and @SertifikaTipiId <= 15067) Set @talepTipiId = '5'
-
 
     if (@SertifikaTipiId = 15001 or @SertifikaTipiId = 15041 or @SertifikaTipiId = 15061) Set @sqlWhere = ' and GrupSaati1234 > 0 and TalepTipiId = ' + @talepTipiId  -- SRC 1-2-3-4
     if (@SertifikaTipiId = 15002 or @SertifikaTipiId = 15042 or @SertifikaTipiId = 15062) Set @sqlWhere = ' and GrupSaati12 > 0 and TalepTipiId = ' + @talepTipiId -- SRC 1-2
@@ -74,12 +131,17 @@ AS BEGIN
 
     Set @sql = ' select sd.* '
       + @sqlAddField
-      + ' from Lkp.SrcDersler as sd Where 0 = 0 '
+      + ', ROW_NUMBER() OVER ( ' + @sqlOrderBy + ' ) AS Lkp_PlanSiraNo '
+      + '  From Lkp.SrcDersler as sd Where 0 = 0 '
       + @sqlWhere
+      + @sqlOrderBy
 
-    --print @sql
+    print @sql
     EXEC sp_executesql @sql
 
 END -- procedure
 
+
+
 /*CreateProcedureEnd*/
+

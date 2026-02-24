@@ -7,21 +7,22 @@ begin transaction
    Id                   Int IDENTITY(1,1) not null, 
    FirmId               Int       not null,
    IsActive             Bit       not null, /* default : 1 = active, 0 = not active */  
-
+   -- 10
    DonemTipiId          Int           null,
    GrupTipiId           SmallInt      null,
    SubeTipiId           SmallInt      null,
-   
+   -- 20
    DersGrubuTipiId      SmallInt      null,
    DersGrubu            Varchar(1)    null, /* A, B, C veya D : Mebbisden doğrudan ders programı okunduğunda gerekiyor */  
    DersTipiId           Int           null, /* Detayı : Lkp.SrcDersler tablosunda */
    DersSiraNo           SmallInt      null, /* örnek : 3 saatlik bir dersin, 1. saati, 2. saati, 3. saati şeklindeki işareti */
    DerslikAdiTipiId     SmallInt      null, /* Derslik-1, -2 ... -10 */
+   -- 30
    DersTarihi           Date          null,
    DersSaatiTipiId      SmallInt      null,
    PersonelId           Varchar(20)   null,
    EgitimTipiId         SmallInt      null,
-
+   -- 40
    DersSuresiDakika     SmallInt      null,  
    BaslamaSaati         Datetime      null, /* Calender and Scheduling için gerekli */
    BitisSaati           Datetime      null, /* Calender and Scheduling için gerekli */
@@ -67,8 +68,11 @@ AS BEGIN
     declare @yEgitimTipiId smallInt = 0
 	declare @yBaslamaSaati datetime
 	declare @yBitisSaati datetime
-    declare @yBaslamaSaatiChechked varchar(20)
-    declare @eSaat varchar(20) = null
+    declare @yeniDersSaatiTipiId smallInt
+    declare @yeniSaat varchar(20)
+    declare @basTarih date
+    declare @basSaat varchar(20) = null
+    declare @basSaat2 varchar(20) = null
     declare @TcNoCalismaIzniNo varchar(20) = null
     declare @TDersIsUploaded bit = 0
 
@@ -99,13 +103,17 @@ AS BEGIN
       ,@yPersonelId = isnull(ins.PersonelId,'')
       ,@TDersIsUploaded = isnull(ins.TDersIsUploaded,0)
       ,@yBaslamaSaati = ins.BaslamaSaati
-      ,@yBitisSaati = ins.BitisSaati	  
-      ,@yBaslamaSaatiChechked = Convert(varchar(20), ins.BaslamaSaati, 108) -- saati al
-      ,@eSaat = isnull(saat.DersSaatiTipi,'00:00 - 00:00')
+      ,@yBitisSaati = ins.BitisSaati
+      ,@basTarih = convert(date, ins.BaslamaSaati, 103)
+      ,@basSaat = substring(convert(varchar(40), ins.BaslamaSaati, 108),1,2)
+      ,@basSaat2 = substring(convert(varchar(40), ins.BaslamaSaati, 108),1,5)
       From inserted ins
-	    left outer join Lkp.SrcTeorikDersDersSaatiTipi saat on (ins.DersSaatiTipiId = saat.Id)
       Where ins.Id = @curId
       
+      -- Drag-Drop ile saat değiştirilmiş olabilir
+      Select TOP 1 @yeniDersSaatiTipiId = Id, @yeniSaat = DersSaatiTipi
+      From  Lkp.SrcTeorikDersDersSaatiTipi
+      Where DersSaatiTipi like @basSaat + ':00%'
 
       -- personelId kontrolu
       Select @TcNoCalismaIzniNo = isnull(TcNoCalismaIzniNo,'')
@@ -167,57 +175,23 @@ AS BEGIN
       Select @TcNoCalismaIzniNo = isnull(TcNoCalismaIzniNo,'')
       From dbo.SrcPersoneli
       Where TamAdiSoyadi like @yPersonelId+'%'
-
-      -- tabloda grünen : 2025-12-05 08:00:11.000
-      -- @eBaslamaSaatiChechked atanan : 08:00:11
-      if (CHARINDEX(':00:11', @yBaslamaSaatiChechked) > 0)
+ 
+      -- Drag-drop değişikliği
+      if (@yDersSaatiTipiId <> @yeniDersSaatiTipiId or -- saat tipi farklıysa
+          @basSaat2 <> @yeniSaat or -- 
+          convert(date,@yDersTarihi,103) <> convert(date, @basTarih, 103) -- baslamaTarihi ile DersTarihi farklı olabilir 
+          )
       begin
-          Set @eDersTarihi = Convert(date, @yBaslamaSaati, 103)
-          Set @eSaat = SUBSTRING(@yBaslamaSaatiChechked,1,5);
-
-          Select @yDersSaatiTipiId = Id, @eSaat = DersSaatiTipi  
-          From Lkp.SrcTeorikDersDersSaatiTipi
-          Where DersSaatiTipi like @eSaat+'%'
-          and Id < 100
-          order by Id
-
           update dbo.SrcTeorikDers set 
-			    DersTarihi = @eDersTarihi
-              , DersSaatiTipiId = @yDersSaatiTipiId
-              , BaslamaSaati = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,1,5))
-              , BitisSaati   = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,9,5))
-              , DersHaftasiId = DatePart(ww, @eDersTarihi)
+                DersTarihi = @basTarih
+              , DersSaatiTipiId = @yeniDersSaatiTipiId
+              , BaslamaSaati = CONVERT(smalldatetime, CONVERT(varchar(10), @basTarih) + ' ' + SUBSTRING(@yeniSaat,1,5))
+              , BitisSaati   = CONVERT(smalldatetime, CONVERT(varchar(10), @basTarih) + ' ' + SUBSTRING(@yeniSaat,9,5))
+              , DersHaftasiId = DatePart(ww, @yDersTarihi)
           Where Id = @curId
+      end;
 
-      end else 
-      begin        
-          Set @eDersTarihi = Convert(date, @yDersTarihi, 103)
 
-          Select @eSaat = DersSaatiTipi  
-          From Lkp.SrcTeorikDersDersSaatiTipi
-          Where Id = @yDersSaatiTipiId
-
-          -- BaslangicSaat ve BitisSaat 
-          update dbo.SrcTeorikDers set
-              DersTarihi = @eDersTarihi
-            , BaslamaSaati = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,1,5))
-            , BitisSaati   = CONVERT(smalldatetime, CONVERT(varchar(10), @eDersTarihi) + ' ' + SUBSTRING(@eSaat,9,5))
-            , DersHaftasiId = DatePart(ww, @eDersTarihi)
-          Where Id = @curId
-      end
-
-      -- Mebbisten okuma yapınca alınan ismi alınıyor
-      -- alınan bu ismi TcNoIzinNo ya çeviriyor
-      /*
-      if (@TcNoCalismaIzniNo <> '')
-      begin
-        update dbo.SrcTeorikDers set 
-        PersonelId = @TcNoCalismaIzniNo
-        Where Id = @curId
-        and isnull(PersonelId,'') <> @TcNoCalismaIzniNo
-        and @TcNoCalismaIzniNo <> ''
-      end
-	  */
       --Execute [dbo].[prc_SrcTeorikDersIhlalleriSaatler] @eFirmId, @eDonemTipiId
       --Execute [dbo].[prc_SrcTeorikDersIhlalleriCakismalar] @eFirmId, @eDonemTipiId
       --Execute [dbo].[prc_SrcDersIhlalleriPersonel] @curId, @eFirmId, @eDonemTipiId, @ePersonelId

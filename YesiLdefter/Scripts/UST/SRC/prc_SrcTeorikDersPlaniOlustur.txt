@@ -1,182 +1,330 @@
 ﻿/*CreateProcedure*/
 
-CREATE PROCEDURE [dbo].[prc_SrcTeorikDersPlaniOlustur] (
+CREATE or ALTER PROCEDURE [dbo].[prc_SrcTeorikDersPlaniOlustur] (
      @FirmId int 
    , @DonemTipiId int 
    , @GrupTipiId smallint 
-   , @SubeTipiId smallint 
-   , @SablonTeorikBId int)  
+   , @SubeTipiId smallint )  
 AS BEGIN
 
-  -- --------------------------------
-  -- DERS PLANI OLUŞTUR
-  -- --------------------------------
-
   SET NOCOUNT ON;
-
-  /*  
+  /*       
   declare @FirmId int = 4204
-  declare @DonemTipiId int = 202512 
-  declare @GrupTipiId smallint = 2
-  declare @SubeTipiId smallint = 2
-  declare @SablonTeorikBId int = 2
+  declare @DonemTipiId int = 202602
+  declare @GrupTipiId smallInt = 1
+  declare @SubeTipiId smallInt = 1
   */
 
-  declare @SablonSId int 
-  declare @DersGrubu varchar(1)
-  declare @DersTipiId int
-  declare @DersSiraNo smallint
-  declare @DerslikAdiTipiId smallint
-  declare @DersTarihi date
-  declare @DersSaatiTipiId smallint
-
-  declare @SertifikaTipiId smallint
-  declare @TalepTipiId smallInt
-  declare @TcVkNo varchar(11)
-  declare @PersonelId varchar(20)
-
+  declare @SP_Message varchar(100)
   declare @GrupBaslamaTarihi date
-  declare @IsActive bit = 0
-  declare @GunFarki int 
-  declare @takvimTarihi date
+  declare @SertifikaTipiId smallint = 0
+  declare @SertifikaTipiValue smallint = 0
+  declare @OrderBy varchar(20) 
+  declare @Siralama varchar(20)
 
-  Select @GrupBaslamaTarihi = GrupBaslamaTarihi
+  -- Açılan grubta hangi sertifikalar verilecek tespit et
+  Select 
+      @SertifikaTipiValue = isnull(SertifikaTipiId,0)
+     ,@GrupBaslamaTarihi = GrupBaslamaTarihi
   From dbo.SrcGrupSubesi
   Where FirmId = @FirmId
   and   DonemTipiId = @DonemTipiId
   and   GrupTipiId = @GrupTipiId
-  and   SubeTipiId = @SubeTipiId 
+  and   SubeTipiId = @SubeTipiId
 
-  Select @GrupBaslamaTarihi
-  Select @GunFarki = DATEDIFF(DAY, convert(date,'01.01.1900',103), convert(date, @GrupBaslamaTarihi,103))
+  if (@SertifikaTipiValue <= 0)
+  begin
+     set @SP_Message = 'DİKKAT : Grubun sertifika tipi belli olmadığı için işlem yapılamıyor...'
+     Select @SP_Message as SP_Message
+     return; 
+  end
+  if (@GrupBaslamaTarihi is null) 
+  begin
+     set @SP_Message = 'DİKKAT : Grubun başlangıç tarihi belli olmadığı için işlem yapılamıyor...'
+     Select @SP_Message as SP_Message
+     return; 
+  end
+
+
+  -- Sıra geldi planlamanın nasıl yapılcağı bilgisine
+  declare @DersGrubuTipiId smallInt
+  declare @DerslikTipiId smallInt
+  declare @Tarih DATE 
+  declare @DersSaatiTipiId smallint
+  declare @DersSuresi INT = 50   -- dakika
+  declare @TeorikMolaDakika INT = 10   -- dakika
+  declare @MolaSuresi INT = 0   -- dakika
+  declare @DersAdedi INT = 0
+  declare @HaftaIciGunlukMaxDers INT = 6
+  declare @HaftaSonuGunlukMaxDers INT = 8
+
+  Select Top 1
+      @DersGrubuTipiId = DersGrubuTipiId
+     ,@DerslikTipiId = DerslikTipiId  
+     ,@Tarih = BaslangicTarihi
+     ,@DersSaatiTipiId = DersSaatiTipiId
+     ,@DersSuresi = DersSureDakika
+     ,@TeorikMolaDakika = TeorikMolaDakika
+     ,@DersAdedi = DersAdedi  -- Toplam ders adedi
+     ,@HaftaIciGunlukMaxDers = HaftaIciGunlukMaxDers
+     ,@HaftaSonuGunlukMaxDers = HaftaSonuGunlukMaxDers
+  From dbo.SrcSablonTeorikF
+
+
+  if (@DersGrubuTipiId = 0) Set @Siralama = ''
+  if (@DersGrubuTipiId = 1) Set @Siralama = 'A,B,C,D'
+  if (@DersGrubuTipiId = 2) Set @Siralama = 'B,A,C,D'
+  if (@DersGrubuTipiId = 3) Set @Siralama = 'B,A,D,C'
+  if (@DersGrubuTipiId = 4) Set @Siralama = 'D,C,B,A'
+  if (@DersGrubuTipiId = 5) Set @Siralama = 'C,D,B,A'
 
   -- 
-  Select 
-       @SertifikaTipiId = SertifikaTipiId 
-      ,@TalepTipiId = TalepTipiId
-  From dbo.SrcSablonTeorikB
-  Where Id = @SablonTeorikBId
-
-  DECLARE cur CURSOR LOCAL FAST_FORWARD FOR
-  Select
-       Id
-      ,DersGrubu
-      ,DersTipiId
-      ,DersSiraNo
-      ,DerslikAdiTipiId
-      ,DersTarihi
-      ,DersSaatiTipiId
-  From  dbo.SrcSablonTeorikS WITH (NOLOCK)
-  Where SablonTeorikBId = @SablonTeorikBId
-  order by DersTarihi, DersSaatiTipiId
-
-  OPEN cur;
-  FETCH NEXT FROM cur INTO 
-      @SablonSId, @DersGrubu, @DersTipiId, @DersSiraNo, 
-      @DerslikAdiTipiId, @DersTarihi, @DersSaatiTipiId;
-
-  declare @IsFind bit  
+  -- Select @SertifikaTipiValue
   
-  WHILE @@FETCH_STATUS = 0
-  BEGIN
-      --Select @SablonSId, @DersGrubu, @DersTipiId, @DersSiraNo, 
-      --       @DerslikAdiTipiId, @DersTarihi, @DersSaatiTipiId   
-      Set @IsFind = 1
+  -- Sertifika türlerine göre verilecek dersleri ve toplam ders saatlerini oku
+  DECLARE @DersListesi TABLE (
+       [Id] int
+      ,[FirmId] int
+      ,[IsActive] bit
+      ,[TalepTipiId] smallint
+      ,[Grubu] varchar(1)
+      ,[SiraNo] smallint
+      ,[DersAdi] nvarchar(100)
+      ,[DersSaati1] smallint
+      ,[DersSaati2] smallint
+      ,[DersSaati3] smallint
+      ,[DersSaati4] smallint
+      ,[GrupSaati12] smallint
+      ,[GrupSaati34] smallint
+      ,[GrupSaati24] smallint
+      ,[GrupSaati1234] smallint
+      ,[MebbisKodu] varchar(10)
+      ,[PersonelId] varchar(20)
+      ,[PersonelYedekId] varchar(20)
+      ,[Lkp_DersSayisi] smallint
+      ,[Lkp_PlanSiraNo] smallint
+  )
+  INSERT INTO @DersListesi (
+       [Id]
+      ,[FirmId]
+      ,[IsActive]
+      ,[TalepTipiId]
+      ,[Grubu]
+      ,[SiraNo]
+      ,[DersAdi]
+      ,[DersSaati1]
+      ,[DersSaati2]
+      ,[DersSaati3]
+      ,[DersSaati4]
+      ,[GrupSaati12]
+      ,[GrupSaati34]
+      ,[GrupSaati24]
+      ,[GrupSaati1234]
+      ,[MebbisKodu]
+      ,[PersonelId]
+      ,[PersonelYedekId]
+      ,[Lkp_DersSayisi] 
+      ,[Lkp_PlanSiraNo] )
+  
+  EXEC dbo.prc_SrcTeorikDerslerListesi @SertifikaTipiId = @SertifikaTipiValue, @OrderBy = @Siralama;
+
+  -- Select * from @DersListesi
+
+  -- Tespit edilen dersin kaç saat ders verilecekse o kadar ders satırı oluştur
+  -- bir ders 10 saat verilecekse 10 adet satır haline getiriliyor
+  DECLARE @max INT = (SELECT ISNULL(MAX(Lkp_DersSayisi), 0) FROM @DersListesi);
+
+  -- En büyük ders sayıs
+  -- Select @max
+
+  DECLARE @DersListesiExpanded TABLE (
+      Id int,
+      Grubu varchar(1),
+      DersSiraNo int,
+      DersNo int,
+      DersSaati1 int,
+      KamuKodu varchar(20),
+      DersAdi varchar(100),
+      PersonelId varchar(20)
+  );
+
+  INSERT INTO @DersListesiExpanded (Id, Grubu, DersSiraNo, DersNo, DersSaati1, KamuKodu, DersAdi, PersonelId)
+  SELECT d.Id,
+       d.Grubu,
+       ROW_NUMBER() OVER (ORDER BY d.Lkp_PlanSiraNo, nums.n) AS DersSiraNo,              -- global ardışık sıra
+       ROW_NUMBER() OVER (PARTITION BY d.Lkp_PlanSiraNo ORDER BY nums.n) AS DersNo,
+       d.Lkp_DersSayisi,
+       d.MebbisKodu,
+       d.DersAdi,
+       pers.TcNoCalismaIzniNo as PersonelId
+  FROM @DersListesi d
+      left outer join dbo.SrcDersinPersoneli as dp on ( d.Id = dp.DersId)
+      left outer join dbo.SrcPersoneli as pers on ( dp.TcVkNo = pers.TcVkNo and pers.IsActive = 1)
+  CROSS JOIN (
+      SELECT TOP (@max) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+      FROM sys.all_objects a CROSS JOIN sys.all_objects b
+  ) nums
+  WHERE nums.n <= ISNULL(d.Lkp_DersSayisi, 0)
+  ORDER BY d.Lkp_PlanSiraNo, nums.n;
+
+  -- Tek tek ayrıştırılarak hazırlanan ders listesi
+  -- SELECT * FROM @DersListesiExpanded 
+
+  -- Sıra geldi planlamanın nasıl yapılcağı bilgisine
+  declare @DersTipiId Int
+  declare @IsActive bit 
+  declare @IsGunDegisti bit
+  -- insert atamaları için kullanılacak
+  declare @DersTipiId_ int
+  declare @DersGrubu_ varchar(1)
+  declare @PersonelId_ varchar(20)
+  declare @DersSiraNo_ smallInt
+  declare @eSaat varchar(20)
+
+
+  -- Default değerler 
+  if (@Tarih is null) Set @Tarih = @GrupBaslamaTarihi
+  if (@HaftaIciGunlukMaxDers = 0) Set @HaftaIciGunlukMaxDers = 6
+  if (@HaftaSonuGunlukMaxDers = 0) Set @HaftaSonuGunlukMaxDers = 8
+  if (@TeorikMolaDakika = 0) Set @TeorikMolaDakika = 10
+
+  if (@DersAdedi = 0)
+      SELECT @DersAdedi = count(Id) FROM @DersListesiExpanded
+
+  --Select @GrupBaslamaTarihi, @Tarih
+  --Select @DersAdedi as DersAdedi
+
+
+-- Dersleri oluşturmaya başlıyoruz
+--
+DECLARE 
+    @i INT = 1,
+    @GunlukSayac INT = 0,
+    @CurrentDate DATE = @Tarih,
+    --@CurrentStart DATETIME = CAST(@Tarih AS DATETIME) + CAST(@BaslangicSaati AS DATETIME),
+    @CurrentStartId smallint = @DersSaatiTipiId,
+    @CurrentEnd DATETIME = null,
+    @HaftaGunu smallint;
+
+WHILE @i <= @DersAdedi
+BEGIN
+    Set @IsGunDegisti = 0
+        
+    Set @HaftaGunu = DATEPART(WEEKDAY, @CurrentDate);
     
-      -- İş gümü yoksa tatil günüü tespit et
-      While (@IsFind = 1)
-      begin
-          Set @takvimTarihi = DATEADD(DAY, @GunFarki, @DersTarihi)  
+    -- Gunluk ders sayısı dolduysa 
+    -- bir gun sonrası tatilmi kontrol edileceği için
+    IF ((DATEPART(WEEKDAY, @CurrentDate) >= 2 and  DATEPART(WEEKDAY, @CurrentDate) <= 6) and 
+        (@GunlukSayac >= @HaftaIciGunlukMaxDers or @CurrentStartId > 15)) -- saat 23 ise
+    begin
+        Set @IsGunDegisti = 1 
+        Set @CurrentDate = DATEADD(DAY, 1, @CurrentDate);
+        --Set @CurrentStart = CAST(@CurrentDate AS DATETIME) + CAST(@BaslangicSaati AS DATETIME);
+        Set @CurrentStartId = @DersSaatiTipiId;
+        Set @GunlukSayac = 0;
+    end
+    IF ((DATEPART(WEEKDAY, @CurrentDate) = 1 or DATEPART(WEEKDAY, @CurrentDate) = 7) and 
+        (@GunlukSayac >= @HaftaSonuGunlukMaxDers or @CurrentStartId > 15)) -- saat 23 ise
+    begin
+        Set @IsGunDegisti = 1 
+        Set @CurrentDate = DATEADD(DAY, 1, @CurrentDate);
+        --Set @CurrentStart = CAST(@CurrentDate AS DATETIME) + CAST(@BaslangicSaati AS DATETIME);
+        Set @CurrentStartId = @DersSaatiTipiId;
+        Set @GunlukSayac = 0;
+    end
 
-          Select @IsActive = IsActive 
-          From dbo.CrsTakvim
-          Where FirmId = 0 --FirmId = @FirmId
-          and   Convert(date,Tarih,103) = convert(date, @takvimTarihi, 103)
+    -- @CurrentDate tatil mi ? kontrol et
+    Select @IsActive = IsActive 
+    From dbo.CrsTakvim
+    Where FirmId = 0 
+    and   Convert(date,Tarih,103) = convert(date, @CurrentDate, 103)
 
-          --Select @IsActive, @takvimTarihi
+    -- Eğer Tatil ise gün atla (Burası ilk gün tatile denk gelince)
+    if (@IsActive = 0 and @IsGunDegisti = 0)
+    begin
+        Set @CurrentDate = DATEADD(DAY, 1, @CurrentDate);
+        --Set @CurrentStart = CAST(@CurrentDate AS DATETIME) + CAST(@BaslangicSaati AS DATETIME);
+    end
 
-          if (@IsActive = 1) set @IsFind = 0 -- İş günü olduğu için aramayı bırak
-          if (@IsActive = 0) set @GunFarki = @GunFarki + 1 -- tatil günü olduğu GunFarkını 1 arttır
-      end; -- While @IsFind
+    -- iş günü ise
+    if (@IsActive = 1)
+    begin
+        -- print 'Sıra No : ' + convert(varchar(5),@i) + ', ' + convert(varchar(10),@CurrentDate) + ', ' + convert(varchar(5), @CurrentStartId) + ',  Hafta Günü : ' + convert(varchar(5), @HaftaGunu)   
 
-      --Select @takvimTarihi, @DersSaatiTipiId
+        -- Ataması yapılacak dersi oku
+        Select 
+            @DersTipiId_ = Id
+           ,@DersGrubu_ = Grubu
+           ,@PersonelId_ = PersonelId 
+           ,@DersSiraNo_ = DersNo
+        From @DersListesiExpanded
+        Where DersSiraNo = @i
 
-      -- DersinPersoneli tablosundan tc yi al
-      Set @TcVkNo = ''
-      Select @TcVkNo = TcVkNo from dbo.SrcDersinPersoneli
-      Where FirmId = @FirmId
-      and   TalepTipiId = @TalepTipiId 
-      and   DersId = @DersTipiId
-      
-      -- SrcPersoneli tablosundan Calisma iznini al
-      Set @PersonelId = ''
-      Select top 1 @PersonelId = isnull(TcNoCalismaIzniNo,'')
-      From dbo.SrcPersoneli
-      Where FirmId = @FirmId
-      and   TcVkNo = @TcVkNo
-      order by convert(date, isnull(CalismaIzniBaslamaTarihi, getdate()),103) desc
+        Select @eSaat = DersSaatiTipi  
+        From Lkp.SrcTeorikDersDersSaatiTipi
+        Where Id = @CurrentStartId
 
-      --Select @PersonelId
-      
-      if ( Select count(Id) as Adet From dbo.SrcTeorikDers
-           Where  FirmId = @FirmId
-           and    DonemTipiId = @DonemTipiId
-           and    GrupTipiId = @GrupTipiId
-           and    SubeTipiId = @SubeTipiId 
-           and    DersTipiId = @DersTipiId
-           and    DersSiraNo = @DersSiraNo
-      ) = 0 and (@PersonelId <> '')
-      begin
-          INSERT INTO [dbo].[SrcTeorikDers]
-           ([FirmId]
-           ,[IsActive]
-           ,[DonemTipiId]
-           ,[GrupTipiId]
-           ,[SubeTipiId]
-           ,[DersGrubu]
-           ,[DersTipiId]
-           ,[DersSiraNo]
-           ,[DerslikAdiTipiId]
-           ,[DersTarihi]
-           ,[DersSaatiTipiId]
-           ,[PersonelId]
-           ,[EgitimTipiId]
-           ,[BaslamaSaati]
-           ,[BitisSaati]
-           ,[TDersIsUploaded]
-           --,[SablonTeorikBId]
-           ,[OzelGunlerId]
-           ,[DersHaftasiId])
-          Select
-            @FirmId
-           ,1 as IsActive
-           ,@DonemTipiId
-           ,@GrupTipiId
-           ,@SubeTipiId
-           ,@DersGrubu
-           ,@DersTipiId
-           ,@DersSiraNo
-           ,@DerslikAdiTipiId
-           ,@takvimTarihi -- DersTarihi
-           ,@DersSaatiTipiId
-           ,@PersonelId
-           ,0 as EgitimTipiId
-           ,null as BaslamaSaati
-           ,null as BitisSaati
-           ,0 as TDersIsUploaded
-           --,@SablonTeorikBId
-           ,0 as OzelGunlerId
-           ,0 as DersHaftasiId
+        if ( Select count(Id) as Adet From dbo.SrcTeorikDers
+             Where FirmId = @FirmId
+             and   DonemTipiId = @DonemTipiId
+             and   GrupTipiId  = @GrupTipiId
+             and   SubeTipiId  = @SubeTipiId
+             and   DersTipiId  = @DersTipiId_
+             and   DersSiraNo  = @DersSiraNo_
+        ) = 0
+        begin
+            -- print @DersSiraNo_
+        
+            INSERT INTO [dbo].[SrcTeorikDers]
+               ([FirmId],[IsActive]
+               ,[DonemTipiId],[GrupTipiId],[SubeTipiId],[DersGrubu]
+               ,[DersTipiId],[DersSiraNo],[DerslikAdiTipiId]
+               ,[DersTarihi],[DersSaatiTipiId]
+               ,[PersonelId],[EgitimTipiId]
+               ,[BaslamaSaati],[BitisSaati]
+               ,[TDersIsUploaded],[OzelGunlerId],[DersHaftasiId],[DersGrubuTipiId],[DersSuresiDakika])
+            VALUES
+               (
+                @FirmId
+               ,1 -- IsActive
+               ,@DonemTipiId
+               ,@GrupTipiId
+               ,@SubeTipiId
+               ,@DersGrubu_
+               ,@DersTipiId_
+               ,@DersSiraNo_
+               ,@DerslikTipiId -- DerslikAdiTipiId
+               ,@CurrentDate   -- DersTarihi
+               ,@CurrentStartId
+               ,@PersonelId_ 
+               ,1    -- EgitimTipiId
+               ,CONVERT(smalldatetime, CONVERT(varchar(10), @CurrentDate) + ' ' + SUBSTRING(@eSaat,1,5)) -- <BaslamaSaati, datetime,>
+               ,CONVERT(smalldatetime, CONVERT(varchar(10), @CurrentDate) + ' ' + SUBSTRING(@eSaat,9,5)) -- <BitisSaati, datetime,>
+               ,0 -- TDersIsUploaded
+               ,0 -- OzelGunlerId
+               ,0 -- DersHaftasiId
+               ,0 -- DersGrubuTipiId
+               ,null -- DersSuresiDakika
+               )
+               
+        end -- if Adet = 0
 
-      end -- if Adet = 0
+        -- Sonraki dersin başlangıcı
+        --SET @CurrentStart = DATEADD(MINUTE, @MolaSuresi, @CurrentEnd);
+        Set @CurrentStartId = @CurrentStartId + 1;
 
-      FETCH NEXT FROM cur INTO 
-      @SablonSId, @DersGrubu, @DersTipiId, @DersSiraNo, 
-      @DerslikAdiTipiId, @DersTarihi, @DersSaatiTipiId;
+        SET @i = @i + 1;
+        SET @GunlukSayac = @GunlukSayac + 1;
 
-  END -- While FETCH_STATUS
+        -- SELECT * FROM @Program;
+
+    end -- if (@IsActive)
+
+
+END -- WHILE
+
+Select '' as SP_Message
 
 END -- procedure
 
 /*CreateProcedureEnd*/
-

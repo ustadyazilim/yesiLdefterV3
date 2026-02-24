@@ -1,52 +1,52 @@
-﻿using DevExpress.XtraBars.Alerter;
-using DevExpress.XtraSplashScreen;
+﻿using DevExpress.LookAndFeel;
+using DevExpress.Utils;
+using DevExpress.XtraBars.Alerter;
+using DevExpress.XtraBars.Docking2010.Customization;
+using DevExpress.XtraBars.Docking2010.Views.WindowsUI;
+using DevExpress.XtraCharts;
 using DevExpress.XtraEditors;
-using DevExpress.XtraLayout;
+using DevExpress.XtraEditors.Repository;
 using DevExpress.XtraGrid;
 using DevExpress.XtraGrid.Views.Grid;
-using DevExpress.LookAndFeel;
+using DevExpress.XtraLayout;
+using DevExpress.XtraSplashScreen;
 using DevExpress.XtraVerticalGrid;
-using DevExpress.Utils;
-
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.Sql;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Management;
 using System.Net;
 using System.Net.Mail;
 using System.Net.NetworkInformation;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
-using System.Windows.Forms;
 using System.Threading.Tasks;
-
-using Tkn_CreateObject;
+using System.Windows.Forms;
 using Tkn_CreateDatabase;
+using Tkn_CreateObject;
+using Tkn_DevColumn;
 using Tkn_Events;
+using Tkn_ExeUpdate;
 using Tkn_Forms;
 using Tkn_Ftp;
+using Tkn_IniFile;
 using Tkn_Layout;
 using Tkn_Registry;
 using Tkn_Save;
 using Tkn_SQLs;
 using Tkn_TablesRead;
 using Tkn_Variable;
-using Tkn_IniFile;
-using DevExpress.XtraBars.Docking2010.Views.WindowsUI;
-using DevExpress.XtraBars.Docking2010.Customization;
-using System.Data.Sql;
-using System.IO.Compression;
-using Tkn_ExeUpdate;
-using DevExpress.XtraCharts;
-using System.Text.RegularExpressions;
 
 namespace Tkn_ToolBox
 {
@@ -5169,6 +5169,50 @@ namespace Tkn_ToolBox
             }
         }
 
+        public void readIlceKodu(Form tForm, object sender)
+        {
+            if (sender == null) return;
+            string tableIPCode = ((DevExpress.XtraEditors.ImageComboBoxEdit)sender).Properties.AccessibleName.ToString();
+            string ilKodu = ((DevExpress.XtraEditors.ImageComboBoxEdit)sender).EditValue.ToString();
+
+            //Column_IlceKodu
+            object targetObj = Find_Control(tForm, "Column_IlceKodu");
+
+            if (targetObj != null)
+            {
+                ClearImageComboBoxItemsIfLoaded(targetObj);
+
+                SYS_Il_Ilce_Read(ilKodu);
+
+                tDevColumn dc = new tDevColumn();
+
+                dc.tRepositoryItem_Ilce_Fill(null, ((DevExpress.XtraEditors.ImageComboBoxEdit)targetObj));
+            }
+        }
+
+        private void ClearImageComboBoxItemsIfLoaded(object targetObj)
+        {
+            if (targetObj == null) return;
+            try
+            {
+                // If target is DevExpress ImageComboBoxEdit, clear previously loaded items
+                if (targetObj is DevExpress.XtraEditors.ImageComboBoxEdit icb)
+                {
+                    var items = icb.Properties?.Items;
+                    if (items != null && items.Count > 0)
+                    {
+                        items.Clear();
+                        // Also reset value to avoid referencing cleared item
+                        icb.EditValue = null;
+                    }
+                }
+            }
+            catch
+            {
+                // Swallow any exceptions to avoid breaking callers; logging can be added if available
+            }
+        }
+
         public T readProp<T>(string prop_)
         {
             T packet = Activator.CreateInstance<T>();
@@ -9577,6 +9621,21 @@ SELECT 'Yılın Son Günü',                DATEADD(dd,-1,DATEADD(yy,0,DATEADD(y
             if (IsNotNull(Sql))
                 SQL_Read_Execute(v.dBaseNo.Project, v.ds_IlceList, ref Sql, "ILCEList", "");
         }
+
+        public void SYS_Il_Ilce_Read(string ilKodu)
+        {
+            tSQLs sql = new tSQLs();
+
+            string Sql = sql.SQL_ILCE_LIST(ilKodu);
+
+            if (IsNotNull(Sql))
+            {
+                TableRemove(v.ds_Il_IlceList);
+                SQL_Read_Execute(v.dBaseNo.Project, v.ds_Il_IlceList, ref Sql, "IL_ILCEList", "");
+            }
+                
+        }
+
 
         public void SettingsUpdateSectorTypeId()
         {

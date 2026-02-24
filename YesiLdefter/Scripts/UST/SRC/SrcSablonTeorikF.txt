@@ -6,18 +6,20 @@ begin transaction
  (
    Id                      Int IDENTITY(1,1) not null, 
    FirmId                  Int       not null,
-
-   DersGrupTipiId          Int           null, 
+   -- 10
+   DersGrubuTipiId         SmallInt      null, 
    DerslikTipiId           SmallInt      null,
+   -- 20
    BaslangicTarihi         Date          null,
    BaslangicSaati          Varchar(5)    null,
+   DersSaatiTipiId         SmallInt      null,
    DersSureDakika          SmallInt      null,
    TeorikMolaDakika        SmallInt      null,
    UygulamaMolaDakika      SmallInt      null,
+   -- 30
    DersAdedi               SmallInt      null,
    HaftaIciGunlukMaxDers   SmallInt      null, -- 6 saat
    HaftaSonuGunlukMaxDers  SmallInt      null, -- 8 saat
-
 
    constraint		pk_SrcSablonTeorikF primary key (Id)
  )
@@ -36,27 +38,33 @@ begin transaction
 
 
 -- ------------------------------------------------------- 
--- DersGrupTipiId
+-- DersGrubuTipiId
 -- ------------------------------------------------------- 
-if exists (Select * From sys.objects WHERE name = 'SrcSablonTeorikFDersGrupTipi')
-drop table [Lkp].[SrcSablonTeorikFDersGrupTipi]
-create table Lkp.SrcSablonTeorikFDersGrupTipi
+if exists (Select * From sys.objects WHERE name = 'SrcSablonTeorikFDersGrubuTipi')
+drop table [Lkp].[SrcSablonTeorikFDersGrubuTipi]
+create table Lkp.SrcSablonTeorikFDersGrubuTipi
 (
    Id              Int Unique Not Null,
-   DersGrupTipi    nVarchar(50)   null,
+   DersGrubuTipi    nVarchar(50)   null,
 
-   constraint  pk_SrcSablonTeorikFDersGrupTipi primary key (Id)
+   constraint  pk_SrcSablonTeorikFDersGrubuTipi primary key (Id)
 )
-INSERT INTO Lkp.SrcSablonTeorikFDersGrupTipi (Id, DersGrupTipi)
+
+Delete From Lkp.SrcSablonTeorikFDersGrubuTipi
+INSERT INTO Lkp.SrcSablonTeorikFDersGrubuTipi (Id, DersGrubuTipi)
  VALUES 
     (0,  N'Tanımsız')
   , (1,  N'A, B, C, D sırayla')
-  , (2,  N'B, A, D, C sırayla')
+  , (2,  N'B, A, C, D sırayla')
+  , (3,  N'B, A, D, C sırayla')
+  , (4,  N'D, C, B, A sırayla')
+  , (5,  N'C, D, B, A sırayla')
+/*
   , (11, N'Sadece A grubu')
   , (12, N'Sadece B grubu')
   , (13, N'Sadece C grubu')
   , (14, N'Sadece D grubu')
-
+*/
 
 
 -- ------------------------------------------------------- 
@@ -75,6 +83,7 @@ create table Lkp.SrcSablonTeorikFDerslikTipi
    constraint  pk_SrcSablonTeorikFDerslikTipi primary key (Id)
 )
 
+Delete From Lkp.SrcSablonTeorikFDerslikTipi
 INSERT INTO Lkp.SrcSablonTeorikFDerslikTipi (Id, DerslikTipi)
  VALUES 
   ( 0, N'Tanımsız'),
@@ -88,6 +97,42 @@ INSERT INTO Lkp.SrcSablonTeorikFDerslikTipi (Id, DerslikTipi)
   ( 8, N'Derslik-8'),
   ( 9, N'Derslik-9'),
   (10, N'Derslik-10')
+
+-- ------------------------------------------------------- 
+-- DersSaatiTipiId
+-- ------------------------------------------------------- 
+IF EXISTS (Select * From sys.objects WHERE name = 'SrcSablonTeorikFDersSaatiTipi')
+drop table [Lkp].[SrcSablonTeorikFDersSaatiTipi]
+
+create table Lkp.SrcSablonTeorikFDersSaatiTipi
+(
+   Id              Int Unique Not Null,
+   DersSaatiTipi   nVarchar(50)   null
+
+   constraint  pk_SrcSablonTeorikFDersSaatiTipi primary key (Id)
+)
+
+Delete From Lkp.SrcSablonTeorikFDersSaatiTipi
+INSERT INTO Lkp.SrcSablonTeorikFDersSaatiTipi (Id, DersSaatiTipi)
+ VALUES 
+  ( -1, N'Tanımsız'),
+  ( 0, N'07:00 - 07:50'),
+  ( 1, N'08:00 - 08:50'),
+  ( 2, N'09:00 - 09:50'),
+  ( 3, N'10:00 - 10:50'),
+  ( 4, N'11:00 - 11:50'),
+  ( 5, N'12:00 - 12:50'),
+  ( 6, N'13:00 - 13:50'),
+  ( 7, N'14:00 - 14:50'),
+  ( 8, N'15:00 - 15:50'),
+  ( 9, N'16:00 - 16:50'),
+  (10, N'17:00 - 17:50'),
+  (11, N'18:00 - 18:50'),
+  (12, N'19:00 - 19:50'),
+  (13, N'20:00 - 20:50'),
+  (14, N'21:00 - 21:50'),
+  (15, N'22:00 - 22:50')  
+
 
   commit transaction
  
@@ -106,6 +151,7 @@ begin
            ,[DerslikTipiId]
            ,[BaslangicTarihi]
            ,[BaslangicSaati]
+           ,[DersSaatiTipiId]
            ,[DersSureDakika]
            ,[TeorikMolaDakika]
            ,[UygulamaMolaDakika]
@@ -118,6 +164,7 @@ begin
            ,1       -- DerslikTipiId
            ,null    -- BaslangicTarihi
            ,'09:00' -- BaslangicSaati
+           ,2       -- DersSaatiTipiId
            ,'50'    -- DersSureDakika
            ,'10'    -- TeorikMolaDakika
            ,'0'     -- UygulamaMolaDakika   Uygulama yok

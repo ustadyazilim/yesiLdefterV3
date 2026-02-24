@@ -512,8 +512,8 @@ namespace Tkn_Events
             {
                 if (((Form)sender).Tag != null && ((Form)sender).Tag != "DIALOG")
                 {
-                    //((Form)sender).AutoScroll = true;
-                    //((Form)sender).AutoScrollMinSize = new Size(1820, 990); // Minimum scroll boyutu
+                    ((Form)sender).AutoScroll = true;
+                    ((Form)sender).AutoScrollMinSize = new Size(1820, 990); // Minimum scroll boyutu
                 }
             }
 

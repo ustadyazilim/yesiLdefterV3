@@ -1,6 +1,6 @@
 ﻿/*CreateProcedure*/
 
-CREATE PROCEDURE [dbo].[prc_SrcAdayTakip]
+CREATE or ALTER PROCEDURE [dbo].[prc_SrcAdayTakip]
     @FirmId INT
    ,@TalepId INT
    ,@DonemTipiId INT
@@ -764,25 +764,54 @@ BEGIN
 
         when t.TalepTipiId = 1 and -- Src1234
              isnull(oncekiESnv.DurumuTipiId,0) <> 1 and
-             isnull(yeniESnv.DurumuTipiId,0) <> 1 
+             isnull(yeniESnv.DurumuTipiId,0) <> 1 and 
+             convert(date, oncekiESnv.SinavTarihi, 103) < convert(date, ''04.02.2026'', 103)
              then 1 -- eSınav başarısız ise : Teo + Uyg sınavına girecek
 
         when t.TalepTipiId = 1 and -- Src1234
+             isnull(oncekiESnv.DurumuTipiId,0) <> 1 and
+             isnull(yeniESnv.DurumuTipiId,0) <> 1 and 
+             convert(date, oncekiESnv.SinavTarihi, 103) >= convert(date, ''04.02.2026'', 103)
+             then 2 -- eSınav başarısız ise : Sadece Teo sınavına girecek
+
+        when t.TalepTipiId = 1 and -- Src1234
              (isnull(oncekiESnv.DurumuTipiId,0) = 1 or isnull(yeniESnv.DurumuTipiId,0) = 1 ) and -- eSınav başarılı ise
-             isnull(oncekiUSnv.PuanTipiId,0) <> 100 and
-             isnull(yeniUSnv.PuanTipiId,0) <> 1 
+             isnull(oncekiUSnv.PuanTipiId,0) <> 100 and -- Başarılı
+             isnull(yeniUSnv.PuanTipiId,0) <> 1 and     -- Başarısız
+             convert(date, oncekiESnv.SinavTarihi, 103) < convert(date, ''04.02.2026'', 103)
              then 3 -- eSınav başarılı, uyg sınav başarısız ise : Sadece Uyg sınavına girecek 
 
         when t.TalepTipiId = 1 and -- Src1234
              (isnull(oncekiESnv.DurumuTipiId,0) = 1 or isnull(yeniESnv.DurumuTipiId,0) = 1 ) and -- eSınav başarılı ise
-             (isnull(oncekiUSnv.PuanTipiId,0) = 100 or isnull(yeniUSnv.PuanTipiId,0) = 100) -- Uyg başarılı ise 
+             (isnull(oncekiUSnv.PuanTipiId,0) = 100 or isnull(yeniUSnv.PuanTipiId,0) = 100) and  -- Uyg başarılı ise 
+             convert(date, oncekiESnv.SinavTarihi, 103) < convert(date, ''04.02.2026'', 103)
              then 0 -- eSınav başarılı, uyg sınav başarılı ise : Tanımsız
+
+        when t.TalepTipiId = 1 and -- Src1234
+             (isnull(oncekiESnv.DurumuTipiId,0) = 1 or isnull(yeniESnv.DurumuTipiId,0) = 1 ) and -- eSınav başarılı ise
+             convert(date, oncekiESnv.SinavTarihi, 103) >= convert(date, ''04.02.2026'', 103)
+             then 0 -- eSınav başarılı ise : Tanımsız
 
         else 0 end) as yeniGirecegiSinavTipiId
     
   , ( case when isnull(oncekiESnv.Id,0) = 0 then dbo.fnc_getEUSinavNo(t.TalepId, ''YeniESinavNo'') -- yeni sinav 
-           when isnull(oncekiESnv.DurumuTipiId,0) > 1 and isnull(oncekiESnv.SinavNo,0) < 4  then oncekiESnv.SinavNo + 1
-           when isnull(oncekiESnv.DurumuTipiId,0) > 1 and isnull(oncekiESnv.SinavNo,0) = 4  then 0
+
+           when convert(date, oncekiESnv.SinavTarihi, 103) < convert(date, ''04.02.2026'', 103) and 
+                isnull(oncekiESnv.DurumuTipiId,0) > 1 and 
+                isnull(oncekiESnv.SinavNo,0) < 4  then oncekiESnv.SinavNo + 1
+           
+           when convert(date, oncekiESnv.SinavTarihi, 103) < convert(date, ''04.02.2026'', 103) and 
+                isnull(oncekiESnv.DurumuTipiId,0) > 1 and 
+                isnull(oncekiESnv.SinavNo,0) = 4  then 0
+
+           when convert(date, oncekiESnv.SinavTarihi, 103) >= convert(date, ''04.02.2026'', 103) and 
+                isnull(oncekiESnv.DurumuTipiId,0) > 1 and 
+                isnull(oncekiESnv.SinavNo,0) < 8  then oncekiESnv.SinavNo + 1
+           
+           when convert(date, oncekiESnv.SinavTarihi, 103) >= convert(date, ''04.02.2026'', 103) and 
+                isnull(oncekiESnv.DurumuTipiId,0) > 1 and 
+                isnull(oncekiESnv.SinavNo,0) = 8  then 0
+
            when isnull(oncekiESnv.DurumuTipiId,0) = 1 then 0 -- e-sınav başarılı ise
            end ) as yeniGirecegiSinavNo 
 
@@ -800,7 +829,10 @@ BEGIN
            --when isnull(t.TeorikDersTipiId,0) < 17 and t.eSinavDurumTipiId <> 6 then 1 --  17 : Teork dersler tamamlanmadıysa > 1 -- e-Sınav için hazır değil
 
            -- uygulamalı sınav aşamasına geldiyse veya başarılı ise ve Ody,Udy değilse
-           when (isnull(oncekiUSnv.Id,0) > 0) and (isnull(oncekiUSnv.PuanTipiId,0) = 0 or  isnull(oncekiUSnv.PuanTipiId,0) = 100) and t.TalepTipiId < 4 then 5 -- D listesine 
+           when (isnull(oncekiUSnv.Id,0) > 0) and 
+                (isnull(oncekiUSnv.PuanTipiId,0) = 0 or  
+                 isnull(oncekiUSnv.PuanTipiId,0) = 100) and 
+                 t.TalepTipiId < 4 then 5 -- D listesine 
 
            -- girdiği e-sınav başarılıysa
            when isnull(oncekiESnv.DurumuTipiId,0) = 1 and isnull(oncekiUSnv.Id,0) = 0 then 5 -- D listesine 
@@ -878,9 +910,29 @@ BEGIN
            when isnull(oncekiESnv.Id,0) = 0 then 0
       end ) as yenieSinavSonucTipiId 
 
-  , ( case when (oncekiESnv.DurumuTipiId = 1) then 2 -- Uygulama aşamasına geçti
-           when (oncekiESnv.DurumuTipiId > 1) and (oncekiESnv.SinavNo <  4 ) then 1  -- Tekrar sınava girecek
-           when (oncekiESnv.DurumuTipiId > 1) and (oncekiESnv.SinavNo >= 4 ) then 3 -- Tüm e-Sınav hakkı bitti
+  , ( case when convert(date, oncekiESnv.SinavTarihi, 103) < convert(date, ''04.02.2026'', 103) and 
+                oncekiESnv.DurumuTipiId = 1 then 2 -- Uygulama aşamasına geçti
+
+           when convert(date, oncekiESnv.SinavTarihi, 103) < convert(date, ''04.02.2026'', 103) and 
+                oncekiESnv.DurumuTipiId > 1 and 
+                oncekiESnv.SinavNo < 4 then 1  -- Tekrar sınava girecek
+
+           when convert(date, oncekiESnv.SinavTarihi, 103) < convert(date, ''04.02.2026'', 103) and 
+                oncekiESnv.DurumuTipiId > 1 and 
+                oncekiESnv.SinavNo >= 4 then 3 -- Tüm e-Sınav hakkı bitti
+
+           -- yeni yönetmelik 
+           when convert(date, oncekiESnv.SinavTarihi, 103) >= convert(date, ''04.02.2026'', 103) and 
+                oncekiESnv.DurumuTipiId = 1 then 4 -- Başarılı, Sertifika aşamasına geçti
+
+           when convert(date, oncekiESnv.SinavTarihi, 103) >= convert(date, ''04.02.2026'', 103) and 
+                oncekiESnv.DurumuTipiId > 1 and 
+                oncekiESnv.SinavNo < 8 then 1  -- Tekrar sınava girecek
+
+           when convert(date, oncekiESnv.SinavTarihi, 103) >= convert(date, ''04.02.2026'', 103) and 
+                oncekiESnv.DurumuTipiId > 1 and 
+                oncekiESnv.SinavNo >= 8 then 3 -- Tüm e-Sınav hakkı bitti
+
            end ) as yenieSinavSonrasiTipiId
 
   , ( case when isnull(oncekiESnv.Id,0) > 0 then oncekiESnv.Id end ) as yenieSinavDetayId
@@ -965,7 +1017,7 @@ BEGIN
 
   --print @Kim
   --print LEN(@Sql)
-
+  
   if (@Kim = 'SrcAdayTakipFull'
   or  @Kim = 'SrcAdayTakipKayit'
   or  @Kim = 'SrcAdayTakipESinav'
@@ -1145,7 +1197,12 @@ BEGIN
          when t.KayitTipiId = 6 and t.uSinavSonrasiTipiId <> 3 then 3  -- hatalı kayıtı düzelt  
 
 	     when t.eSinavSonrasiTipiId = 2 and (t.TalepTipiId = 4 or t.TalepTipiId = 5) then 4 -- Ody veya Udy Sertifika aldı
-	     when t.uSinavSonrasiTipiId = 2 and t.TalepTipiId = 1 then 4 -- Src1234 Sertifika aldı 
+
+         when convert(date, t.eSinavBasariTarihi, 103) < convert(date, ''04.02.2026'', 103) and 
+              t.uSinavSonrasiTipiId = 2 and t.TalepTipiId = 1 then 4 -- Src1234 Sertifika aldı 
+
+         when convert(date, t.eSinavBasariTarihi, 103) >= convert(date, ''04.02.2026'', 103) and 
+              t.eSinavSonrasiTipiId = 4 and t.TalepTipiId = 1 then 4 -- Src1234 Sertifika aldı 
 
          when t.KayitTipiId > 4 then t.KayitTipiId -- aşamasını bulmui, kayıt tipini değiştirme
 
@@ -1163,7 +1220,7 @@ BEGIN
 	     when t.eSinavSonrasiTipiId = 3 then 5 -- e-sınav hakkı bitti
 		 
 		 when ( t.uSinavDurumTipiId > 1 
-		 or     t.eSinavSonrasiTipiId > 1
+		 or     t.eSinavSonrasiTipiId > 0
 		 or     t.BelgelerYuklendi = 1 ) then 3 -- Kesin kayıt
 		 when ( t.BelgelerGeldi = 1 
 		 or     t.BelgelerTarandi = 1 ) then 2 -- Kayıt aşamasında
@@ -1317,7 +1374,5 @@ BEGIN
   print 'prc_SrcAdayTakip end'
 
 END --
-
-
 
 /*CreateProcedureEnd*/

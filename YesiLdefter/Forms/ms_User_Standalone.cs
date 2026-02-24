@@ -12,13 +12,14 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Tkn_Events;
 /* Internal Namespaces */
 using Tkn_Registry;
 using Tkn_ToolBox;
 using Tkn_UserFirms;
+using Tkn_UserFirms;
 using Tkn_UstadAPI;
 using Tkn_Variable;
-using Tkn_UserFirms;
 
 namespace YesiLdefter
 {
@@ -72,6 +73,13 @@ namespace YesiLdefter
             InitializeStandaloneComponents();
             InitializeApiClient();
             LoadUserRegistry();
+
+            tEventsForm evf = new tEventsForm();
+
+            this.Load += new System.EventHandler(evf.myForm_Load);
+            this.Shown += new System.EventHandler(evf.myForm_Shown);
+
+            this.KeyPreview = true;
         }
 
         #endregion
@@ -950,5 +958,9 @@ namespace YesiLdefter
         }
 
         #endregion
+
+        
+
+
     }
 }
