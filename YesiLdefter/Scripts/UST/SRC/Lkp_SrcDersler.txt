@@ -8,7 +8,7 @@ begin transaction
    Id                     Int Unique Not Null, 
    FirmId                 Int        not null,
    IsActive               Bit        not null,   /* default : 1 = active, 0 = not active */  
-   TalepTipiId            SmallInt       null,   /* 1: Src1234, 2:Src5, 3:Src6, 4:Ody1234, 5:Udy1234  */ 
+   TalepTipiId            SmallInt       null,   /* 1: Src1234, 2:Src5, 3:Src Kurye, 4:Ody1234, 5:Udy1234  */ 
    Grubu                  Varchar(1)     null,   /* A, B, C veya D */  
    SiraNo                 SmallInt       null,
    DersAdi                nVarchar(100)  null,

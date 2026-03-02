@@ -586,11 +586,12 @@ namespace Tkn_Starter
                     + " , LastDate = " + TarihSaat_Formati(Convert.ToDateTime(DateTime.Now)) // v.TARIH_SAAT
                     + " , OperatingSystem = '" + v.tComputer.OperatingSystem + "' "
                     //+ " , ExeVersion = '" + v.tExeAbout.activeVersionNo.Substring(0, 8) + "' "
-                    + " , ExeVersion = '20260210_standart' "
+                    + " , ExeVersion = '20260227_standart' "
                     + " where ComputerId = " + v.tComputer.UstadCrmComputerId.ToString();
                     DataSet ds_ = new DataSet();
                     SQL_Read_Execute(v.dBaseNo.UstadCrm, ds_, ref tSql, "UstadComputers", "Update");
                 }
+
             }
             else
             {

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -231,8 +232,15 @@ namespace YesiLdefter.Selenium
                     (injectType == v.tWebInjectType.GetAndSet && workRequestType == v.tWebRequestType.post)) &&
                     (TagName == "table"))
                 {
-                    if (f.browserType == v.tBrowserType.Selenium)
+                    if (f.browserType == v.tBrowserType.Selenium && wnv.AttRole != "MebbisTakvim")
                         postHtmlTable(f.wbSel, ref wnv, idName, f);
+
+
+                    //SelectCalendarDate(IWebDriver wb, string calendarId, string writeValue, int maxTries = 24)
+
+                    if (f.browserType == v.tBrowserType.Selenium && wnv.AttRole == "MebbisTakvim")
+                        SelectCalendarDate(f.wbSel, idName, wnv.writeValue, 24);
+
                     //if (f.browserType == v.tBrowserType.CefSharp)
                     //    postHtmlTable(f.wbCef, ref wnv, idName, f);
                 }
@@ -1300,6 +1308,213 @@ namespace YesiLdefter.Selenium
         }
         #endregion getHtmlTable
 
+        public bool SelectCalendarDate(IWebDriver wb, string calendarId, string writeValue, int maxTries = 24)
+        {
+            if (!DateTime.TryParseExact(writeValue, "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime target))
+                return false;
+
+            string[] turkishMonths = new[]
+            {
+                "", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+                "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+            };
+
+            string targetMonthName = turkishMonths[target.Month];
+            string expectedHeader = $"{targetMonthName} {target.Year}";
+
+            IWebElement GetCalendar()
+            {
+                return wb.FindElement(By.Id(calendarId));
+            }
+
+            string ReadHeader()
+            {
+                try
+                {
+                    var cal = GetCalendar(); // always refetch the calendar element
+                    var headerCell = cal.FindElement(By.CssSelector("table td[align='center']"));
+                    return headerCell.Text.Trim();
+                }
+                catch (StaleElementReferenceException)
+                {
+                    // DOM updated between calls; try once more
+                    try
+                    {
+                        Thread.Sleep(50);
+                        var cal = GetCalendar();
+                        var headerCell = cal.FindElement(By.CssSelector("table td[align='center']"));
+                        return headerCell.Text.Trim();
+                    }
+                    catch
+                    {
+                        return string.Empty;
+                    }
+                }
+                catch (NoSuchElementException)
+                {
+                    return string.Empty;
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }
+
+            int tries = 0;
+            while (tries++ < maxTries)
+            {
+                string header = ReadHeader();
+                if (header == expectedHeader) break;
+
+                // parse header
+                string[] parts = header.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                bool clicked = false;
+
+                if (parts.Length >= 2 && int.TryParse(parts[parts.Length - 1], out int displayedYear))
+                {
+                    string displayedMonthName = string.Join(" ", parts, 0, parts.Length - 1);
+                    int displayedMonth = Array.FindIndex(turkishMonths, m => string.Equals(m, displayedMonthName, StringComparison.InvariantCultureIgnoreCase));
+                    if (displayedMonth > 0)
+                    {
+                        // decide direction
+                        if (displayedYear < target.Year || (displayedYear == target.Year && displayedMonth < target.Month))
+                        {
+                            try
+                            {
+                                var nextAnchor = GetCalendar().FindElement(By.CssSelector("a[title='Go to the next month']"));
+                                nextAnchor.Click();
+                                clicked = true;
+                            }
+                            catch (StaleElementReferenceException)
+                            {
+                                // transient; continue loop to refetch
+                            }
+                            catch (NoSuchElementException)
+                            {
+                                // anchor missing; will fallback below
+                            }
+                        }
+                        else
+                        {
+                            try
+                            {
+                                var prevAnchor = GetCalendar().FindElement(By.CssSelector("a[title='Go to the previous month']"));
+                                prevAnchor.Click();
+                                clicked = true;
+                            }
+                            catch (StaleElementReferenceException)
+                            {
+                                // transient; continue loop to refetch
+                            }
+                            catch (NoSuchElementException)
+                            {
+                                // anchor missing; will fallback below
+                            }
+                        }
+                    }
+                }
+
+                // If not clicked yet, re-check header
+                header = ReadHeader();
+                if (header == expectedHeader) break;
+
+                // fallback: try to click next if still needed
+                if (!clicked)
+                {
+                    try
+                    {
+                        var nextAnchor = GetCalendar().FindElement(By.CssSelector("a[title='Go to the next month']"));
+                        header = ReadHeader();
+                        if (header != expectedHeader)
+                        {
+                            try
+                            {
+                                nextAnchor.Click();
+                                clicked = true;
+                            }
+                            catch (StaleElementReferenceException)
+                            {
+                                // element became stale before click; continue loop
+                            }
+                        }
+                    }
+                    catch (StaleElementReferenceException)
+                    {
+                        // continue and refetch on next iteration
+                    }
+                    catch (NoSuchElementException)
+                    {
+                        // no next anchor; will continue loop
+                    }
+                }
+
+                // after clicking wait for header change or DOM update using WebDriverWait
+                if (clicked)
+                {
+                    try
+                    {
+                        var wait = new WebDriverWait(wb, TimeSpan.FromSeconds(3));
+                        string before = header;
+                        wait.Until(d =>
+                        {
+                            try
+                            {
+                                var current = ReadHeader();
+                                return current != before;
+                            }
+                            catch
+                            {
+                                // if we hit an exception reading header, consider it changed/stale
+                                return true;
+                            }
+                        });
+                    }
+                    catch (WebDriverTimeoutException)
+                    {
+                        // timeout waiting for header change; continue loop
+                    }
+                }
+                else
+                {
+                    Thread.Sleep(150);
+                }
+            }
+
+            // now try to click the day - refetch calendar element before each find
+            string dayTitle = $"{target.Day} {targetMonthName}";
+            try
+            {
+                var dayLink = GetCalendar().FindElement(By.XPath($".//a[@title='{dayTitle}']"));
+                if (dayLink != null)
+                {
+                    dayLink.Click();
+                    return true;
+                }
+            }
+            catch (StaleElementReferenceException)
+            {
+                // try once more below
+            }
+            catch (NoSuchElementException) { }
+
+            try
+            {
+                var fallback = GetCalendar().FindElements(By.XPath($".//a[text()='{target.Day}']")).FirstOrDefault();
+                if (fallback != null)
+                {
+                    fallback.Click();
+                    return true;
+                }
+            }
+            catch (StaleElementReferenceException)
+            {
+                // give up
+            }
+            catch { }
+
+            return false;
+        }
+
         #region postHtmlTable
         // database üzerindeki tabloyu bul ve gönderilecek colums/kolonları oku 
         // ve okunan bu bu colums/kolonları htmlTable anahtar value ile post için gönder
@@ -1584,6 +1799,7 @@ namespace YesiLdefter.Selenium
                             //IList<IWebElement> comboOptionElements = element.FindElements(By.TagName("option"));
                             //comboOptionElements.FirstOrDefault(x => x.Text == writeValue)?.Click();
 
+                            /*
                             SelectElement oSelect = new SelectElement(element);
                             List<string> values = oSelect.Options.Select(option => option.GetAttribute("value")).ToList();
                             string value = values.Find(s => s.Contains(writeValue));
@@ -1591,15 +1807,45 @@ namespace YesiLdefter.Selenium
                             if (value != null)
                             {
                                 oSelect.SelectByValue(writeValue);
-                                //oSelect.SelectByIndex(index);
-                                //oSelect.SelectByText(text);
                             }
-                            /*
-                            SelectElement oSelect = new SelectElement(driver.FindElement(By.Id(Element_ID)));
-                            oSelect.SelectByIndex(index);
-                            oSelect.SelectByText(text);
-                            oSelect.SelectByValue(value);
                             */
+
+                            //Selenium SelectElement kullanarak value atama yaparken, tam eşleşme yerine contains ile arama yaparak daha esnek bir seçim yapabiliriz
+                            //
+
+                            SelectElement oSelect = new SelectElement(element);
+                            List<IWebElement> optionElements = oSelect.Options.ToList();
+
+                            // Find the exact option value that matches (or contains) the requested writeValue
+                            string matchValue = optionElements
+                                .Select(opt => opt.GetAttribute("value"))
+                                .FirstOrDefault(v => !string.IsNullOrEmpty(v) && v.Contains(writeValue));
+
+                            if (matchValue != null)
+                            {
+                                // If the <select> is multi-select, clear previous selections so only this one remains
+                                if (oSelect.IsMultiple)
+                                {
+                                    try { oSelect.DeselectAll(); } catch { /* some drivers may not support DeselectAll; ignore */ }
+                                }
+
+                                // Select by the actual option value we found
+                                oSelect.SelectByValue(matchValue);
+                            }
+                            else
+                            {
+                                // Fallback: try to match by visible text
+                                var matchByText = optionElements.FirstOrDefault(opt => opt.Text == writeValue);
+                                if (matchByText != null)
+                                {
+                                    if (oSelect.IsMultiple)
+                                    {
+                                        try { oSelect.DeselectAll(); } catch { }
+                                    }
+                                    oSelect.SelectByText(matchByText.Text);
+                                }
+                            }
+
                         } else if (tagName == "img")
                         {
                             /// Mebbis de webcam in çekip sayfada gösterdiği element burası

@@ -123,10 +123,10 @@ AS BEGIN
     if (@SertifikaTipiId = 15008 or @SertifikaTipiId = 15047 or @SertifikaTipiId = 15067) Set @sqlAddField = ' , sd.DersSaati4 as Lkp_DersSayisi  ' -- SRC 4
 
     if  @SertifikaTipiId = 15021 Set @sqlWhere = ' and DersSaati1 > 0 and TalepTipiId = ' + @talepTipiId -- SRC5
-    if  @SertifikaTipiId = 15031 Set @sqlWhere = ' and DersSaati1 > 0 and TalepTipiId = ' + @talepTipiId -- SRC6
+    if  @SertifikaTipiId = 15031 Set @sqlWhere = ' and DersSaati1 > 0 and TalepTipiId = ' + @talepTipiId -- SRC Kurye
 
     if  @SertifikaTipiId = 15021 Set @sqlAddField = ' , sd.DersSaati1 as Lkp_DersSayisi  ' -- SRC5
-    if  @SertifikaTipiId = 15031 Set @sqlAddField = ' , sd.DersSaati1 as Lkp_DersSayisi  ' -- SRC6
+    if  @SertifikaTipiId = 15031 Set @sqlAddField = ' , sd.DersSaati1 as Lkp_DersSayisi  ' -- SRC Kurye
 
 
     Set @sql = ' select sd.* '

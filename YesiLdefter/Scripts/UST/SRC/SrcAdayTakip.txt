@@ -144,7 +144,7 @@ INSERT INTO [Lkp].[SrcAdayTakipTalepTipi] (Id, TalepTipi, KonuGrupId, KonuId, Ko
  VALUES 
   ( 1,    N'SRC Sertifikası',   1, 1111, 'Talep tipi', '', ''),
   ( 2,    N'SRC5 Sertifikası',  1, 1112, 'Talep tipi', '', ''),
-  ( 3,    N'SRC6 Sertifikası',  1, 1113, 'Talep tipi', '', ''),
+  ( 3,    N'SRC Kurye Sertifikası',  1, 1113, 'Talep tipi', '', ''),
   ( 4,    N'ODY Sertifikası',   1, 1114, 'Talep tipi', '', ''),
   ( 5,    N'ÜDY Sertifikası',   1, 1115, 'Talep tipi', '', '')
 

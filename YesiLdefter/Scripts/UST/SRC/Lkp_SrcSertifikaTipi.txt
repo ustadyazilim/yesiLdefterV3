@@ -33,7 +33,7 @@ INSERT INTO [Lkp].[SrcSertifikaTipi] (Id, SertifikaTipi, KSertifikaTipi, IsActiv
   (14383, N'SRC4 Yurtiçi Yük ve Eşya Taşımacılığı',            'SRC4', 1, 4, 1, '14383' ),
 
   (14391, N'SRC5 Tehlikeli Madde Taşımacılığı (ADR Belgesi)',  'SRC5', 1, 5, 2, '0' ),
-  (14392, N'SRC6 Hızla bozulan ürünlerin taşınması (ATP)',     'SRC6', 0, 6, 3, '0' ),
+  (14392, N'SRC Kurye',                                        'SRCK', 1, 6, 3, '0' ),
   
   (13610, N'ODY1 Uluslararası yolcu taşımacılığı orta düzey yöneticisi',       'ODY1', 0, 11, 3, '' ),
   (13611, N'ODY2 Yurtiçi yolcu taşımacılığı orta düzey yöneticisi',            'ODY2', 0, 12, 3, '' ),
@@ -58,7 +58,7 @@ INSERT INTO [Lkp].[SrcSertifikaTipi] (Id, SertifikaTipi, KSertifikaTipi, IsActiv
 
   (15021, N'SRC 5',             'SRC 5',       1, 121, 2, '' ),
 
-  (15031, N'SRC 6',             'SRC 6',       0, 131, 3, '' ),
+  (15031, N'SRC Kurye',         'SRC Kurye',   1, 131, 3, '' ),
 
   (15041, N'ODY 1-2-3-4',       'ODY 1-2-3-4', 0, 141, 4, '' ),
   (15042, N'ODY 1-2',           'ODY 1-2',     0, 142, 4, '' ),
@@ -82,39 +82,3 @@ commit transaction
 
 /*CreateTableEnd*/
 
-
-/* AI nin halüsinasyonları
-
-  (14380, N'SRC1 Yurt içi ticari araç (yük taşımacılığı)',    'SRC1', 0, 1 ),
-  (14381, N'SRC2 Yurt içi ticari araç (yolcu taşımacılığı)',  'SRC2', 0, 2 ),
-  (14382, N'SRC3 Yurt dışı ticari araç (yük taşımacılığı)',   'SRC3', 0, 3 ),
-  (14383, N'SRC4 Yurt dışı ticari araç (yolcu taşımacılığı)', 'SRC4', 0, 4 ),
-  (14384, N'SRC5 Tehlikeli madde taşımacılığı (ADR)',         'SRC5', 0, 5 ),
-
-  (13610, N'ODY1 Yurt İçi Otobüs Direksiyon Yetkisi',            'ODY1', 0, 11 ),
-  (13611, N'ODY2 Uluslararası Otobüs Direksiyon Yetkisi',        'ODY2', 0, 12 ),
-  (13612, N'ODY3 Yurt İçi Troleybüs Direksiyon Yetkisi',         'ODY3', 0, 13 ),
-  (13613, N'ODY4 Uluslararası Troleybüs Direksiyon Yetkisi',     'ODY4', 0, 14 ),
-
-  (13606, N'ÜDY1 Yurt İçi Yük Taşıma Üst Düzey Yeterlilik',      'ÜDY1', 0, 21 ),
-  (13607, N'ÜDY2 Uluslararası Yük Taşıma Üst Düzey Yeterlilik',  'ÜDY2', 0, 22 ),
-  (13608, N'ÜDY3 Tehlikeli Madde Taşıma Üst Düzey Yeterlilik',   'ÜDY3', 0, 23 ),
-  (13609, N'ÜDY4 Özel Yük Taşıma Üst Düzey Yeterlilik',          'ÜDY4', 0, 24 )
-*/
-
-
-
-/*
-
-
-
-
-
-*/
-
-/*
-
-
-
-
-*/

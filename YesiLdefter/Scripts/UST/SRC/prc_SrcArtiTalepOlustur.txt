@@ -43,7 +43,7 @@ AS BEGIN
     and   isnull(ParentId,0) = 0
     order by TalepKayitTarihi desc
 
-    -- Src5 veya Src6 veya Piskotekik ise geri dön, işlem yapma
+    -- Src5 veya Src Kurye veya Piskotekik ise geri dön, işlem yapma
     if (@masterSertifikaTipiId = 2 or @masterSertifikaTipiId = 3 or @masterSertifikaTipiId = 6) return;
 
     if (

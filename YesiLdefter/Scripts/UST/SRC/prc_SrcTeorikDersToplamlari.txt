@@ -37,7 +37,7 @@ AS BEGIN
 
     if (@SertifikaTipiId >= 15001 and @SertifikaTipiId <= 15008) Set @talepTipiId = '1' -- Src
     if  @SertifikaTipiId = 15021 Set @talepTipiId = '2' -- Src5
-    if  @SertifikaTipiId = 15031 Set @talepTipiId = '3' -- Src6
+    if  @SertifikaTipiId = 15031 Set @talepTipiId = '3' -- Src Kurye
     if (@SertifikaTipiId >= 15041 and @SertifikaTipiId <= 15047) Set @talepTipiId = '4' -- Ody
     if (@SertifikaTipiId >= 15061 and @SertifikaTipiId <= 15067) Set @talepTipiId = '5' -- Udy
 

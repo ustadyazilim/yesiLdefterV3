@@ -15,7 +15,7 @@ begin transaction
    SertifikaTipiId         SmallInt      null, /* detayı [Lkp].[SrcSertifikaTipi] tablosunda */
    SertifikaSinifTipiId    SmallInt      null, /* İstenen SRC5'in detay sertifika tipi Id si */
    DerslikAdiTipiId        SmallInt      null, /* Derslik-1, -2 ... -10 */
-   TalepTipiId             SmallInt      null, /* 1. Src1234, 2. Src5, 3. Src6, 4. Ody1234, 5. Udy1234 */
+   TalepTipiId             SmallInt      null, /* 1. Src1234, 2. Src5, 3. Src Kurye, 4. Ody1234, 5. Udy1234 */
 
    constraint		pk_SrcSablonTeorikB primary key (Id)
  )
@@ -77,7 +77,7 @@ AS BEGIN
 15007	SRC 3
 15008	SRC 4
 15021	SRC 5
-15031	SRC 6
+15031	SRC Kurye
 15041	ODY 1-2-3-4
 15042	ODY 1-2
 15043	ODY 3-4
@@ -112,7 +112,7 @@ AS BEGIN
       if (@ySertifikaTipiId = 15008) Set @yeniSablonKodu = 'SRC4'
 
       if (@ySertifikaTipiId = 15021) Set @yeniSablonKodu = 'SRC5'
-      if (@ySertifikaTipiId = 15031) Set @yeniSablonKodu = 'SRC6'
+      if (@ySertifikaTipiId = 15031) Set @yeniSablonKodu = 'SRCKurye'
 
       if (@ySertifikaTipiId = 15041) Set @yeniSablonKodu = 'ODY1234'
       if (@ySertifikaTipiId = 15042) Set @yeniSablonKodu = 'ODY12'

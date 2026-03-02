@@ -22,7 +22,7 @@ AS BEGIN
   -- Src
   ( 23101,    N'Src 1234 Sertifika'),
   ( 23102,    N'Src5 Sertifika'),
-  ( 23103,    N'Src6 Sertifika'),
+  ( 23103,    N'Src Kurye Sertifika'),
   ( 23104,    N'Ody 1234 Sertifika'),
   ( 23105,    N'Üdy 1234 Sertifika'),
   ( 23106,    N'Piskoteknik'),

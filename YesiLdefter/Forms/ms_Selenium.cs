@@ -998,7 +998,9 @@ namespace YesiLdefter
                 wnv.InjectType == v.tWebInjectType.AlwaysSet ||
                (wnv.InjectType == v.tWebInjectType.GetAndSet && wnv.workRequestType == v.tWebRequestType.post))
             {
-                if (wnv.TagName != "table")
+                if (wnv.TagName != "table" ||
+                    (wnv.TagName == "table" && wnv.AttRole == "MebbisTakvim") 
+                    ) 
                     onay = msPagesService.transferFromDatabaseToWeb(this, wnv, msWebScrapingDbFields_);
 
                 if (wnv.TagName == "table")

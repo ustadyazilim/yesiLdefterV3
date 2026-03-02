@@ -6,7 +6,7 @@ AS BEGIN
    -- Id      OnmOdemePlani.UcretTipi
    -- 23101   Src1,2,3,4 Sertifika
    -- 23102   Src5 Sertifika
-   -- 23103   Src6 Sertifika
+   -- 23103   Src Kurye Sertifika
    -- 23104   Ody1,2,3,4 Sertifika
    -- 23105   Udy1,2,3,4 Sertifika
 

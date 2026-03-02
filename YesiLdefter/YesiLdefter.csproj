@@ -1238,6 +1238,7 @@
     <Content Include="Scripts\UST\SRC\fnc_getDonemTipiId.txt" />
     <Content Include="Scripts\UST\SRC\fnc_getEUSinavNo.txt" />
     <Content Include="Scripts\UST\SRC\Lkp_Src5GrupTipi.txt" />
+    <Content Include="Scripts\UST\SRC\prc_Src5AdayNoVer.txt" />
     <Content Include="Scripts\UST\SRC\prc_SrcAdayNoVer.txt" />
     <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersPlaniElemanaOzel.txt" />
     <Content Include="Scripts\UST\SRC\prc_Src5TeorikDersPlaniGruplari.txt" />

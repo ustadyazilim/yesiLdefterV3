@@ -205,6 +205,9 @@ AS BEGIN
   -- Src
   ( 23101,    N'Src Sertifika'),
   ( 23102,    N'Src5 Sertifika'),
+  ( 23103,    N'Src Kurye Sertifika'),
+  ( 23104,    N'Ody 1234 Sertifika'),
+  ( 23105,    N'Üdy 1234 Sertifika'),
   ( 23111,    N'e-Sınav ücreti'),
   ( 23112,    N'Uygulama sınav ücreti')
 */
@@ -238,7 +241,7 @@ AS BEGIN
   begin       
       if (@TalepTipiId = 1) set @UcretTipiId = 23101 -- Src1,2,3,4 Sertifika
       if (@TalepTipiId = 2) set @UcretTipiId = 23102 -- Src5 Sertifika
-      if (@TalepTipiId = 3) set @UcretTipiId = 23103 -- Src6 Sertifika
+      if (@TalepTipiId = 3) set @UcretTipiId = 23103 -- Src Kurye Sertifika
       if (@TalepTipiId = 4) set @UcretTipiId = 23104 -- Ody1,2,3,4 Sertifika
       if (@TalepTipiId = 5) set @UcretTipiId = 23105 -- Üdy1,2,3,4 Sertifika
 

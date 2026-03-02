@@ -30,7 +30,7 @@ AS BEGIN
      
   if (@yTalepTipiId = 1) or  -- src1234
      (@yTalepTipiId = 2) or  -- src5
-     --(@yTalepTipiId = 3) or  -- src6
+     (@yTalepTipiId = 3) or  -- src kurye
      (@yTalepTipiId = 4) or  -- Ody1234
      (@yTalepTipiId = 5)     -- Udy1234
   begin
