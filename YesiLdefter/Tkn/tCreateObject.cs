@@ -379,8 +379,8 @@ namespace Tkn_CreateObject
                     //simpleButton.Text = simpleButton.TabIndex.ToString() +";" + nButton.buttonText;
                     simpleButton.Text = nButton.buttonText;
 
-                    if (nButton.buttonKey != "")
-                        simpleButton.Text = nButton.buttonText + " " + nButton.buttonKey;
+                    //if (nButton.buttonKey != "")
+                    //    simpleButton.Text = nButton.buttonText + " " + nButton.buttonKey;
 
                     simpleButton.AccessibleName = nButton.TableIPCode;
                     simpleButton.AccessibleDescription = nButton.propNavigator;
@@ -1388,7 +1388,7 @@ namespace Tkn_CreateObject
 
             nButton.buttonName = "simpleButton_sil_satir";
             //nButton.buttonText = "Satır Sil <i>" + Keys.Delete.ToString().Substring(0, 3) + "</i>";
-            nButton.buttonText = "Satır Sil<b>Ct+" + Keys.Delete.ToString().Substring(0, 3) + "</b>";
+            nButton.buttonText = "Satır Sil";//<b>Ct+" + Keys.Delete.ToString().Substring(0, 3) + "</b>";
             nButton.dock = DockStyle.Right;
             nButton.tabIndex = 51; //26;
             nButton.tabStop = false;
@@ -1427,7 +1427,7 @@ namespace Tkn_CreateObject
             //if (nButton.tabIndex == 24) nButton.tabIndex = 2;
 
             nButton.buttonName = "simpleButton_kaydet_yeni";
-            nButton.buttonText = "Kaydet, Yeni <b>" + v.Key_KaydetYeni.ToString() + "</b>";
+            nButton.buttonText = "Kaydet, Yeni";// <b>" + v.Key_KaydetYeni.ToString() + "</b>";
             nButton.dock = DockStyle.Right;
             nButton.tabIndex = 21;
             nButton.tabStop = true;
@@ -1437,7 +1437,7 @@ namespace Tkn_CreateObject
             createNavigatorButton(nButton);
 
             nButton.buttonName = "simpleButton_kaydet";
-            nButton.buttonText = "Kaydet <b>" + v.Key_Kaydet.ToString() + "</b>";
+            nButton.buttonText = "Kaydet";// <b>" + v.Key_Kaydet.ToString() + "</b>";
             nButton.dock = DockStyle.Right;
             nButton.tabIndex = 22; // 24;
             nButton.tabStop = true;
@@ -1788,7 +1788,7 @@ namespace Tkn_CreateObject
                     if (lkp_newCaption != "null")
                     {
                         if (buttonKey != "")
-                             simpleButton_.Text = lkp_newCaption + " " + buttonKey;
+                            simpleButton_.Text = lkp_newCaption;// + " " + buttonKey;
                         else simpleButton_.Text = lkp_newCaption;
                     }
                     if (lkp_newWidth != "0")
