@@ -377,37 +377,37 @@ namespace Tkn_CreateDatabase
             String Sql = "";
             DataSet ds = new DataSet();
             /*
-            if (v.active_DB.runDBaseNo == v.dBaseNo.Manager)
-            {
-                vt.DBaseNo = v.active_DB.managerDBaseNo;
-                vt.DBaseType = v.active_DB.managerDBType;
-                vt.DBaseName = v.active_DB.managerDBName;
-                vt.msSqlConnection = v.active_DB.managerMSSQLConn;
-            }
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.Manager)
+            //{
+            //    vt.DBaseNo = v.active_DB.managerDBaseNo;
+            //    vt.DBaseType = v.active_DB.managerDBType;
+            //    vt.DBaseName = v.active_DB.managerDBName;
+            //    vt.msSqlConnection = v.active_DB.managerMSSQLConn;
+            //}
 
-            if (v.active_DB.runDBaseNo == v.dBaseNo.UstadCrm)
-            {
-                vt.DBaseNo = v.active_DB.ustadCrmDBaseNo;
-                vt.DBaseType = v.active_DB.ustadCrmDBType;
-                vt.DBaseName = v.active_DB.ustadCrmDBName;
-                vt.msSqlConnection = v.active_DB.ustadCrmMSSQLConn;
-            }
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.UstadCrm)
+            //{
+            //    vt.DBaseNo = v.active_DB.ustadCrmDBaseNo;
+            //    vt.DBaseType = v.active_DB.ustadCrmDBType;
+            //    vt.DBaseName = v.active_DB.ustadCrmDBName;
+            //    vt.msSqlConnection = v.active_DB.ustadCrmMSSQLConn;
+            //}
 
-            if (v.active_DB.runDBaseNo == v.dBaseNo.Project)
-            {
-                vt.DBaseNo = v.active_DB.projectDBaseNo;
-                vt.DBaseType = v.active_DB.projectDBType;
-                vt.DBaseName = v.active_DB.projectDBName;
-                vt.msSqlConnection = v.active_DB.projectMSSQLConn;
-            }
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.Project)
+            //{
+            //    vt.DBaseNo = v.active_DB.projectDBaseNo;
+            //    vt.DBaseType = v.active_DB.projectDBType;
+            //    vt.DBaseName = v.active_DB.projectDBName;
+            //    vt.msSqlConnection = v.active_DB.projectMSSQLConn;
+            //}
 
-            if (v.active_DB.runDBaseNo == v.dBaseNo.NewDatabase)
-            {
-                vt.DBaseNo = v.newFirm_DB.dBaseNo;
-                vt.DBaseType = v.newFirm_DB.dBType;
-                vt.DBaseName = v.newFirm_DB.databaseName;
-                vt.msSqlConnection = v.newFirm_DB.MSSQLConn;
-            }
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.NewDatabase)
+            //{
+            //    vt.DBaseNo = v.newFirm_DB.dBaseNo;
+            //    vt.DBaseType = v.newFirm_DB.dBType;
+            //    vt.DBaseName = v.newFirm_DB.databaseName;
+            //    vt.msSqlConnection = v.newFirm_DB.MSSQLConn;
+            //}
             */
             preparingVTable(vt);
 
@@ -430,42 +430,42 @@ namespace Tkn_CreateDatabase
         {
             bool onay = false;
             String Sql = "";
-            /*
-            if (v.active_DB.runDBaseNo == v.dBaseNo.Manager)
-            {
-                vt.DBaseNo = v.active_DB.managerDBaseNo;
-                vt.DBaseType = v.active_DB.managerDBType;
-                vt.DBaseName = v.active_DB.managerDBName;
-                vt.msSqlConnection = v.active_DB.managerMSSQLConn;
-            }
+            ///*
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.Manager)
+            //{
+            //    vt.DBaseNo = v.active_DB.managerDBaseNo;
+            //    vt.DBaseType = v.active_DB.managerDBType;
+            //    vt.DBaseName = v.active_DB.managerDBName;
+            //    vt.msSqlConnection = v.active_DB.managerMSSQLConn;
+            //}
 
-            if (v.active_DB.runDBaseNo == v.dBaseNo.UstadCrm)
-            {
-                vt.DBaseNo = v.active_DB.ustadCrmDBaseNo;
-                vt.DBaseType = v.active_DB.ustadCrmDBType;
-                vt.DBaseName = v.active_DB.ustadCrmDBName;
-                vt.msSqlConnection = v.active_DB.ustadCrmMSSQLConn;
-            }
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.UstadCrm)
+            //{
+            //    vt.DBaseNo = v.active_DB.ustadCrmDBaseNo;
+            //    vt.DBaseType = v.active_DB.ustadCrmDBType;
+            //    vt.DBaseName = v.active_DB.ustadCrmDBName;
+            //    vt.msSqlConnection = v.active_DB.ustadCrmMSSQLConn;
+            //}
 
-            if (v.active_DB.runDBaseNo == v.dBaseNo.Project)
-            {
-                vt.DBaseNo = v.active_DB.projectDBaseNo;
-                vt.DBaseType = v.active_DB.projectDBType;
-                vt.DBaseName = v.active_DB.projectDBName;
-                vt.msSqlConnection = v.active_DB.projectMSSQLConn;
-            }
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.Project)
+            //{
+            //    vt.DBaseNo = v.active_DB.projectDBaseNo;
+            //    vt.DBaseType = v.active_DB.projectDBType;
+            //    vt.DBaseName = v.active_DB.projectDBName;
+            //    vt.msSqlConnection = v.active_DB.projectMSSQLConn;
+            //}
 
-            if (v.active_DB.runDBaseNo == v.dBaseNo.NewDatabase)
-            {
-                vt.DBaseNo = v.newFirm_DB.dBaseNo;
-                vt.DBaseType = v.newFirm_DB.dBType;
-                vt.DBaseName = v.newFirm_DB.databaseName;
-                vt.msSqlConnection = v.newFirm_DB.MSSQLConn;
-            }
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.NewDatabase)
+            //{
+            //    vt.DBaseNo = v.newFirm_DB.dBaseNo;
+            //    vt.DBaseType = v.newFirm_DB.dBType;
+            //    vt.DBaseName = v.newFirm_DB.databaseName;
+            //    vt.msSqlConnection = v.newFirm_DB.MSSQLConn;
+            //}
 
-            if (vt.SchemasCode == "")
-                vt.SchemasCode = "dbo";
-            */
+            //if (vt.SchemasCode == "")
+            //    vt.SchemasCode = "dbo";
+            //*/
             preparingVTable(vt);
 
             if (vt.DBaseType == v.dBaseType.MSSQL)
@@ -684,39 +684,39 @@ namespace Tkn_CreateDatabase
             bool onay = false;
             String Sql = "";
             DataSet ds = new DataSet();
-            /*
-            if (v.active_DB.runDBaseNo == v.dBaseNo.Manager)
-            {
-                vt.DBaseNo = v.active_DB.managerDBaseNo;
-                vt.DBaseType = v.active_DB.managerDBType;
-                vt.DBaseName = v.active_DB.managerDBName;
-                vt.msSqlConnection = v.active_DB.managerMSSQLConn;
-            }
+            ///*
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.Manager)
+            //{
+            //    vt.DBaseNo = v.active_DB.managerDBaseNo;
+            //    vt.DBaseType = v.active_DB.managerDBType;
+            //    vt.DBaseName = v.active_DB.managerDBName;
+            //    vt.msSqlConnection = v.active_DB.managerMSSQLConn;
+            //}
 
-            if (v.active_DB.runDBaseNo == v.dBaseNo.UstadCrm)
-            {
-                vt.DBaseNo = v.active_DB.ustadCrmDBaseNo;
-                vt.DBaseType = v.active_DB.ustadCrmDBType;
-                vt.DBaseName = v.active_DB.ustadCrmDBName;
-                vt.msSqlConnection = v.active_DB.ustadCrmMSSQLConn;
-            }
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.UstadCrm)
+            //{
+            //    vt.DBaseNo = v.active_DB.ustadCrmDBaseNo;
+            //    vt.DBaseType = v.active_DB.ustadCrmDBType;
+            //    vt.DBaseName = v.active_DB.ustadCrmDBName;
+            //    vt.msSqlConnection = v.active_DB.ustadCrmMSSQLConn;
+            //}
 
-            if (v.active_DB.runDBaseNo == v.dBaseNo.Project)
-            {
-                vt.DBaseNo = v.active_DB.projectDBaseNo;
-                vt.DBaseType = v.active_DB.projectDBType;
-                vt.DBaseName = v.active_DB.projectDBName;
-                vt.msSqlConnection = v.active_DB.projectMSSQLConn;
-            }
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.Project)
+            //{
+            //    vt.DBaseNo = v.active_DB.projectDBaseNo;
+            //    vt.DBaseType = v.active_DB.projectDBType;
+            //    vt.DBaseName = v.active_DB.projectDBName;
+            //    vt.msSqlConnection = v.active_DB.projectMSSQLConn;
+            //}
 
-            if (v.active_DB.runDBaseNo == v.dBaseNo.NewDatabase)
-            {
-                vt.DBaseNo = v.newFirm_DB.dBaseNo;
-                vt.DBaseType = v.newFirm_DB.dBType;
-                vt.DBaseName = v.newFirm_DB.databaseName;
-                vt.msSqlConnection = v.newFirm_DB.MSSQLConn;
-            }
-            */
+            //if (v.active_DB.runDBaseNo == v.dBaseNo.NewDatabase)
+            //{
+            //    vt.DBaseNo = v.newFirm_DB.dBaseNo;
+            //    vt.DBaseType = v.newFirm_DB.dBType;
+            //    vt.DBaseName = v.newFirm_DB.databaseName;
+            //    vt.msSqlConnection = v.newFirm_DB.MSSQLConn;
+            //}
+            //*/
             preparingVTable(vt);
 
             if (vt.DBaseType == v.dBaseType.MSSQL)

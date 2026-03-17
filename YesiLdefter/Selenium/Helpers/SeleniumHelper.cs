@@ -47,10 +47,11 @@ namespace YesiLdefter.Selenium.Helpers
                 {
                     try { process.Kill(); } catch { }
                 }
-                foreach (var process in Process.GetProcessesByName("chrome"))
-                {
-                    try { process.Kill(); } catch { }
-                }
+                // Açık kalan Chrome tarayıcılarını kapatmak isterseniz aşağıdaki kodu da ekleyebilirsiniz. Ancak bu, bilgisayarınızda açık olan tüm Chrome tarayıcılarını kapatır, bu yüzden dikkatli kullanın.
+                //foreach (var process in Process.GetProcessesByName("chrome"))
+                //{
+                //    try { process.Kill(); } catch { }
+                //}
             }
             catch (Exception) { _driver = null; }
         }

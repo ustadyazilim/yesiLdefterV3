@@ -158,6 +158,50 @@ namespace YesiLdefter
 
         private void Ms_User_Standalone_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (this.DialogResult == DialogResult.OK)
+            {
+                v.SP_ApplicationExit = false;
+                return;
+            }
+            // If the user clicked the window close button, request application exit immediately
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                try
+                {
+                    // suppress confirmation dialogs elsewhere
+                    v.SP_ApplicationExit = true;
+                }
+                catch { }
+
+                // Request exit via main form so Exit runs on UI thread after current handlers
+                Form mainForm = (Application.OpenForms.Count > 0) ? Application.OpenForms[0] : this;
+                System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] User requested close - initiating app exit");
+
+                try
+                {
+                    // Prefer closing the main form first; this will drive normal shutdown flow.
+                    if (mainForm != null && mainForm.IsHandleCreated)
+                    {
+                        mainForm.BeginInvoke((MethodInvoker)(() =>
+                        {
+                            try { mainForm.Close(); } catch { }
+                        }));
+                    }
+                    else
+                    {
+                        // If no main form handle, fallback to requesting exit
+                        Tkn.AppExitManager.RequestExit(mainForm);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("[ms_User_Standalone] Error invoking mainForm.Close(): " + ex.Message);
+                    try { Tkn.AppExitManager.RequestExit(mainForm); } catch { }
+                }
+
+                // Allow closing to proceed; AppExitManager will finish shutdown
+            }
+
             // Cleanup WebView2 resources
             if (htmlLayout != null && !htmlLayout.IsDisposed)
             {

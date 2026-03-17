@@ -225,7 +225,7 @@ namespace Tkn_Events
                         DialogResult cevap = t.mySoru("EXIT");
                         if (DialogResult.Yes == cevap)
                         {
-                            Application.Exit();
+                            Tkn.AppExitManager.RequestExit((Form)sender);
                         }
                     }
             }
@@ -464,7 +464,7 @@ namespace Tkn_Events
             //Application.OpenForms[0].Text = Application.OpenForms[0].Text + ";Show";
             if (v.SP_ApplicationExit)
             {
-                Application.Exit();
+                Tkn.AppExitManager.RequestExit((Form)sender);
                 return;
             }
 
@@ -480,16 +480,25 @@ namespace Tkn_Events
 
                     /// Exe Güncellendiyse
                     bool onay = exe.versionChecked((Form)sender);
-                    if (onay) 
-                        Application.Exit();
+                    if (onay)
+                    {
+                        // suppress confirmation in main_FormClosing
+                        v.SP_ApplicationExit = true;
+                        Form mainForm = (Application.OpenForms.Count > 0) ? Application.OpenForms[0] : (Form)sender;
+                        Tkn.AppExitManager.RequestExit(mainForm);
+                        return;
+                    }
                 }
             }
                         
             if ((v.SP_UserLOGIN == false) &&
                 (v.SP_UserIN))
-                Application.Exit();
+            {
+                Tkn.AppExitManager.RequestExit((Form)sender);
+                return;
+            }
 
-            if (v.SP_ApplicationExit) Application.Exit();
+            if (v.SP_ApplicationExit) { Tkn.AppExitManager.RequestExit((Form)sender); return; }
 
             v.formLastActiveControl = null;
 

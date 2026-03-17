@@ -194,6 +194,7 @@ namespace YesiLdefter
             #region UserLOGIN
 
             System.Diagnostics.Debug.WriteLine($"[main.constructor] After InitStart: v.SP_UserLOGIN={v.SP_UserLOGIN}, this.IsMdiContainer={this.IsMdiContainer}, Application.OpenForms.Count={Application.OpenForms.Count}");
+
             if (v.SP_UserLOGIN)
             {
                 // application set skins
@@ -1108,7 +1109,7 @@ namespace YesiLdefter
                         DialogResult cevap = t.mySoru("EXIT");
                         if (DialogResult.Yes == cevap)
                         {
-                            Application.Exit();
+                            Tkn.AppExitManager.RequestExit((Form)sender);
                         }
                     }
             }
@@ -1171,3 +1172,4 @@ namespace YesiLdefter
         */
     }
 }
+

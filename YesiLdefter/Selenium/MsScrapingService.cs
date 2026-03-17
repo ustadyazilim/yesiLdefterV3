@@ -1308,6 +1308,9 @@ namespace YesiLdefter.Selenium
         }
         #endregion getHtmlTable
 
+        #region SelectCalendarDate
+        // Mevcut takvim kontrolünde istenen tarihe gelene kadar ileri geri yaparak istenen tarihe gelmeye çalışır
+        // SRC Teorik ders programındaki takvim kontrolünde kullanıldı, diğer sayfalarda da benzer takvim kontrolleri var ise kullanılabilir
         public bool SelectCalendarDate(IWebDriver wb, string calendarId, string writeValue, int maxTries = 24)
         {
             if (!DateTime.TryParseExact(writeValue, "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime target))
@@ -1514,6 +1517,7 @@ namespace YesiLdefter.Selenium
 
             return false;
         }
+        #endregion SelectCalendarDate
 
         #region postHtmlTable
         // database üzerindeki tabloyu bul ve gönderilecek colums/kolonları oku 
@@ -1830,7 +1834,8 @@ namespace YesiLdefter.Selenium
                                 }
 
                                 // Select by the actual option value we found
-                                oSelect.SelectByValue(matchValue);
+                                //oSelect.SelectByValue(matchValue);
+                                oSelect.SelectByValue(writeValue);
                             }
                             else
                             {
@@ -2221,7 +2226,6 @@ namespace YesiLdefter.Selenium
         }
         */
         #endregion invokeMemberExec
-
 
         #region GIBDownloadFiles
         private async Task GIBDownloadFiles(webNodeValue wnv)

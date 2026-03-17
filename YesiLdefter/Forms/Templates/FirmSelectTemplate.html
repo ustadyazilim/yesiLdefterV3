@@ -118,9 +118,33 @@
       box-shadow: var(--shadow-card-hover);
       border-color: rgba(41, 92, 0, 0.12);
     }
+    /* explicit hover class for programmatic hover (used by keyboard and host messages) */
+    .card.hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+      border-color: rgba(41, 92, 0, 0.12);
+      background: linear-gradient(180deg, rgba(41,92,0,0.02), transparent);
+    }
+    /* keyboard focus styling */
+    .card:focus {
+      outline: 3px solid rgba(41,92,0,0.12);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
     .card.selected {
-      border-color: var(--primary);
-      box-shadow: 0 8px 24px rgba(41,92,0,0.15);
+      /* prominent orange selection for accessibility and visibility */
+      border-color: #ff9800;
+      box-shadow: 0 12px 28px rgba(255,152,0,0.18);
+      background: linear-gradient(180deg, rgba(255,152,0,0.03), rgba(255,152,0,0.01));
+      transform: translateY(-4px);
+    }
+    .card.selected .card-title {
+      color: #b45309; /* darker orange for title when selected */
+    }
+    .card.selected .badge {
+      background: rgba(255,152,0,0.12);
+      color: #b45309;
+      font-weight: 800;
     }
     .card.mtsk {
       border-left: 3px solid #295c00;
@@ -496,7 +520,11 @@
         
         const card = document.createElement('div');
         card.className = 'card' + (isSelected ? ' selected' : '') + (isMtsk ? ' mtsk' : isSrc ? ' src' : '');
-        card.onclick = () => selectFirm(firmGuid);
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.dataset.firmGuid = firmGuid;
+
+        // Build inner content
         card.innerHTML = `
           <h3 class='card-title'>${escapeHtml(f.FirmLongName || f.FirmShortName || 'Firma')}</h3>
           <div class='row'>
@@ -505,6 +533,43 @@
           </div>
           <p class='muted'>DB: ${censorSensitiveInfo(f.DatabaseName)}</p>
         `;
+
+        // Mouse interactions
+        card.addEventListener('click', () => selectFirm(firmGuid));
+        card.addEventListener('mouseenter', () => {
+          card.classList.add('hover');
+          post({ action: 'firm-hover', firmGUID: firmGuid });
+        });
+        card.addEventListener('mouseleave', () => {
+          card.classList.remove('hover');
+          post({ action: 'firm-unhover', firmGUID: firmGuid });
+        });
+
+        // Keyboard interactions: Arrow keys to move, Enter/Space to select
+        card.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            selectFirm(firmGuid);
+            return;
+          }
+          if (ev.key === 'ArrowDown' || ev.key === 'ArrowRight') {
+            ev.preventDefault();
+            const next = card.nextElementSibling;
+            if (next && next.classList.contains('card')) next.focus();
+            return;
+          }
+          if (ev.key === 'ArrowUp' || ev.key === 'ArrowLeft') {
+            ev.preventDefault();
+            const prev = card.previousElementSibling;
+            if (prev && prev.classList.contains('card')) prev.focus();
+            return;
+          }
+        });
+
+        // Ensure hover/focus visual stays when using keyboard
+        card.addEventListener('focus', () => card.classList.add('hover'));
+        card.addEventListener('blur', () => card.classList.remove('hover'));
+
         grid.appendChild(card);
       });
 
@@ -915,21 +980,9 @@
         
         render();
         
-        // If a firm is auto-selected, generate QR code
-        if (state.lastFirmId) {
-          const lastFirm = state.firms.find(f => f.FirmId === state.lastFirmId);
-          console.log('[FirmSelect] Auto-selecting last firm:', lastFirm);
-          if (lastFirm && lastFirm.FirmGUID) {
-            setTimeout(() => {
-              console.log('[FirmSelect] Calling selectFirm for auto-selected firm:', lastFirm.FirmGUID);
-              selectFirm(lastFirm.FirmGUID);
-            }, 100);
-          } else {
-            console.warn('[FirmSelect] Last firm not found or missing FirmGUID');
-          }
-        } else {
-          console.log('[FirmSelect] No lastFirmId, skipping auto-selection');
-        }
+        // Do not auto-select the first/any firm here. The host will call
+        // `__ustadHighlightFirm` when it wants to highlight a saved selection.
+        console.log('[FirmSelect] Auto-selection disabled in template; awaiting host highlight.');
         console.log('[FirmSelect] ===== __ustadShowFirmSelection END =====');
       } catch (e) {
         console.error('[FirmSelect] Error in __ustadShowFirmSelection:', e);

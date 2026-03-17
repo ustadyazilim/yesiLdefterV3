@@ -458,8 +458,6 @@ namespace YesiLdefter
                 //if (((DevExpress.XtraBars.Navigation.TileNavItem)sender).Name == buttonInsertPaketOlustur) InsertPaketOlustur();
             }
         }
-
-
         public async void myTileView_ItemClick(object sender, DevExpress.XtraGrid.Views.Tile.TileViewItemClickEventArgs e)
         {
             if (t.IsNotNull(ds_MsWebPages) == false) return;
@@ -640,7 +638,6 @@ namespace YesiLdefter
             //this.btn_SiraliIslem = this.workPageNodes_.siraliIslem_Btn;
         }
         
-
         #endregion Form preparing
         /// 
         /// Userın kullanığı butonlar
@@ -1305,7 +1302,6 @@ namespace YesiLdefter
             }
             catch { return false; }
         }
-
         private async Task<bool> myPageViewClickAsync(IWebDriver wb, List<MsWebPage> msWebPage)
         {
             bool driverAlive = IsDriverAlive(wb);

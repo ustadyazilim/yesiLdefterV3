@@ -32,7 +32,9 @@ namespace YesiLdefter
             // 
             // ms_User_Standalone
             // 
-            this.ClientSize = new System.Drawing.Size(392, 438);
+            this.ClientSize = new System.Drawing.Size(721, 486);
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.Name = "ms_User_Standalone";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.ResumeLayout(false);

@@ -532,6 +532,7 @@
     <Compile Include="Selenium\MsWebPagesService.cs" />
     <Compile Include="Selenium\SeleniumService.cs" />
     <Compile Include="tForms.cs" />
+    <Compile Include="Tkn\AppExitManager.cs" />
     <Compile Include="Tkn\tImageHelper.cs" />
     <Compile Include="Tkn\tImageService.cs" />
     <Compile Include="Tkn\EventsMenu.cs" />

@@ -9,6 +9,9 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using Newtonsoft.Json;
 using Tkn_UstadAPI;
+using Tkn_Registry;
+using Tkn_Variable;
+using System.Threading.Tasks;
 
 namespace YesiLdefter
 {
@@ -22,6 +25,9 @@ namespace YesiLdefter
         private readonly WebView2 _webView;
         private readonly string _userGUID;
         private readonly string _apiBaseUrl;
+        private int? _lastSelectedFirmId;
+        // guard to ensure we only post the highlight message once after the page is ready
+        private bool _highlightPosted = false;
         public UstadApiClient.FirmInfo SelectedFirm { get; private set; }
 
       public ms_UserFirmSelect(IList<UstadApiClient.FirmInfo> firms, string userGUID = null, string apiBaseUrl = null)
@@ -44,6 +50,22 @@ namespace YesiLdefter
             };
             Controls.Add(_webView);
             Load += OnLoadAsync;
+            this.FormClosing += Ms_UserFirmSelect_FormClosing;
+        }
+
+        private void Ms_UserFirmSelect_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // If dialog was closed because the user confirmed a firm selection, do nothing
+            if (this.DialogResult == DialogResult.OK)
+            {
+                v.SP_ApplicationExit = false;
+                return;
+            }
+            // Otherwise, if user closed the dialog (or closed programmatically without OK),
+            // request full application exit so behavior matches clicking the top-right X on main UI.
+            try { v.SP_ApplicationExit = true; } catch { }
+            Form mainForm = (Application.OpenForms.Count > 0) ? Application.OpenForms[0] : this;
+            Tkn.AppExitManager.RequestExit(mainForm);
         }
 
         private async void OnLoadAsync(object sender, EventArgs e)
@@ -53,6 +75,46 @@ namespace YesiLdefter
                 var env = await CoreWebView2Environment.CreateAsync();
                 await _webView.EnsureCoreWebView2Async(env);
                 _webView.CoreWebView2.WebMessageReceived += WebMessageReceived;
+
+                // Use NavigationCompleted -> ExecuteScriptAsync handshake to call the page-side
+                // `__ustadHighlightFirm` function (the template exposes a host-callable contract).
+                // This ensures the JS function is defined before we invoke it.
+                _webView.CoreWebView2.NavigationCompleted += async (s, args) =>
+                {
+                    try
+                    {
+                        if (_highlightPosted) return;
+                        if (!this._lastSelectedFirmId.HasValue) return;
+
+                        // find matching firm GUID for the saved numeric id
+                        var id = this._lastSelectedFirmId.Value;
+                        var firm = _firms.FirstOrDefault(f => f.FirmId == id);
+                        if (firm == null || string.IsNullOrWhiteSpace(firm.FirmGUID)) return;
+
+                        string firmGuidEscaped = firm.FirmGUID.Replace("'", "\\'");
+
+                        // Wait for the page to expose the function up to a timeout
+                        var sw = System.Diagnostics.Stopwatch.StartNew();
+                        bool called = false;
+                        while (sw.ElapsedMilliseconds < 2000 && !called)
+                        {
+                            try
+                            {
+                                var eval = await _webView.ExecuteScriptAsync("typeof window.__ustadHighlightFirm === 'function'");
+                                if (eval != null && eval.Trim().ToLower().Contains("true"))
+                                {
+                                    await _webView.ExecuteScriptAsync($"window.__ustadHighlightFirm('{firmGuidEscaped}')");
+                                    called = true;
+                                    _highlightPosted = true;
+                                    break;
+                                }
+                            }
+                            catch { }
+                            await Task.Delay(100);
+                        }
+                    }
+                    catch { }
+                };
 
                 var html = BuildHtml();
                 _webView.NavigateToString(html);
@@ -68,7 +130,21 @@ namespace YesiLdefter
 
         private string BuildHtml()
         {
-               var initialPayload = new
+            // Determine last selected firm id from registry if present
+            int? lastFirmFromRegistry = null;
+            try
+            {
+                var reg = new tRegistry();
+                var val = reg.getRegistryValue("userLastFirm");
+                if (val != null)
+                {
+                    int vval;
+                    if (int.TryParse(val.ToString(), out vval)) lastFirmFromRegistry = vval;
+                }
+            }
+            catch { }
+
+            var initialPayload = new
             {
                 firms = _firms.Select(f => new
                 {
@@ -89,9 +165,13 @@ namespace YesiLdefter
                     f.SectorTypeId,
                     f.IsActive
                 }),
-                lastFirmId = _firms.FirstOrDefault(f => f.IsActive)?.FirmId,
+                // Only provide lastFirmId when a registry value exists. Do NOT fall back to the
+                // first active firm — that caused the UI to auto-select the first item.
+                lastFirmId = lastFirmFromRegistry,
                 userGUID = _userGUID
             };
+            // Remember the last selected id (may be null) so client code can try to highlight it.
+            this._lastSelectedFirmId = lastFirmFromRegistry;
 
             string initialJson = JsonConvert.SerializeObject(initialPayload);
 
@@ -191,6 +271,13 @@ namespace YesiLdefter
                         if (firm != null)
                         {
                             SelectedFirm = firm;
+                            // Persist last selected firm id so next open uses the same selection
+                            try
+                            {
+                                var reg = new tRegistry();
+                                reg.SetUstadRegistry("userLastFirm", firm.FirmId.ToString());
+                            }
+                            catch { }
                             DialogResult = DialogResult.OK;
                             Close();
                         }
@@ -207,6 +294,12 @@ namespace YesiLdefter
                         if (firm != null)
                         {
                             SelectedFirm = firm;
+                            try
+                            {
+                                var reg = new tRegistry();
+                                reg.SetUstadRegistry("userLastFirm", firm.FirmId.ToString());
+                            }
+                            catch { }
                             DialogResult = DialogResult.OK;
                             Close();
                         }
@@ -289,7 +382,9 @@ namespace YesiLdefter
             // 
             // ms_UserFirmSelect
             // 
-            this.ClientSize = new System.Drawing.Size(542, 490);
+            this.ClientSize = new System.Drawing.Size(713, 476);
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.Name = "ms_UserFirmSelect";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.ResumeLayout(false);
