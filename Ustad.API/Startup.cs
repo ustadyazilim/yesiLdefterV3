@@ -12,6 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Reflection;
 using System.IO;
+using System.Collections.Generic;
 /* JWT Namespace */
 using Newtonsoft.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -50,26 +51,31 @@ namespace Ustad.API
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Title = "Ustad API",
-                    Version = "v1.6.2",
-                    Description = "Authentication and tenant management API for Ustad Web Platform v1.6.2",
+                    Version = "v1",
+                    Description = "Authentication, tenant resolution, and integration APIs for Ustad platform clients.",
                     Contact = new OpenApiContact
                     {
                         Name = "Ustad Development Team"
                     }
                 });
-                // NOTE(@Janberk): Include XML comments for better documentation
-                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                if (File.Exists(xmlPath))
+
+                c.CustomSchemaIds(type => type.FullName?.Replace("+", ".") ?? type.Name);
+                c.SupportNonNullableReferenceTypes();
+
+                // NOTE(@Janberk): Include XML comments from all app assemblies when available
+                var assemblyNames = new List<string>
                 {
-                    c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
-                }
-                else
+                    Assembly.GetExecutingAssembly().GetName().Name ?? "Ustad.API",
+                    typeof(Controllers.AuthController).Assembly.GetName().Name ?? "Ustad.API"
+                };
+
+                foreach (var assemblyName in assemblyNames.Distinct())
                 {
-                    var altXmlPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "bin", "Debug", "net8.0", xmlFile);
-                    if (File.Exists(altXmlPath))
+                    var xmlFile = $"{assemblyName}.xml";
+                    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                    if (File.Exists(xmlPath))
                     {
-                        c.IncludeXmlComments(altXmlPath, includeControllerXmlComments: true);
+                        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
                     }
                 }
                 // NOTE(@Janberk): Add JWT Bearer authentication definition

@@ -17,6 +17,33 @@ namespace Ustad.API.Controllers
     [Route("api/core/tenant")]
     public class TenantController : ControllerBase
     {
+        /// <summary>
+        /// Tenant resolve success payload.
+        /// </summary>
+        public class TenantResolveResponse
+        {
+            /// <summary>
+            /// Resolved tenant database name.
+            /// </summary>
+            public string DbName { get; set; } = string.Empty;
+        }
+
+        /// <summary>
+        /// Error payload returned by tenant endpoints.
+        /// </summary>
+        public class TenantErrorResponse
+        {
+            /// <summary>
+            /// Machine-readable or user-facing error.
+            /// </summary>
+            public string Error { get; set; } = string.Empty;
+
+            /// <summary>
+            /// Optional diagnostics.
+            /// </summary>
+            public string? Details { get; set; }
+        }
+
         private readonly IConfiguration _configuration;
         private readonly ILogger<TenantController> _logger;
         private readonly tVariables v = new tVariables();
@@ -33,13 +60,21 @@ namespace Ustad.API.Controllers
         /// </summary>
         /// <param name="firmGUID">Firm GUID identifier</param>
         /// <returns>Database name for the firm</returns>
+        /// <response code="200">Tenant database was resolved.</response>
+        /// <response code="400">The request is invalid (missing firmGUID).</response>
+        /// <response code="404">No active tenant database was found for firmGUID.</response>
+        /// <response code="500">A server or database error occurred.</response>
         [HttpGet("resolve")]
+        [ProducesResponseType(typeof(TenantResolveResponse), 200)]
+        [ProducesResponseType(typeof(TenantErrorResponse), 400)]
+        [ProducesResponseType(typeof(TenantErrorResponse), 404)]
+        [ProducesResponseType(typeof(TenantErrorResponse), 500)]
         public IActionResult ResolveTenant([FromQuery] string firmGUID)
         {
             if (string.IsNullOrWhiteSpace(firmGUID))
             {
                 _logger.LogWarning("[TenantController] ResolveTenant called with empty firmGUID");
-                return BadRequest(new { error = "firmGUID is required" });
+                return BadRequest(new TenantErrorResponse { Error = "firmGUID is required" });
             }
 
             try
@@ -77,22 +112,30 @@ namespace Ustad.API.Controllers
                 if (string.IsNullOrWhiteSpace(dbName))
                 {
                     _logger.LogWarning("[TenantController] No database found for firmGUID: {FirmGUID}", firmGUID);
-                    return NotFound(new { error = $"No active database found for firmGUID: {firmGUID}" });
+                    return NotFound(new TenantErrorResponse { Error = $"No active database found for firmGUID: {firmGUID}" });
                 }
 
                 _logger.LogInformation("[TenantController] Resolved firmGUID {FirmGUID} to database {DbName}", firmGUID, dbName);
 
-                return Ok(new { dbName = dbName });
+                return Ok(new TenantResolveResponse { DbName = dbName });
             }
             catch (SqlException ex)
             {
                 _logger.LogError(ex, "[TenantController] Database error resolving firmGUID: {FirmGUID}", firmGUID);
-                return StatusCode(500, new { error = "Database error occurred", details = ex.Message });
+                return StatusCode(500, new TenantErrorResponse
+                {
+                    Error = "Database error occurred",
+                    Details = ex.Message
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[TenantController] Unexpected error resolving firmGUID: {FirmGUID}", firmGUID);
-                return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+                return StatusCode(500, new TenantErrorResponse
+                {
+                    Error = "Internal server error",
+                    Details = ex.Message
+                });
             }
         }
     }

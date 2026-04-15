@@ -8,10 +8,40 @@ using Ustad.API.Variables;
 
 namespace Ustad.API.Controllers
 {
+    /// <summary>
+    /// Core platform endpoints.
+    /// </summary>
     [ApiController]
     [Route("api/core")]
     public class CoreController : ControllerBase
     {
+        /// <summary>
+        /// Tenant resolution success payload.
+        /// </summary>
+        public class TenantResolveResponse
+        {
+            /// <summary>
+            /// Resolved database name for the tenant.
+            /// </summary>
+            public string DbName { get; set; } = string.Empty;
+        }
+
+        /// <summary>
+        /// Error payload returned by core endpoints.
+        /// </summary>
+        public class CoreErrorResponse
+        {
+            /// <summary>
+            /// Machine-readable or user-facing error message.
+            /// </summary>
+            public string Error { get; set; } = string.Empty;
+
+            /// <summary>
+            /// Extra diagnostic details when available.
+            /// </summary>
+            public string? Details { get; set; }
+        }
+
         private readonly IConfiguration _configuration;
         private readonly tVariables v = new tVariables();
 
@@ -22,14 +52,24 @@ namespace Ustad.API.Controllers
 
         /// <summary>
         /// Resolves database name from firmGUID
-        /// Used by Go API for tenant resolution
+        /// Used by Go API for tenant resolution.
+        /// This route is legacy and kept for backward compatibility.
         /// </summary>
-        [HttpGet("tenant/resolve")]
+        /// <param name="firmGUID">Tenant firm GUID.</param>
+        /// <returns>Resolved tenant database name.</returns>
+        /// <response code="200">Tenant database name was resolved.</response>
+        /// <response code="400">The request is invalid (missing firmGUID).</response>
+        /// <response code="500">An internal error occurred while resolving tenant.</response>
+        [HttpGet("tenant/resolve-legacy")]
+        [Obsolete("Use GET /api/core/tenant/resolve instead.")]
+        [ProducesResponseType(typeof(TenantResolveResponse), 200)]
+        [ProducesResponseType(typeof(CoreErrorResponse), 400)]
+        [ProducesResponseType(typeof(CoreErrorResponse), 500)]
         public IActionResult ResolveTenant([FromQuery] string firmGUID)
         {
             if (string.IsNullOrEmpty(firmGUID))
             {
-                return BadRequest(new { error = "firmGUID is required" });
+                return BadRequest(new CoreErrorResponse { Error = "firmGUID is required" });
             }
 
             try
@@ -90,11 +130,15 @@ namespace Ustad.API.Controllers
                     }
                 }
 
-                return Ok(new { dbName = dbName });
+                return Ok(new TenantResolveResponse { DbName = dbName });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = "Failed to resolve tenant", details = ex.Message });
+                return StatusCode(500, new CoreErrorResponse
+                {
+                    Error = "Failed to resolve tenant",
+                    Details = ex.Message
+                });
             }
         }
     }
